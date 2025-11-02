@@ -1,0 +1,68 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies
+node_modules
+
+# Build output
+dist
+dist-ssr
+*.local
+
+# Generated data files (auto-generated from CSV/source files)
+# DO NOT commit these - they are built by scripts
+data/tags.json
+data/characters.json
+data/missions.json
+
+# Keep source data files (human-editable)
+!data/tags.src.json
+!data-sources/*.csv
+!i18n/*.json
+
+# Testing
+coverage
+*.lcov
+.nyc_output
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Debug
+*.tsbuildinfo
