@@ -63,38 +63,57 @@ const conditionSchema = {
   additionalProperties: false,
 };
 
-// Reward schema (discriminated union)
+// Reward amount schema (min-max range)
+const rewardAmountSchema = {
+  type: "object",
+  properties: {
+    min: { type: "number", minimum: 0 },
+    max: { type: "number", minimum: 0 },
+  },
+  required: ["min", "max"],
+  additionalProperties: false,
+};
+
+// Reward schema
 const rewardSchema = {
-  oneOf: [
-    {
-      type: "object",
-      properties: {
-        type: { type: "string", const: "gold" },
-        amount: { type: "number", minimum: 0 },
-      },
-      required: ["type", "amount"],
-      additionalProperties: false,
+  type: "object",
+  properties: {
+    itemId: { type: "string", minLength: 1 },
+    amount: rewardAmountSchema,
+    category: {
+      type: "string",
+      enum: [
+        "currency",
+        "prize_egg",
+        "exp_character",
+        "exp_disc",
+        "tier_character",
+        "tier_disc",
+        "skill_cartridge",
+        "skill_piece",
+      ],
     },
-    {
-      type: "object",
-      properties: {
-        type: { type: "string", const: "item" },
-        id: { type: "string" },
-        amount: { type: "number", minimum: 1 },
-      },
-      required: ["type", "id", "amount"],
-      additionalProperties: false,
+  },
+  required: ["itemId", "amount"],
+  additionalProperties: false,
+};
+
+// Mission duration schema
+const missionDurationSchema = {
+  type: "object",
+  properties: {
+    hours: { type: "number", minimum: 1 },
+    rewards: {
+      type: "array",
+      items: rewardSchema,
     },
-    {
-      type: "object",
-      properties: {
-        type: { type: "string", const: "exp" },
-        amount: { type: "number", minimum: 0 },
-      },
-      required: ["type", "amount"],
-      additionalProperties: false,
+    bonusRewards: {
+      type: "array",
+      items: rewardSchema,
     },
-  ],
+  },
+  required: ["hours", "rewards", "bonusRewards"],
+  additionalProperties: false,
 };
 
 // Character schema
@@ -141,13 +160,14 @@ const missionSchema = {
       type: "array",
       items: conditionSchema,
     },
-    rewards: {
+    durations: {
       type: "array",
-      items: rewardSchema,
+      items: missionDurationSchema,
       minItems: 1,
+      maxItems: 4,
     },
   },
-  required: ["id", "name", "requiredLevel", "baseConditions", "rewards"],
+  required: ["id", "name", "requiredLevel", "baseConditions", "durations"],
   additionalProperties: false,
 };
 

@@ -238,6 +238,59 @@ async function convertCharacters(jaToId: Map<string, string>): Promise<void> {
 }
 
 /**
+ * Parse amount string with range support
+ * Examples: "13200" → {min: 13200, max: 13200}
+ *           "1~2" → {min: 1, max: 2}
+ *           "13200~" → {min: 13200, max: 13200}
+ */
+function parseAmount(amountStr: string): { min: number; max: number } {
+  const trimmed = amountStr.trim();
+
+  if (trimmed.includes("~")) {
+    const parts = trimmed.split("~");
+    const min = parseInt(parts[0], 10);
+    const max = parts[1] ? parseInt(parts[1], 10) : min;
+    return { min, max };
+  }
+
+  const value = parseInt(trimmed, 10);
+  return { min: value, max: value };
+}
+
+/**
+ * Parse reward string into Reward objects
+ * Format: "itemId:amount" or "itemId:min~max"
+ * Multiple rewards: "dorra:13200~|prize_egg:1~2"
+ */
+function parseRewards(rewardStr: string, missionId: string): any[] {
+  if (!rewardStr) return [];
+
+  const rewardStrings = rewardStr
+    .split("|")
+    .map((s: string) => s.trim())
+    .filter(Boolean);
+
+  const rewards = [];
+  for (const item of rewardStrings) {
+    const parts = item.split(":");
+    if (parts.length !== 2) {
+      throw new Error(
+        `Mission "${missionId}" has malformed reward "${item}". ` +
+        `Expected format: itemId:amount (e.g., "dorra:13200" or "prize_egg:1~2")`
+      );
+    }
+
+    const [itemId, amountStr] = parts;
+    rewards.push({
+      itemId,
+      amount: parseAmount(amountStr),
+    });
+  }
+
+  return rewards;
+}
+
+/**
  * Convert missions.csv to missions.json
  */
 async function convertMissions(jaToId: Map<string, string>): Promise<void> {
@@ -265,7 +318,7 @@ async function convertMissions(jaToId: Map<string, string>): Promise<void> {
       },
       requiredLevel: parseInt(row.requiredLevel, 10),
       baseConditions: [],
-      rewards: [],
+      durations: [],
     };
 
     // Add optional Chinese names
@@ -347,39 +400,30 @@ async function convertMissions(jaToId: Map<string, string>): Promise<void> {
       mission.bonusConditions = bonusConditions;
     }
 
-    // Parse rewards
-    if (row.rewards) {
-      const rewardStrings = row.rewards
-        .split("|")
-        .map((s: string) => s.trim())
-        .filter(Boolean);
+    // Parse duration options (up to 4 durations per mission)
+    for (let i = 1; i <= 4; i++) {
+      const hoursCol = `duration_${i}_hours`;
+      const rewardsCol = `duration_${i}_rewards`;
+      const bonusRewardsCol = `duration_${i}_bonus_rewards`;
 
-      for (const rewardStr of rewardStrings) {
-        const parts = rewardStr.split(":");
+      if (!row[hoursCol]) break; // No more durations
 
-        if (parts[0] === "gold") {
-          mission.rewards.push({
-            type: "gold",
-            amount: parseInt(parts[1], 10),
-          });
-        } else if (parts[0] === "item") {
-          mission.rewards.push({
-            type: "item",
-            id: parts[1],
-            amount: parseInt(parts[2], 10),
-          });
-        } else if (parts[0] === "exp") {
-          mission.rewards.push({
-            type: "exp",
-            amount: parseInt(parts[1], 10),
-          });
-        } else {
-          throw new Error(
-            `Mission "${row.id}" has unknown reward type "${parts[0]}". ` +
-            `Valid types: gold, item, exp`
-          );
-        }
-      }
+      const hours = parseInt(row[hoursCol], 10);
+      const rewards = parseRewards(row[rewardsCol] || "", row.id);
+      const bonusRewards = parseRewards(row[bonusRewardsCol] || "", row.id);
+
+      mission.durations.push({
+        hours,
+        rewards,
+        bonusRewards,
+      });
+    }
+
+    if (mission.durations.length === 0) {
+      throw new Error(
+        `Mission "${row.id}" has no duration options. ` +
+        `Please add at least one duration with duration_1_hours, duration_1_rewards columns.`
+      );
     }
 
     output.push(mission);

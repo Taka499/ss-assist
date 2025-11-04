@@ -55,12 +55,44 @@ export interface Condition {
 }
 
 /**
- * Reward types (discriminated union)
+ * Amount can be a fixed number or a range (min~max)
  */
-export type Reward =
-  | { type: "gold"; amount: number }
-  | { type: "item"; id: string; amount: number }
-  | { type: "exp"; amount: number };
+export interface RewardAmount {
+  min: number;
+  max: number;
+}
+
+/**
+ * Item categories for organization and display
+ */
+export type ItemCategory =
+  | "currency"          // dorra
+  | "prize_egg"        // prize_egg
+  | "exp_character"    // exp_trekkers_t1
+  | "exp_disc"         // exp_discs_t1
+  | "tier_character"   // tier-up_trekkers_*_t1
+  | "tier_disc"        // tier-up_discs_*_t1
+  | "skill_cartridge"   // skill_cartridge_*_t1
+  | "skill_piece";        // skill_piece_t1
+
+/**
+ * Reward types (discriminated union)
+ * All rewards use the same structure with an item ID and amount range
+ */
+export interface Reward {
+  itemId: string;
+  amount: RewardAmount;
+  category?: ItemCategory; // Optional category for UI grouping/display
+}
+
+/**
+ * Mission duration option with time and rewards
+ */
+export interface MissionDuration {
+  hours: number;
+  rewards: Reward[];
+  bonusRewards: Reward[];
+}
 
 /**
  * Mission data structure
@@ -71,7 +103,7 @@ export interface Mission {
   requiredLevel: number;
   baseConditions: Condition[];
   bonusConditions?: Condition[];
-  rewards: Reward[];
+  durations: MissionDuration[];
 }
 
 /**
