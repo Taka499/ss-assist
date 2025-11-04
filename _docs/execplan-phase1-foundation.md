@@ -65,6 +65,22 @@ After completing the initial implementation, we discovered that Google Sheets au
 
 **Benefit:** Data maintainers can now download CSV exports from Google Sheets and drop them directly into `data-sources/` without renaming. This reduces friction in the data update workflow and prevents errors from forgetting to rename files.
 
+### Mission Duration Options Discovery (2025-11-05)
+After populating the missions CSV with real game data, we discovered that missions support multiple time duration options (not just fixed rewards). Each mission allows players to choose from 2-4 different time durations, with rewards scaling accordingly.
+
+**Details:**
+- Most missions (m-001 to m-027): 4 duration options (4h, 8h, 12h, 20h)
+- Skill-based missions (m-028 to m-036): 2 duration options (12h, 20h)
+- Rewards scale with duration and support variable amounts (ranges like "1~2 items")
+
+**Solution:** Extended the data model and CSV structure to support multiple durations per mission. Each duration has its own hours, rewards, and bonusRewards. The CSV uses numbered columns (`duration_1_hours`, `duration_1_rewards`, `duration_1_bonus_rewards`, etc.) for up to 4 durations. Empty columns indicate fewer duration options.
+
+**Impact:**
+- TypeScript types: Added `MissionDuration` interface and `RewardAmount` for min-max ranges
+- CSV converter: Added `parseAmount()` and `parseRewards()` functions to handle range notation
+- Validation: Added schemas for duration arrays and reward amount ranges
+- Reward model simplified: Changed from discriminated union to single interface with `itemId` + `amount`
+
 
 ## Decision Log
 
@@ -93,12 +109,31 @@ After completing the initial implementation, we discovered that Google Sheets au
 - CSV converter now validates that IDs follow the pattern rather than generating them
 - Reduced overall complexity and external dependencies
 
+### 2025-11-05: Mission Duration Support
+
+**Decision:** Implement multiple duration options per mission with variable reward ranges instead of single fixed rewards.
+
+**Rationale:**
+1. Game mechanics allow players to choose mission duration (4h/8h/12h/20h for most, 12h/20h for skill missions)
+2. Rewards scale with duration, with some items having variable amounts
+3. Users need to compare duration options when optimizing mission assignments
+4. CSV structure should remain flat for easy editing in spreadsheet tools
+
+**Impact:**
+- Changed Mission interface from `rewards: Reward[]` to `durations: MissionDuration[]`
+- Added `RewardAmount` interface with min/max for range support (e.g., "1~2 items")
+- Simplified Reward from discriminated union to single interface: `{ itemId, amount, category? }`
+- CSV format expanded from 11 columns to 21 columns (20 duration-related columns)
+- Converter supports parsing range notation (`1~2`) and gracefully handles 2-4 durations per mission
+- Validation enforces 1-4 durations per mission with proper schema checks
+
 
 ## Outcomes & Retrospective
 
-**Completion Date:** 2025-11-03
+**Initial Completion Date:** 2025-11-03
+**Extended Features:** 2025-11-05 (Mission Duration Support)
 
-**Status:** ✅ All milestones completed successfully
+**Status:** ✅ All milestones completed successfully + mission duration feature extension
 
 ### What We Achieved
 
@@ -117,9 +152,17 @@ Phase 1 delivered a complete, working data pipeline for the Stella Sora Request 
 
 4. **Sample Dataset (Milestone 4):** Populated with real game data:
    - 32 tags across 5 categories (role, style, faction, element, rarity)
-   - 15 characters with multi-language names and complete tag assignments
-   - 6 missions with varying complexity, conditions, and rewards
+   - 26 characters with multi-language names and complete tag assignments
+   - 36 missions with varying complexity, conditions, and multiple duration options
    - 32 Simplified Chinese translations with idiomatic expressions
+
+5. **Mission Duration Feature (Extension):** Added support for multiple time duration options per mission:
+   - Type system extended with `MissionDuration` and `RewardAmount` interfaces
+   - CSV converter parses duration columns and reward range notation (e.g., "1~2")
+   - Validation schemas updated to handle 1-4 duration options per mission
+   - 27 standard missions with 4 durations (4h/8h/12h/20h)
+   - 9 skill-based missions with 2 durations (12h/20h)
+   - All rewards support variable amounts via min-max ranges
 
 ### Demonstrable Outcomes
 
@@ -128,8 +171,8 @@ The pipeline works end-to-end:
 ```bash
 $ npm run build:data
 ✓ Validated 32 tag IDs across 5 categories
-✓ Processed 15 characters
-✓ Processed 6 missions
+✓ Processed 26 characters
+✓ Processed 36 missions
 ✅ Data conversion completed successfully!
 
 $ npm run validate:data
@@ -162,6 +205,7 @@ All generated files are properly UTF-8 encoded and contain correctly transformed
 2. **Validate Early, Validate Often:** The validation script caught multiple issues during development
 3. **Clear Error Messages:** Investing time in error messages pays off during data maintenance
 4. **Test with Real Data:** Sample data revealed edge cases not apparent in minimal examples
+5. **Iterate on Design:** Starting with simplified assumptions (fixed mission rewards) and extending when real game mechanics emerge (duration options) is better than over-engineering upfront. The clean architecture made adding duration support straightforward.
 
 ### Next Steps
 
