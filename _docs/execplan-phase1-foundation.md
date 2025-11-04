@@ -58,6 +58,13 @@ When populating sample data files during Milestone 4, Claude Code's Write tool c
 
 **Best Practice:** For multi-language data files containing CJK characters, prefer bash heredoc or direct terminal input over programmatic file writing to ensure correct UTF-8 encoding.
 
+### Google Sheets CSV Naming Convention (2025-11-04)
+After completing the initial implementation, we discovered that Google Sheets automatically adds a prefix when downloading CSV files (format: "spreadsheet-name - sheet-name.csv"). To streamline the workflow and avoid manual file renaming, we adopted this convention.
+
+**Decision:** Renamed CSV files from `characters.csv` and `missions.csv` to `stellasora - characters.csv` and `stellasora - missions.csv`. Updated the conversion script (`scripts/csv-to-json.ts`) to expect files with this prefix.
+
+**Benefit:** Data maintainers can now download CSV exports from Google Sheets and drop them directly into `data-sources/` without renaming. This reduces friction in the data update workflow and prevents errors from forgetting to rename files.
+
 
 ## Decision Log
 
@@ -193,7 +200,7 @@ The work proceeds in four milestones, each building on the previous:
 
 **Milestone 2: Validation System** (✓ COMPLETED) - We implemented JSON Schema validation to catch data errors before deployment. Schemas define required fields, allowed value types, multi-language string structure, ID format validation (category-NNN pattern), and referential integrity (ensuring all tag IDs referenced by characters and missions exist in the tag dictionary). The validation runs automatically in CI/CD and can be run locally with npm run validate:data. We also fixed ES module compatibility by replacing CommonJS patterns with ES module syntax.
 
-**Milestone 3: Data Conversion Pipeline** (✓ COMPLETED) - We built the main converter script that orchestrates the entire data transformation. It reads tags.src.json (with manual IDs like "role-001"), validates ID format, merges Chinese translations from i18n files, outputs tags.json with all languages. Then it reads characters.csv and missions.csv, creates a reverse mapping (Japanese label → ID), replaces Japanese tag labels with their corresponding IDs, and outputs characters.json and missions.json. The script includes robust error handling for missing tags, invalid ID patterns, duplicate labels, and malformed CSV rows.
+**Milestone 3: Data Conversion Pipeline** (✓ COMPLETED) - We built the main converter script that orchestrates the entire data transformation. It reads tags.src.json (with manual IDs like "role-001"), validates ID format, merges Chinese translations from i18n files, outputs tags.json with all languages. Then it reads stellasora - characters.csv and stellasora - missions.csv, creates a reverse mapping (Japanese label → ID), replaces Japanese tag labels with their corresponding IDs, and outputs characters.json and missions.json. The script includes robust error handling for missing tags, invalid ID patterns, duplicate labels, and malformed CSV rows.
 
 **Milestone 4: Sample Dataset** - We populate source files with real game data to validate the entire pipeline. This includes approximately 15 characters (Kohaku, Minerva, and others from the design document), 6 missions with varying conditions, complete tag dictionary with 5 categories (each tag assigned a sequential ID like role-001, role-002), and Chinese translations for common tags. After running the pipeline, we verify the output JSON files are correctly formatted and can be loaded by the application.
 
@@ -327,7 +334,7 @@ For each category and tag entry:
 3. Add zh-Hans and zh-Hant fields if translations exist
 4. Output to data/tags.json in same format with translations merged
 
-**convertCharacters()** - Reads data-sources/characters.csv with format:
+**convertCharacters()** - Reads `data-sources/stellasora - characters.csv` with format:
 
     id,name_ja,name_zh-Hans,name_zh-Hant,icon,role,style,faction,element,rarity
     kohaku,コハク,琥珀,琥珀,assets/characters/kohaku.png,アタッカー,収集家,空白旅団,水,5
@@ -698,8 +705,8 @@ All paths are relative to repository root `/Users/ghensk/Developer/ss-assist`:
 
 - Source files (human-editable):
   - `data/tags.src.json` - Tag labels in Japanese only
-  - `data-sources/characters.csv` - Character data with multi-language names
-  - `data-sources/missions.csv` - Mission data with conditions and rewards
+  - `data-sources/stellasora - characters.csv` - Character data with multi-language names
+  - `data-sources/stellasora - missions.csv` - Mission data with conditions and rewards
   - `i18n/tags.zh-Hans.json` - Simplified Chinese translations
   - `i18n/tags.zh-Hant.json` - Traditional Chinese translations
 
