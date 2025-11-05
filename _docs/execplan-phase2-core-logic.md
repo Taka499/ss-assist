@@ -99,7 +99,71 @@ Bitwise OR operations collapse duplicates. We cannot distinguish between "1 Atta
 
 ## Outcomes & Retrospective
 
-(To be filled at completion)
+### Milestone 1 Retrospective (2025-11-05)
+
+**Status:** ✅ Completed successfully
+
+**What Was Achieved:**
+
+Milestone 1 delivered a complete hybrid validation system that combines bitmask optimization with count-based validation. The implementation successfully handles both simple tag presence requirements and complex counting requirements (e.g., "2 Attackers + 1 Balancer").
+
+**Key Accomplishments:**
+
+1. **Bitmask Infrastructure** - Implemented complete bitmask system with:
+   - `buildBitmaskLookup()` - Assigns unique bit positions per category (max 32 tags each)
+   - `characterToBitmask()` - Converts character tags to category-wise bitmasks
+   - `conditionToBitmask()` - Converts anyOf arrays to bitmasks (deduplicating)
+   - `mergeBitmasks()` - Combines character bitmasks via bitwise OR
+   - `satisfiesCondition()` and `satisfiesAllConditions()` - Fast O(1) checking for pruning
+
+2. **Count-Based Validation** - Implemented accurate validation functions:
+   - `buildConditionCounts()` - Parses anyOf arrays counting duplicates (e.g., `["role-002", "role-001", "role-002"]` → `{role-002: 2, role-001: 1}`)
+   - `satisfiesConditionWithCounts()` - Validates character combinations meet count requirements
+   - `satisfiesAllConditionsWithCounts()` - Main validation function for final combination checking
+
+3. **Comprehensive Testing** - Created 27 unit tests covering:
+   - Bitmask operations (bit allocation, conversion, merging, checking)
+   - Count-based validation (single counts, duplicates, insufficient counts, mixed tags)
+   - Edge cases (empty tags, empty conditions, no relevant tags)
+   - All tests passing with 100% success rate
+
+**Demonstrable Outcomes:**
+
+Running `npx vitest run src/lib/bitmask.test.ts` produces:
+```
+✓ src/lib/bitmask.test.ts  (27 tests) 3ms
+Test Files  1 passed (1)
+Tests      27 passed (27)
+```
+
+The hybrid system correctly handles:
+- Simple missions: "Need 1 Attacker OR 1 Balancer" → bitmask checking works
+- Count-based missions: "Need 2 Attackers + 1 Balancer" → count validation works
+- Performance: Bitmasks enable O(1) pruning in interactsWith checks (Milestone 3)
+
+**Challenges Encountered:**
+
+1. **File Encoding Issues** - The Write tool initially created test files with incorrect encoding (binary/Shift-JIS) causing Japanese characters to render incorrectly. Solution: Used bash heredoc to ensure proper UTF-8 encoding.
+
+2. **Critical Design Discovery** - During implementation, discovered that ~9 missions (all 上級 difficulty) require duplicate tags. This fundamentally changed the design from pure bitmask to hybrid approach. The discovery was caught early by reviewing real mission data.
+
+**What Worked Well:**
+
+- Early validation with real data prevented late-stage architectural changes
+- Clear separation of concerns: bitmasks for performance, counts for correctness
+- Comprehensive test coverage caught edge cases (e.g., characters with multiple tags in same category)
+- JSDoc documentation makes the hybrid approach clear to future developers
+
+**Lessons Learned:**
+
+1. **Validate Assumptions with Real Data Early** - Reviewing the actual mission CSV before implementing revealed the count requirement that pure bitmask couldn't handle
+2. **Hybrid Approaches Are Valid** - Don't force a single technique; combining bitmasks (performance) + counts (correctness) gives best of both worlds
+3. **File Encoding Matters in Multi-Language Projects** - Always verify UTF-8 encoding when working with CJK characters
+4. **Test Edge Cases Explicitly** - Tests for "all same tag" and "mixed tags" scenarios caught subtle bugs in count validation
+
+**Next Steps:**
+
+Milestone 1 provides a solid foundation. Next milestone (Data Loading) will use these validation functions to process real game data from Phase 1.
 
 
 ## Context and Orientation
