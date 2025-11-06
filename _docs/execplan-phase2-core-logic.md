@@ -24,13 +24,13 @@ The demonstrable outcome is: Create a Node.js test script that loads real missio
   - [x] Write comprehensive unit tests (27 tests covering both bitmask and count-based validation)
   - [x] All tests passing (100% pass rate)
 
-- [ ] Milestone 2: Build data loading and processing layer
-  - [ ] Create `src/lib/data.ts` with JSON loading functions
-  - [ ] Implement bitmask lookup table builder
-  - [ ] Implement tag resolution (ID to localized label)
-  - [ ] Implement character filtering utilities
-  - [ ] Write unit tests for data operations
-  - [ ] Verify data loading with real JSON files
+- [x] Milestone 2: Build data loading and processing layer (✅ Completed 2025-11-06)
+  - [x] Create `src/lib/data.ts` with JSON loading functions
+  - [x] Implement bitmask lookup table builder
+  - [x] Implement tag resolution (ID to localized label)
+  - [x] Implement character filtering utilities
+  - [x] Write unit tests for data operations (29 tests)
+  - [x] Verify data loading with real JSON files
 
 - [ ] Milestone 3: Implement combination search algorithm
   - [ ] Create `src/lib/combos.ts` with combination generator
@@ -164,6 +164,90 @@ The hybrid system correctly handles:
 **Next Steps:**
 
 Milestone 1 provides a solid foundation. Next milestone (Data Loading) will use these validation functions to process real game data from Phase 1.
+
+
+### Milestone 2 Retrospective (2025-11-06)
+
+**Status:** ✅ Completed successfully
+
+**What Was Achieved:**
+
+Milestone 2 delivered a complete data loading and processing layer that connects the JSON data files from Phase 1 to the bitmask validation system from Milestone 1. The implementation provides a clean, type-safe API for loading game data, resolving localized tag names, and filtering characters and missions.
+
+**Key Accomplishments:**
+
+1. **Data Loading Infrastructure** - Implemented complete data loading system with:
+   - `loadData()` - Async function using dynamic imports for efficient JSON loading
+   - `getTags()`, `getCharacters()`, `getMissions()`, `getBitmaskLookup()` - Getters with error handling
+   - `isDataLoaded()` - Status check function
+   - `resetData()` - Testing utility for clean test isolation
+
+2. **Tag Resolution System** - Implemented i18n-aware tag utilities:
+   - `resolveTagName(tagId, lang)` - Resolves tag IDs to localized labels (ja, zh-Hans, zh-Hant)
+   - `getTagsInCategory(category, lang)` - Returns all tags in a category with localized names
+   - Automatic fallback to Japanese when translation missing
+
+3. **Character Filtering** - Implemented flexible character query functions:
+   - `getCharactersByTag(tagId)` - Find characters with a specific tag
+   - `getCharactersByTags(tagIds)` - Find characters with ALL specified tags (AND logic)
+   - `getCharacterById(charId)` - Direct character lookup
+   - `getCharacterName(character, lang)` - Get localized character name
+
+4. **Mission Filtering** - Implemented mission query functions:
+   - `getMissionsByTag(tagId)` - Find missions requiring a specific tag (checks both base and bonus conditions)
+   - `getMissionsByLevel(minLevel, maxLevel?)` - Find missions in level range
+   - `getMissionById(missionId)` - Direct mission lookup
+   - `getMissionName(mission, lang)` - Get localized mission name
+
+5. **Comprehensive Testing** - Created 29 unit tests covering:
+   - Data loading and initialization
+   - Error handling when data not loaded
+   - Tag resolution in multiple languages (Japanese, Simplified Chinese)
+   - Character filtering (single tag, multiple tags, by ID)
+   - Mission filtering (by tag, by level, by ID)
+   - Integration tests verifying data consistency
+   - All tests passing with 100% success rate
+
+**Demonstrable Outcomes:**
+
+Running `npx vitest run src/lib/data.test.ts` produces:
+```
+✓ src/lib/data.test.ts  (29 tests) 21ms
+Test Files  1 passed (1)
+Tests      29 passed (29)
+```
+
+Running all lib tests together (`npx vitest run src/lib/`) shows:
+```
+✓ src/lib/bitmask.test.ts  (27 tests) 3ms
+✓ src/lib/data.test.ts     (29 tests) 22ms
+Test Files  2 passed (2)
+Tests      56 passed (56)
+```
+
+**Challenges Encountered:**
+
+1. **Type Definition Mismatch** - Initial implementation imported `BitmaskLookup` type from `types/index.ts`, but this conflicted with the more detailed type defined in `bitmask.ts` (using `Map<string, BitPosition>` vs. `Record<string, number>`). Solution: Import the `BitmaskLookup` type directly from `bitmask.ts` to use the actual implementation's type.
+
+2. **TypeScript Inference in Tests** - `Object.values(tags)` in test code didn't infer the correct type, causing implicit `any` errors. Solution: Add explicit type annotation `Object.values(tags).forEach((tagArray: TagEntry[])`.
+
+**What Worked Well:**
+
+- Module boundaries are clean: data.ts only depends on bitmask.ts and types, no circular dependencies
+- Error handling prevents accessing data before it's loaded with clear error messages
+- Integration tests verify consistency between tags, characters, and missions
+- Test isolation using beforeEach/afterEach with resetData() ensures clean test state
+- Real data validation: tests load actual JSON files (26 characters, 36 missions, 32 tags)
+
+**Lessons Learned:**
+
+1. **Import Type from Implementation, Not Spec** - When a module defines a complex type that differs from a simplified specification, import the implementation's type to avoid mismatches
+2. **Test with Real Data Early** - Loading actual JSON files in tests (not just mocks) catches data structure mismatches and validates the full pipeline
+3. **Explicit Type Annotations Help Inference** - When TypeScript can't infer types from `Object.values()` on dictionary types, explicit annotations make the code clearer anyway
+
+**Next Steps:**
+
+Milestone 2 provides complete data access infrastructure. Next milestone (Combination Search) will use these functions to load mission requirements and character rosters, then generate valid combinations using the hybrid bitmask + count validation from Milestone 1.
 
 
 ## Context and Orientation
