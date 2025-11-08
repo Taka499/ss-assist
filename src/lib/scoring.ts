@@ -80,7 +80,7 @@ export const LEVEL_MILESTONES = [10, 20, 30, 40, 50, 60, 70, 80, 90];
  */
 export function calculateTagRarity(
   characters: Character[],
-  tags: TagDict
+  _tags: TagDict
 ): Map<string, number> {
   const tagCounts = new Map<string, number>();
 
