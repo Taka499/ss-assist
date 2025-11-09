@@ -67,9 +67,9 @@ export function TrainRanking({ recommendations }: TrainRankingProps) {
                     Lv{rec.currentLevel} → Lv{rec.targetLevel}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
-                    {lang === 'ja' && `${rec.impact.missionsUnlocked}件解放、${rec.impact.bonusesAchieved}件追加報酬`}
-                    {lang === 'zh-Hans' && `解锁${rec.impact.missionsUnlocked}个委托，${rec.impact.bonusesAchieved}个额外奖励`}
-                    {lang === 'zh-Hant' && `解鎖${rec.impact.missionsUnlocked}個委託，${rec.impact.bonusesAchieved}個額外獎勵`}
+                    {lang === 'ja' && `${rec.impact.baseConditionsUnlocked}件解放、${rec.impact.bonusConditionsAdded}件追加報酬`}
+                    {lang === 'zh-Hans' && `解锁${rec.impact.baseConditionsUnlocked}个委托，${rec.impact.bonusConditionsAdded}个额外奖励`}
+                    {lang === 'zh-Hant' && `解鎖${rec.impact.baseConditionsUnlocked}個委託，${rec.impact.bonusConditionsAdded}個額外獎勵`}
                   </div>
                 </div>
 

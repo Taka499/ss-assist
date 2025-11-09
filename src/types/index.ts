@@ -135,13 +135,15 @@ export interface Combo {
  */
 export interface TrainingRecommendation {
   characterId: string;
+  characterName: string; // For display
   currentLevel: number;
   targetLevel: number;
-  impact: {
-    missionsUnlocked: number;
-    bonusesAchieved: number;
-  };
   score: number;
+  impact: {
+    baseConditionsUnlocked: number; // Missions that become satisfiable
+    bonusConditionsAdded: number; // Missions where bonus becomes achievable
+    affectedMissions: string[]; // Mission IDs impacted
+  };
 }
 
 /**

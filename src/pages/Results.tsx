@@ -1,7 +1,13 @@
-import { useEffect } from 'react';
-import { loadData, isDataLoaded, getMissionById } from '../lib/data';
+import { useEffect, useState } from 'react';
+import { loadData, isDataLoaded, getMissionById, getCharacters, getTags, getBitmaskLookup, getCharacterById } from '../lib/data';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useAppStore } from '../store/useAppStore';
+import { findCombinations, type CombinationSearchResult, type Combination } from '../lib/combos';
+import { calculateTrainingPriority, type TrainingRecommendation as LibTrainingRecommendation } from '../lib/scoring';
+import { ComboCard } from '../components/ComboCard';
+import { TrainHint } from '../components/TrainHint';
+import { TrainRanking } from '../components/TrainRanking';
+import type { Combo, Character } from '../types';
 
 interface ResultsProps {
   onNavigate: (page: string) => void;
@@ -9,13 +15,96 @@ interface ResultsProps {
 
 export function Results({ onNavigate }: ResultsProps) {
   const lang = useLanguageStore((state) => state.lang);
-  const { selectedMissionIds, ownedCharacterIds, clearOwnedCharacters, clearLevels, clearSelectedMissions } = useAppStore();
+  const { selectedMissionIds, ownedCharacterIds, characterLevels, clearOwnedCharacters, clearLevels, clearSelectedMissions } = useAppStore();
+
+  const [results, setResults] = useState<CombinationSearchResult[]>([]);
+  const [trainingPriority, setTrainingPriority] = useState<LibTrainingRecommendation[]>([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(true);
 
   useEffect(() => {
     if (!isDataLoaded()) {
       loadData().catch(console.error);
+      return;
     }
-  }, []);
+
+    // Perform analysis when data is loaded and selections exist
+    if (selectedMissionIds.length > 0) {
+      analyzeResults();
+    } else {
+      setIsAnalyzing(false);
+    }
+  }, [selectedMissionIds, ownedCharacterIds, characterLevels]);
+
+  const analyzeResults = () => {
+    setIsAnalyzing(true);
+
+    try {
+      const bitmaskLookup = getBitmaskLookup();
+      const allCharacters = getCharacters();
+      const tags = getTags();
+
+      // Get owned characters
+      const ownedCharacters = allCharacters.filter((char) =>
+        ownedCharacterIds.includes(char.id)
+      );
+
+      // Find combinations for each selected mission
+      const combinationResults: CombinationSearchResult[] = [];
+      const missions = [];
+
+      for (const missionId of selectedMissionIds) {
+        const mission = getMissionById(missionId);
+        if (!mission) continue;
+
+        missions.push(mission);
+        const result = findCombinations(
+          mission,
+          ownedCharacters,
+          characterLevels,
+          bitmaskLookup
+        );
+        combinationResults.push(result);
+      }
+
+      setResults(combinationResults);
+
+      // Calculate training priority across all selected missions
+      if (missions.length > 0 && ownedCharacters.length > 0) {
+        const priority = calculateTrainingPriority(
+          missions,
+          ownedCharacters,
+          characterLevels,
+          bitmaskLookup,
+          tags
+        );
+        setTrainingPriority(priority);
+      }
+    } catch (error) {
+      console.error('Error analyzing results:', error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Transform Combination to Combo for ComboCard
+  const transformCombination = (combination: Combination): Combo | null => {
+    const characters: Character[] = [];
+    for (const charId of combination.characterIds) {
+      const char = getCharacterById(charId);
+      if (char) characters.push(char);
+    }
+
+    if (characters.length !== combination.characterIds.length) {
+      return null; // Some characters not found
+    }
+
+    return {
+      characters,
+      satisfiesBase: combination.meetsBaseConditions,
+      satisfiesBonus: combination.meetsBonusConditions,
+      mask: 0, // Not used by ComboCard
+    };
+  };
 
   if (!isDataLoaded()) {
     return (
@@ -42,6 +131,17 @@ export function Results({ onNavigate }: ResultsProps) {
           {lang === 'ja' ? '依頼選択へ' :
             lang === 'zh-Hans' ? '前往选择委托' : '前往選擇委託'}
         </button>
+      </div>
+    );
+  }
+
+  if (isAnalyzing) {
+    return (
+      <div className="text-center py-12">
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
+        <p className="mt-4 text-gray-600">
+          {lang === 'ja' ? '分析中...' : lang === 'zh-Hans' ? '分析中...' : '分析中...'}
+        </p>
       </div>
     );
   }
@@ -77,62 +177,88 @@ export function Results({ onNavigate }: ResultsProps) {
         </div>
       </div>
 
-      {/* Summary */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-blue-900 mb-3">
-          {lang === 'ja' ? '選択情報' :
-            lang === 'zh-Hans' ? '选择信息' : '選擇信息'}
-        </h2>
-        <div className="space-y-2 text-sm">
-          <p>
-            <span className="font-medium">
-              {lang === 'ja' ? '所持キャラクター: ' :
-                lang === 'zh-Hans' ? '拥有角色: ' : '擁有角色: '}
-            </span>
-            {ownedCharacterIds.length}
-            {lang === 'ja' ? '人' : lang === 'zh-Hans' ? '个' : '個'}
-          </p>
-          <p>
-            <span className="font-medium">
-              {lang === 'ja' ? '選択した依頼: ' :
-                lang === 'zh-Hans' ? '选择的委托: ' : '選擇的委託: '}
-            </span>
-            {selectedMissionIds.length}
-            {lang === 'ja' ? '件' : lang === 'zh-Hans' ? '个' : '個'}
-          </p>
-        </div>
-      </div>
-
       {/* Mission Results */}
       <div className="space-y-6">
-        <h2 className="text-xl font-semibold">
-          {lang === 'ja' ? '選択した依頼' :
-            lang === 'zh-Hans' ? '已选择的委托' : '已選擇的委託'}
-        </h2>
-        {selectedMissionIds.map((missionId) => {
-          const mission = getMissionById(missionId);
+        {results.map((result) => {
+          const mission = getMissionById(result.missionId);
           if (!mission) return null;
 
+          // Filter training recommendations for this specific mission
+          const missionRecommendations = trainingPriority.filter(rec =>
+            rec.impact.affectedMissions.includes(result.missionId)
+          );
+
           return (
-            <div key={missionId} className="bg-white border border-gray-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold mb-2">
+            <div key={result.missionId} className="bg-white border border-gray-200 rounded-lg p-6">
+              <h2 className="text-xl font-semibold mb-4">
                 {mission.name[lang] || mission.name.ja}
-              </h3>
-              <p className="text-sm text-gray-600">
-                {lang === 'ja' ? `必要レベル: Lv${mission.requiredLevel}` :
-                  lang === 'zh-Hans' ? `所需等级: Lv${mission.requiredLevel}` :
-                    `所需等級: Lv${mission.requiredLevel}`}
-              </p>
-              <div className="mt-4 p-4 bg-gray-50 rounded-md">
-                <p className="text-sm text-gray-500 text-center">
-                  {lang === 'ja' ? '組み合わせ分析機能は現在開発中です' :
-                    lang === 'zh-Hans' ? '组合分析功能正在开发中' : '組合分析功能正在開發中'}
-                </p>
-              </div>
+              </h2>
+
+              {result.satisfiable ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-600">
+                    {lang === 'ja' ? `${result.combinations.length}件の組み合わせが見つかりました` :
+                      lang === 'zh-Hans' ? `找到${result.combinations.length}个组合` :
+                        `找到${result.combinations.length}個組合`}
+                  </p>
+
+                  <div className="space-y-3">
+                    {result.bestCombinations.slice(0, 5).map((combination, idx) => {
+                      const combo = transformCombination(combination);
+                      if (!combo) return null;
+
+                      return (
+                        <ComboCard
+                          key={idx}
+                          combo={combo}
+                          mission={mission}
+                          characterLevels={characterLevels}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {result.combinations.length > 5 && (
+                    <p className="text-sm text-gray-500 text-center">
+                      {lang === 'ja' ? `他 ${result.combinations.length - 5} 件の組み合わせ` :
+                        lang === 'zh-Hans' ? `还有 ${result.combinations.length - 5} 个组合` :
+                          `還有 ${result.combinations.length - 5} 個組合`}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-sm text-amber-600 mb-3">
+                    {lang === 'ja' ? '現在の編成では受注条件を満たせません' :
+                      lang === 'zh-Hans' ? '当前编队无法满足委托条件' :
+                        '當前編隊無法滿足委託條件'}
+                  </p>
+                  <TrainHint
+                    missionId={result.missionId}
+                    recommendations={missionRecommendations}
+                  />
+                </div>
+              )}
             </div>
           );
         })}
       </div>
+
+      {/* Training Priority Ranking */}
+      {trainingPriority.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-4">
+            {lang === 'ja' ? '育成優先度ランキング' :
+              lang === 'zh-Hans' ? '培养优先级排名' : '培養優先級排名'}
+          </h2>
+          <p className="text-sm text-gray-600 mb-4">
+            {lang === 'ja' ? '選択した依頼を効率的にクリアするための育成推奨' :
+              lang === 'zh-Hans' ? '为高效完成所选委托的培养建议' :
+                '為高效完成所選委託的培養建議'}
+          </p>
+          <TrainRanking recommendations={trainingPriority.slice(0, 10)} />
+        </div>
+      )}
     </div>
   );
 }

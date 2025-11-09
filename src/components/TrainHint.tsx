@@ -43,7 +43,7 @@ export function TrainHint({ missionId, recommendations }: TrainHintProps) {
                 {lang === 'ja' && `を Lv${rec.targetLevel} まで上げる`}
                 {lang === 'zh-Hans' && `升至 Lv${rec.targetLevel}`}
                 {lang === 'zh-Hant' && `升至 Lv${rec.targetLevel}`}
-                {rec.impact.bonusesAchieved > 0 && (
+                {rec.impact.bonusConditionsAdded > 0 && (
                   <span className="text-green-600">
                     {' → '}
                     {lang === 'ja' ? '追加報酬達成' : lang === 'zh-Hans' ? '额外奖励' : '額外獎勵'}
