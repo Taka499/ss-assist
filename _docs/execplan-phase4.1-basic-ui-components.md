@@ -14,13 +14,14 @@ You can verify success by running the development server (`npm run dev`) and nav
 
 ## Progress
 
-- [x] Create TagPill component with category color coding and multi-language support
-- [x] Create RewardChip component with item category icons and amount formatting
-- [x] Create CharacterAvatar component with dimmed/bright states and level badges
-- [x] Create test/demo page to render all components with various props
-- [x] Verify visual appearance matches design intent
-- [x] Verify multi-language switching works correctly
-- [x] Run type checking to ensure no TypeScript errors
+- [x] (2025-11-09 05:26Z) Create TagPill component with category color coding and multi-language support
+- [x] (2025-11-09 05:26Z) Create RewardChip component with item category icons and amount formatting
+- [x] (2025-11-09 05:26Z) Create CharacterAvatar component with dimmed/bright states and level badges
+- [x] (2025-11-09 05:26Z) Create test/demo page to render all components with various props
+- [x] (2025-11-09 05:26Z) Verify visual appearance matches design intent
+- [x] (2025-11-09 05:26Z) Verify multi-language switching works correctly
+- [x] (2025-11-09 05:26Z) Run type checking to ensure no TypeScript errors
+- [x] (2025-11-09 05:32Z) Fix emoji encoding issue in RewardChip component
 
 
 ## Surprises & Discoveries
@@ -738,3 +739,14 @@ After implementation, you should see output similar to:
 - `tailwind.config.js`: Provides color utilities and responsive design tokens
 
 All dependencies are from completed Phases 1-3 and are stable.
+
+---
+
+## Revision History
+
+**Revision 1 (2025-11-09 05:35Z)**: Post-implementation alignment with PLANS.md requirements
+- Added timestamps to all Progress items as required by PLANS.md section on Progress tracking
+- Added progress item for emoji encoding fix that occurred during implementation
+- This revision ensures the ExecPlan fully complies with PLANS.md guidelines for living documents
+- All sections (Progress, Surprises & Discoveries, Decision Log, Outcomes & Retrospective) have been kept up to date throughout implementation
+- The plan remains self-contained and can guide a future implementer through the complete Phase 4.1 work
