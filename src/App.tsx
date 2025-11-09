@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { loadData, isDataLoaded } from './lib/data';
-import { ComponentTest } from './pages/ComponentTest';
+import { FeatureTest } from './pages/FeatureTest';
 
 function App() {
   const [loading, setLoading] = useState(!isDataLoaded());
@@ -27,7 +27,7 @@ function App() {
     );
   }
 
-  return <ComponentTest />;
+  return <FeatureTest />;
 }
 
 export default App;
