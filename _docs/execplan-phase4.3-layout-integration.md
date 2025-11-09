@@ -116,37 +116,33 @@ Added "Clear Selection" button to MissionSelection page based on user feedback d
 2. **Test Data Management**: Need better dev tools for clearing/resetting localStorage during development
 3. **Incremental Integration**: Placeholder approach allowed shipping Phase 4.3 without being blocked by type issues
 
-### Remaining Work 🔧
-1. **Critical - Results Page Integration**:
-   - Reconcile TrainingRecommendation type between lib/scoring.ts and types/index.ts
-   - Integrate findCombinations() from lib/combos.ts
-   - Integrate calculateTrainingPriority() from lib/scoring.ts
-   - Wire up ComboCard, TrainHint, TrainRanking components with real data
-   - Display combination analysis results and training recommendations
+### Remaining Work
 
-2. **Optional Enhancements**:
-   - Dark mode toggle
-   - Data update date display in header
-   - Keyboard shortcuts for navigation
-   - Cross-browser testing (Firefox, Safari)
-   - Mobile device testing
-   - GitHub Pages deployment
+**Critical - Results Page Full Integration** (required for MVP):
 
-3. **Future Features** (Post-MVP):
-   - Advanced transitions and animations
-   - PWA offline support
-   - Share roster via URL
-   - Export/import functionality
+The Results page currently displays a placeholder implementation. To complete the core functionality, the following work remains:
 
-### Deployment Readiness
-- ✅ Production build successful
-- ✅ TypeScript compilation clean
-- ✅ Bundle size optimized
-- ✅ SEO meta tags complete
-- ⏳ Results page full functionality pending
-- ⏳ GitHub Pages deployment pending
+1. **Type Reconciliation** (estimated 30 minutes): The `TrainingRecommendation` interface has diverged between `src/lib/scoring.ts` (implementation) and `src/types/index.ts` (component contract). The implementation version includes `{ baseConditionsUnlocked, bonusConditionsAdded, affectedMissions }` while the component version expects `{ missionsUnlocked, bonusesAchieved }`. This must be reconciled - likely by updating `src/types/index.ts` to match the implementation and adjusting the TrainHint and TrainRanking components accordingly.
 
-**Status:** Phase 4.3 is **functionally complete** for basic workflow. Results page needs combination analysis integration for full MVP.
+2. **Integration of Combination Analysis** (estimated 1-1.5 hours): Import and call `findCombinations()` from `lib/combos.ts` for each selected mission. This function takes the mission, owned characters array, current levels record, and bitmask lookup. Store the `CombinationSearchResult` array in component state. Add loading state to show "analyzing" while computations run. Handle edge cases where no combinations exist.
+
+3. **Integration of Training Priority** (estimated 30 minutes): Import and call `calculateTrainingPriority()` from `lib/scoring.ts` with all selected missions, owned characters, levels, bitmask lookup, and tags. Store the resulting `TrainingRecommendation` array in state.
+
+4. **Component Wiring** (estimated 1-1.5 hours): Replace the placeholder mission cards with actual data flow. For each `CombinationSearchResult`, if `satisfiable` is true, map over `bestCombinations` and render a `ComboCard` for each with the combination data and mission. If not satisfiable, render `TrainHint` with the mission ID and filtered recommendations. At the bottom, render `TrainRanking` with the full priority list (top 10 recommendations).
+
+5. **Testing and Edge Cases** (estimated 30 minutes): Verify behavior with no owned characters, no selected missions, missions with no valid combinations, missions with many combinations, and performance with maximum data. Ensure localStorage persistence works correctly across page refreshes.
+
+**Total estimated effort:** 3-4 hours of focused work.
+
+**Optional Enhancements** (post-MVP): Dark mode toggle, data update date in header, keyboard shortcuts, comprehensive cross-browser testing (Firefox, Safari, Edge), mobile device testing (iOS Safari, Android Chrome), GitHub Pages deployment and verification.
+
+**Future Features** (beyond current scope): Advanced page transitions, PWA offline support, share roster via compressed URL, export/import functionality, mission cooldown tracking.
+
+### Summary
+
+Phase 4.3 delivers a complete application shell with working navigation, responsive layout, multi-language support, and full user workflow from character selection through mission selection to results display. All Phase 4.1 and 4.2 components integrate cleanly. The application builds successfully (173KB main bundle, 55KB gzipped), passes all type checks, and provides a functional end-to-end experience.
+
+The one critical gap is the Results page combination analysis integration, blocked by type system misalignment that emerged during integration. This represents approximately 3-4 hours of work to complete the MVP. Once resolved, the application will be feature-complete for its core use case: helping players find optimal character combinations for missions and providing training recommendations.
 
 
 ## Context and Orientation
