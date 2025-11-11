@@ -2,6 +2,10 @@
 
 A serverless web application to help players optimize character combinations for missions in Stella Sora game.
 
+## Live Demo
+
+🚀 **Coming Soon** - Will be available at GitHub Pages after first deployment
+
 ## Project Structure
 
 ```
@@ -97,8 +101,21 @@ npm run release
 
 ## Data Management
 
-- **Human-editable**: `data/tags.src.json`, `data-sources/*.csv`, `i18n/*.json`
-- **Auto-generated**: `data/*.json` (do not edit manually)
+### Source Files (Committed to Git)
+- `data/tags.src.json` - Tag dictionary source
+- `data-sources/*.csv` - Character and mission data
+- `i18n/*.json` - Translation files
+
+### Generated Files (Gitignored)
+- `data/tags.json` - Generated from tags.src.json
+- `data/characters.json` - Generated from CSV sources
+- `data/missions.json` - Generated from CSV sources
+
+**Important**: The `data/*.json` files are **gitignored** as they are build artifacts. They are automatically generated:
+- **During local development**: Run `npm run build:data` when CSV sources change
+- **During CI/CD**: GitHub Actions automatically runs `build:data` before deployment
+
+This approach treats generated data like compiled code (similar to `dist/`), keeping CSV files as the single source of truth and preventing duplication/sync issues.
 
 ## Deployment
 

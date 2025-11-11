@@ -64,13 +64,21 @@ npm run lint
 
 ### Data Management
 
-**Human-editable files:**
+**IMPORTANT**: The `data/*.json` files are **gitignored** as they are build artifacts.
+
+**Human-editable files (committed to repository):**
 - `data/tags.src.json` - Tag dictionary source
 - `data-sources/*.csv` - Character and mission data
 - `i18n/*.json` - Translation files
 
-**Auto-generated files (do not edit manually):**
-- `data/*.json` - Generated from CSV sources
+**Auto-generated files (gitignored - DO NOT commit):**
+- `data/tags.json` - Generated from tags.src.json
+- `data/characters.json` - Generated from CSV sources
+- `data/missions.json` - Generated from CSV sources
+
+These files are automatically generated during:
+- Local development (run manually when data changes)
+- GitHub Actions deployment (runs automatically in CI pipeline)
 
 ```bash
 # Generate JSON from CSV sources
@@ -79,6 +87,13 @@ npm run build:data
 # Validate generated JSON against schema
 npm run validate:data
 ```
+
+**Why are JSON files gitignored?**
+- Treats generated data as build artifacts (like dist/)
+- Maintains CSV files as single source of truth
+- Prevents duplication and sync issues
+- Cleaner git diffs (only shows changes to source CSVs)
+- CI/CD automatically rebuilds from sources
 
 ### Building and Preview
 
