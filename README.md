@@ -4,7 +4,7 @@ A serverless web application to help players optimize character combinations for
 
 ## Live Demo
 
-🚀 **Coming Soon** - Will be available at GitHub Pages after first deployment
+🚀 **Live at:** https://taka499.github.io/ss-assist/
 
 ## Project Structure
 
