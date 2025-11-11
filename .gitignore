@@ -15,6 +15,9 @@ dist
 dist-ssr
 *.local
 
+# Vite cache
+.vite
+
 # Generated data files (auto-generated from CSV/source files)
 # DO NOT commit these - they are built by scripts
 data/tags.json
