@@ -69,3 +69,15 @@ Desktop.ini
 
 # Debug
 *.tsbuildinfo
+
+# Tools - Screenshot Cropper
+tools/screenshot-cropper/temp/
+tools/screenshot-cropper/test_*.png
+tools/screenshot-cropper/test_output/
+tools/screenshot-cropper/debug_*.png
+tools/screenshot-cropper/.venv/
+tools/screenshot-cropper/__pycache__/
+tools/screenshot-cropper/*.pyc
+tools/screenshot-cropper/dist/
+tools/screenshot-cropper/build/
+tools/screenshot-cropper/*.spec

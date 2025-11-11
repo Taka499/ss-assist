@@ -1,0 +1,101 @@
+# Screenshot Cropper Configuration
+# This file defines page types and their grid layouts for cropping icons
+
+# Window detection settings
+window:
+  # Primary method: auto-detect by window title
+  auto_detect: true
+  # Window title to search for (partial match)
+  title_pattern: "StellaSora"
+  # Alternative: manual selection if auto-detect fails
+  allow_manual_selection: true
+
+# OCR settings for page detection
+ocr:
+  # Language codes for easyocr
+  languages: ["ja"]
+  # Region to extract for OCR (relative to window)
+  # Format: [x, y, width, height] in pixels
+  detection_region: [140, 50, 300, 50]
+  # Confidence threshold for OCR matches
+  confidence_threshold: 0.7
+
+# Page definitions
+pages:
+  # Character selection page (ホーム画面設定)
+  character_select:
+    # OCR text to match for this page type
+    ocr_match: "ホーム画面設定"
+    # Alternative matches (if text is slightly different)
+    ocr_alternatives:
+      - "ホーム画面"
+      - "画面設定"
+
+    # Grid layout for icon cropping
+    grid:
+      # Number of columns in the grid
+      columns: 3
+      # Number of visible rows (may vary)
+      rows: 5
+      # Top-left corner of the first icon (x, y)
+      start_x: 963
+      start_y: 151
+      # Size of each icon cell
+      cell_width: 146
+      cell_height: 146
+      # Spacing between cells
+      spacing_x: 4
+      spacing_y: 4
+      # Inner padding to crop (to remove borders)
+      crop_padding: 8
+
+    # Output settings
+    output:
+      # Category for output organization
+      category: "characters"
+      # Target directory (relative to project root)
+      target_dir: "public/assets/characters"
+      # Filename format: {number}.png where number is extracted from char-XXX
+      filename_pattern: "{number:03d}.png"
+      # CSV source for validation
+      csv_source: "data-sources/stellasora - characters.csv"
+
+  # Future page types can be added here
+  # Example:
+  # item_inventory:
+  #   ocr_match: "アイテム一覧"
+  #   grid:
+  #     columns: 4
+  #     rows: 3
+  #     ...
+  #   output:
+  #     category: "items"
+  #     target_dir: "public/assets/items"
+
+# Hotkey settings
+hotkey:
+  # Global hotkey to trigger screenshot capture
+  key: "F9"
+  # Modifier keys (optional): ctrl, shift, alt
+  modifiers: []
+
+# Deduplication settings
+deduplication:
+  # Enable perceptual hashing to detect duplicate images
+  enabled: true
+  # Hamming distance threshold (0-64, lower = more strict)
+  threshold: 5
+
+# Notification settings
+notifications:
+  # Show desktop notification after capture
+  enabled: true
+  # Notification duration in seconds
+  duration: 3
+
+# Temporary storage
+temp:
+  # Directory for temporary cropped images before annotation
+  directory: "temp"
+  # Session folder naming: {timestamp}
+  session_format: "%Y%m%d_%H%M%S"
