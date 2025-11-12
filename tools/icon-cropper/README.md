@@ -15,7 +15,7 @@ A Windows-based tool for capturing and cropping character icons from the Stella 
 ## Requirements
 
 - **Windows OS** (tested on Windows 10/11)
-- **Python 3.10+**
+- **Python 3.13+**
 - **uv** package manager
 - **Stella Sora Windows client**
 

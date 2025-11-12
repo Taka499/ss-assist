@@ -1,15 +1,15 @@
 """Window capture functionality for the screenshot cropper tool."""
 
 import sys
+import time
 from typing import Optional, Tuple
 from PIL import Image
+import numpy as np
 
 # Windows-specific imports
 if sys.platform == 'win32':
     import win32gui
-    import win32ui
-    import win32con
-    import win32api
+    from windows_capture import WindowsCapture, Frame, InternalCaptureControl
 
 
 class WindowNotFoundError(Exception):
@@ -46,7 +46,9 @@ def find_window_by_title(title_pattern: str) -> Optional[int]:
 
 
 def capture_window(hwnd: int) -> Image.Image:
-    """Capture a window by its handle.
+    """Capture a window by its handle using Windows Graphics Capture API.
+
+    This method can capture obscured windows including DirectX/OpenGL games.
 
     Args:
         hwnd: Window handle (HWND)
@@ -61,44 +63,70 @@ def capture_window(hwnd: int) -> Image.Image:
         raise RuntimeError("Window capture is only supported on Windows")
 
     try:
-        # Get window dimensions
-        left, top, right, bottom = win32gui.GetWindowRect(hwnd)
-        width = right - left
-        height = bottom - top
+        # Check if window is minimized
+        if win32gui.IsIconic(hwnd):
+            raise RuntimeError("Cannot capture minimized window. Please restore the window first.")
 
-        # Get window device context
-        hwnd_dc = win32gui.GetWindowDC(hwnd)
-        mfc_dc = win32ui.CreateDCFromHandle(hwnd_dc)
-        save_dc = mfc_dc.CreateCompatibleDC()
+        # Check if window exists
+        if not win32gui.IsWindow(hwnd):
+            raise RuntimeError(f"Invalid window handle: {hwnd}")
 
-        # Create bitmap
-        bitmap = win32ui.CreateBitmap()
-        bitmap.CreateCompatibleBitmap(mfc_dc, width, height)
-        save_dc.SelectObject(bitmap)
+        # Get window title (required by WindowsCapture API)
+        window_title = win32gui.GetWindowText(hwnd)
+        if not window_title:
+            raise RuntimeError("Window has no title - cannot capture with Graphics Capture API")
 
-        # Copy window content to bitmap
-        result = win32gui.PrintWindow(hwnd, save_dc.GetSafeHdc(), 3)
+        print(f"Capturing window: '{window_title}'")
 
-        if result == 0:
-            raise RuntimeError("PrintWindow failed")
+        # Storage for captured frame
+        captured_frame = {'image': None, 'error': None}
 
-        # Convert bitmap to PIL Image
-        bmpinfo = bitmap.GetInfo()
-        bmpstr = bitmap.GetBitmapBits(True)
-
-        img = Image.frombuffer(
-            'RGB',
-            (bmpinfo['bmWidth'], bmpinfo['bmHeight']),
-            bmpstr, 'raw', 'BGRX', 0, 1
+        # Create capture instance with window name
+        capture = WindowsCapture(
+            cursor_capture=False,
+            draw_border=False,
+            monitor_index=None,
+            window_name=window_title,
         )
 
-        # Cleanup
-        win32gui.DeleteObject(bitmap.GetHandle())
-        save_dc.DeleteDC()
-        mfc_dc.DeleteDC()
-        win32gui.ReleaseDC(hwnd, hwnd_dc)
+        @capture.event
+        def on_frame_arrived(frame: Frame, capture_control: InternalCaptureControl):
+            """Callback when a frame is captured."""
+            try:
+                # Convert frame buffer (BGRA numpy array) to PIL Image (RGB)
+                # frame.frame_buffer is a numpy array in BGRA format
+                bgra_array = frame.frame_buffer
 
-        return img
+                # Convert BGRA to RGB
+                rgb_array = bgra_array[:, :, [2, 1, 0]]  # Swap B and R channels, drop A
+
+                # Create PIL Image from RGB array
+                captured_frame['image'] = Image.fromarray(rgb_array, 'RGB')
+
+                # Stop capture after getting one frame
+                capture_control.stop()
+            except Exception as e:
+                captured_frame['error'] = str(e)
+                capture_control.stop()
+
+        @capture.event
+        def on_closed():
+            """Callback when capture session closes."""
+            pass
+
+        # Start capture (this will block until we call stop)
+        print("Starting Windows Graphics Capture API...")
+        capture.start()
+
+        # Check if we got the frame
+        if captured_frame['error']:
+            raise RuntimeError(f"Frame capture failed: {captured_frame['error']}")
+
+        if captured_frame['image'] is None:
+            raise RuntimeError("Failed to capture frame - no image data received")
+
+        print("Successfully captured window using Windows Graphics Capture API")
+        return captured_frame['image']
 
     except Exception as e:
         raise RuntimeError(f"Failed to capture window: {e}")
