@@ -17,7 +17,7 @@ This refactoring is critical for the success of Milestone 3 and future features.
 - [x] Create this ExecPlan document *(2025-11-13)*
 - [x] Create `tools/icon-cropper/editor/` directory structure *(2025-11-13)*
 - [x] Extract `CoordinateSystem` with pure coordinate transformation functions *(2025-11-13)*
-- [ ] Extract `CanvasController` for image display, zoom, and pan operations
+- [x] Extract `CanvasController` for image display, zoom, and pan operations *(2025-11-13)*
 - [ ] Extract `GridRenderer` for drawing grid overlays and visual feedback
 - [ ] Extract `GridEditor` for grid editing state machine and workflow
 - [ ] Extract `ResizeController` for resize handle logic and modifier keys
