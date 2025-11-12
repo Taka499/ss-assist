@@ -20,7 +20,7 @@ This refactoring is critical for the success of Milestone 3 and future features.
 - [x] Extract `CanvasController` for image display, zoom, and pan operations *(2025-11-13)*
 - [x] Extract `GridRenderer` for drawing grid overlays and visual feedback *(2025-11-13)*
 - [x] Extract `GridEditor` for grid editing state machine and workflow *(2025-11-13)*
-- [ ] Extract `ResizeController` for resize handle logic and modifier keys
+- [x] Extract `ResizeController` for resize handle logic and modifier keys *(2025-11-13)*
 - [ ] Extract `UIBuilder` for creating menu bar, toolbar, and sidebar widgets
 - [ ] Refactor `ConfigEditorApp` to orchestrate the new modules
 - [ ] Test all existing functionality (screenshot capture, grid editing, resize handles)
