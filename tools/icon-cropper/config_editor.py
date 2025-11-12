@@ -341,10 +341,12 @@ class ConfigEditorApp:
         """
         # Check if resizing
         if self.resize_controller.is_resizing:
+            # Performance optimization: Skip spinbox updates during drag
             self.resize_controller.do_resize(
                 event, self.canvas,
                 self.canvas_controller.zoom_level,
-                self.canvas_controller.pan_offset
+                self.canvas_controller.pan_offset,
+                update_spinboxes=False  # Defer to mouse release
             )
             # Optimized: Only redraw grid overlay during drag, NOT handles
             # Handles are expensive to redraw (24 event unbind/rebind operations)
@@ -361,7 +363,7 @@ class ConfigEditorApp:
                 self.grid_editor.grid_drag_start,
                 self.grid_editor.grid_drag_current
             )
-            # Handles will be redrawn on mouse release
+            # Handles and spinboxes will be updated on mouse release
             return
 
         # Check if dragging grid cell
@@ -388,6 +390,14 @@ class ConfigEditorApp:
         # Check if resizing
         if self.resize_controller.is_resizing:
             self.resize_controller.end_resize(event, self.canvas)
+            # Update spinboxes with final values (skipped during drag for performance)
+            self.grid_editor.updating_inputs_programmatically = True
+            try:
+                for param, var in self.grid_inputs.items():
+                    if param in self.grid_config:
+                        var.set(self.grid_config[param])
+            finally:
+                self.grid_editor.updating_inputs_programmatically = False
             # Redraw grid with handles after resize completes
             self.canvas.delete("grid_overlay")
             self.draw_grid_overlay()

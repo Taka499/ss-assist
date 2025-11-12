@@ -87,7 +87,8 @@ class ResizeController:
         event,
         canvas: tk.Canvas,
         zoom_level: float,
-        pan_offset: Tuple[float, float]
+        pan_offset: Tuple[float, float],
+        update_spinboxes: bool = True
     ):
         """Handle resize dragging with modifier key support.
 
@@ -101,6 +102,7 @@ class ResizeController:
             canvas: Canvas widget
             zoom_level: Current zoom level
             pan_offset: Current pan offset
+            update_spinboxes: If False, skip spinbox updates (for performance during drag)
         """
         if not self.is_resizing or not self.resize_mode or not self.resize_start_pos:
             return
@@ -125,13 +127,15 @@ class ResizeController:
             self._resize_corner(dx, dy, shift_pressed, ctrl_pressed, orig)
 
         # Update input fields (set flag to prevent trace callback loop)
-        self.grid_editor.updating_inputs_programmatically = True
-        try:
-            for param, var in self.grid_inputs.items():
-                if param in self.grid_config:
-                    var.set(self.grid_config[param])
-        finally:
-            self.grid_editor.updating_inputs_programmatically = False
+        # Skip during drag for performance - only update on mouse release
+        if update_spinboxes:
+            self.grid_editor.updating_inputs_programmatically = True
+            try:
+                for param, var in self.grid_inputs.items():
+                    if param in self.grid_config:
+                        var.set(self.grid_config[param])
+            finally:
+                self.grid_editor.updating_inputs_programmatically = False
 
     def _resize_edge(self, dx: int, dy: int, ctrl_pressed: bool):
         """Handle edge resizing (single dimension).
