@@ -48,6 +48,66 @@ This refactoring is critical for the success of Milestone 3 and future features.
 
 **Impact**: The refactoring validates the ExecPlan approach: incremental extraction with testing at each milestone reduces risk and ensures success.
 
+### Performance Regression in Resize Handles (2025-11-13)
+
+**Problem**: User reported that grid resizing using handles felt less smooth after refactoring compared to before.
+
+**Root Cause**: During resize drag, the code was redrawing resize handles on every mouse move event:
+- Each handle redraw involved deleting 8 handles
+- Then unbinding 3 events × 8 handles = **24 unbind operations**
+- Then rebinding 3 events × 8 handles = **24 bind operations**
+- **Total: 48 expensive Tkinter event operations per frame** (60+ frames/sec during drag)
+
+**Evidence**:
+- Both original and refactored code had the unbind/rebind pattern (lines 1034-1058 in backup)
+- However, the refactored version may have introduced additional overhead through module calls
+- User feedback confirmed laggy/jerky behavior during resize
+
+**Solution**: Optimize by skipping handle redraw during drag:
+```python
+# During drag (on_mouse_move):
+# - Only redraw grid cells, NOT handles
+self.grid_renderer.draw_grid_overlay(...)  # Without handles
+
+# On mouse release (on_mouse_release):
+# - Redraw complete grid WITH handles
+self.draw_grid_overlay()  # Includes handles
+```
+
+**Fix Applied**: Updated `config_editor.py` lines 349-365 (on_mouse_move) and lines 390-394 (on_mouse_release).
+
+**Impact**: Resize now feels smooth and responsive. This optimization actually makes the refactored code FASTER than the original, which was also redrawing handles unnecessarily during drag.
+
+**Further Optimization Applied** (2025-11-13):
+
+After initial fix, user reported resize was "much better but still a bit lagging." Applied second optimization:
+
+**Problem**: Updating 9 spinbox values every frame during drag
+- Each `IntVar.set()` triggers Tkinter widget updates
+- 9 spinboxes × 60 frames/sec = 540 widget updates/sec
+
+**Solution**: Defer spinbox updates to mouse release
+```python
+# During drag: update_spinboxes=False
+self.resize_controller.do_resize(..., update_spinboxes=False)
+
+# On release: Update once with final values
+for param, var in self.grid_inputs.items():
+    var.set(self.grid_config[param])
+```
+
+**Result**: User confirmed "lag issue is solved, feeling quite smoother now."
+
+**Total Performance Gain**:
+- Eliminated ~48 event bind/unbind operations per frame
+- Eliminated ~9 widget value updates per frame
+- **Total: ~57 expensive Tkinter operations removed from hot path**
+
+**Lesson Learned**: Performance profiling is essential after refactoring. In Tkinter:
+1. Event binding/unbinding is expensive - minimize in hot paths (mouse move handlers)
+2. Widget value updates trigger redraws - batch updates when possible
+3. User feedback is invaluable for identifying real-world performance issues
+
 ## Decision Log
 
 ### D1: Extract in Dependency Order (2025-11-13)
