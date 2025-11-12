@@ -346,9 +346,22 @@ class ConfigEditorApp:
                 self.canvas_controller.zoom_level,
                 self.canvas_controller.pan_offset
             )
-            # Optimized: Only redraw grid overlay, not entire canvas
+            # Optimized: Only redraw grid overlay during drag, NOT handles
+            # Handles are expensive to redraw (24 event unbind/rebind operations)
             self.canvas.delete("grid_overlay")
-            self.draw_grid_overlay()
+            # Draw grid WITHOUT handles during drag
+            self.grid_renderer.draw_grid_overlay(
+                self.canvas,
+                self.grid_config,
+                self.canvas_controller.zoom_level,
+                self.canvas_controller.pan_offset,
+                self.grid_editor.edit_mode,
+                self.grid_editor.grid_edit_step,
+                self.grid_editor.grid_temp_start,
+                self.grid_editor.grid_drag_start,
+                self.grid_editor.grid_drag_current
+            )
+            # Handles will be redrawn on mouse release
             return
 
         # Check if dragging grid cell
@@ -375,6 +388,9 @@ class ConfigEditorApp:
         # Check if resizing
         if self.resize_controller.is_resizing:
             self.resize_controller.end_resize(event, self.canvas)
+            # Redraw grid with handles after resize completes
+            self.canvas.delete("grid_overlay")
+            self.draw_grid_overlay()
             return
 
         # Check if completing grid cell definition
