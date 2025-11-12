@@ -452,7 +452,17 @@ icon-cropper/
 ├── gridcrop.py          # Grid-based cropping
 ├── csv_loader.py        # CSV validation
 ├── annotator.py         # Annotation GUI
+├── config_editor.py     # Configuration editor GUI (main app)
 ├── utils.py             # Utility functions
+│
+├── editor/              # Configuration editor modules
+│   ├── __init__.py      # Package initialization
+│   ├── coordinate_system.py  # Pure coordinate transformation functions
+│   ├── canvas_controller.py  # Image display, zoom, pan operations
+│   ├── grid_renderer.py      # Grid overlay and visual feedback rendering
+│   ├── grid_editor.py        # Grid editing state machine and workflow
+│   ├── resize_controller.py  # Resize handle interaction logic
+│   └── ui_builder.py         # UI component creation (menu, sidebar, canvas)
 │
 ├── cropper.spec         # PyInstaller build configuration
 ├── version_info.txt     # Windows executable metadata
@@ -474,6 +484,19 @@ icon-cropper/
 └── dist/                # Built executable (gitignored)
     └── StellaSoraCropper.exe
 ```
+
+### Configuration Editor Architecture
+
+The `config_editor.py` GUI tool has been refactored into a modular architecture for better maintainability and extensibility. The `editor/` package contains focused modules:
+
+- **coordinate_system.py** (93 lines): Pure functions for canvas ↔ image coordinate transformations
+- **canvas_controller.py** (320 lines): Manages image display, zoom (1x-10x with cursor-centered zooming), and pan operations
+- **grid_renderer.py** (219 lines): Renders grid overlays, crop padding indicators, resize handles, and visual feedback
+- **grid_editor.py** (270 lines): State machine for 3-step grid editing workflow (set start → define cell → adjust)
+- **resize_controller.py** (280 lines): Handles 8 resize handles (4 corners + 4 edges) with modifier key support (Shift: aspect ratio, Ctrl: center-fixed)
+- **ui_builder.py** (327 lines): Creates all UI components (menu bar, sidebar, canvas, input widgets)
+
+The main `config_editor.py` (477 lines) orchestrates these modules, handling screenshot capture and event routing.
 
 ## Output
 
