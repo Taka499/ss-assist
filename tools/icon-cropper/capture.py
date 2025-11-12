@@ -174,11 +174,16 @@ def capture_stella_sora(config: dict) -> Image.Image:
             if not window_config['allow_manual_selection']:
                 raise
 
+            # TODO: Implement manual window selection GUI
+            # - Show list of all visible windows with thumbnails
+            # - Allow user to click/select the correct window
+            # - Cache the selection for the session
             print(f"Auto-detection failed: {e}")
             print("Manual selection not implemented yet.")
             raise
 
     else:
+        # TODO: Implement manual window selection GUI
         raise NotImplementedError("Manual window selection not implemented yet")
 
 

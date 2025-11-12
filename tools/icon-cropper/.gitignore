@@ -31,7 +31,7 @@ wheels/
 
 # PyInstaller
 *.manifest
-*.spec
+# Note: cropper.spec is intentionally tracked for build reproducibility
 
 # Unit test / coverage reports
 htmlcov/
@@ -46,9 +46,6 @@ coverage.xml
 
 # Jupyter Notebook
 .ipynb_checkpoints
-
-# pyenv
-.python-version
 
 # IDEs
 .vscode/

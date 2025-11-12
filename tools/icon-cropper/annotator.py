@@ -36,6 +36,10 @@ class AnnotatorApp:
         self.project_root = get_project_root()
 
         # Load character database
+        # TODO: Add graceful error handling for missing CSV
+        # - Show user-friendly error dialog if CSV not found
+        # - Provide instructions to update character data
+        # - Allow annotator to run in "manual ID entry" mode
         csv_path = self.project_root / "data-sources" / "stellasora - characters.csv"
         self.char_db = load_characters(csv_path)
 
@@ -230,6 +234,10 @@ class AnnotatorApp:
     def _save_all(self) -> None:
         """Save all annotated icons to the target directory."""
         # Get output configuration
+        # TODO: Make page-type aware - detect from session metadata
+        # - Save page_type to session directory metadata file (e.g., session.json)
+        # - Read page_type from metadata when opening session
+        # - Support mixed page types in single session (multi-category)
         # Assuming all icons are from character_select page for now
         page_config = self.config['pages']['character_select']
         output_config = page_config['output']

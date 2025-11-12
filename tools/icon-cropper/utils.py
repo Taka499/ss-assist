@@ -10,7 +10,7 @@ import yaml
 
 def get_project_root() -> Path:
     """Get the project root directory (ss-assist/)."""
-    # This script is in tools/screenshot-cropper/
+    # This script is in tools/icon-cropper/
     return Path(__file__).parent.parent.parent
 
 

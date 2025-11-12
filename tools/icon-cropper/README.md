@@ -364,17 +364,77 @@ pages:
 
 ## Building an Executable
 
-To create a standalone `.exe` file:
+To create a standalone `.exe` file for distribution:
+
+### Quick Build (Recommended)
+
+```bash
+# Windows (Command Prompt)
+build.bat
+
+# Windows (WSL) or Linux
+chmod +x build.sh
+./build.sh
+```
+
+The build scripts will:
+1. Check dependencies and install PyInstaller if needed
+2. Clean previous builds
+3. Build the executable using the optimized `.spec` file
+4. Verify the output
+
+### Manual Build
+
+If you prefer to build manually:
 
 ```bash
 # Install PyInstaller (dev dependency)
 uv pip install pyinstaller
 
-# Build the executable
-pyinstaller --onefile --windowed --name="StellaSoraCropper" cropper.py
+# Build using the spec file (includes config and EasyOCR models)
+pyinstaller cropper.spec
 
 # The .exe will be in dist/StellaSoraCropper.exe
 ```
+
+### Build Configuration
+
+The build is configured via `cropper.spec`, which includes:
+- **Bundled resources**: `config.yaml` and EasyOCR models
+- **Hidden imports**: All Windows API and OCR dependencies
+- **Compression**: UPX compression (~30% size reduction)
+- **Windowed mode**: No console window (GUI only)
+- **Version info**: Embedded Windows executable metadata
+
+### Output
+
+- **Location**: `dist/StellaSoraCropper.exe`
+- **Size**: ~200-300MB (due to PyTorch, EasyOCR, OpenCV)
+- **Portable**: Can be copied to any Windows 10/11 machine
+- **No installation required**: Standalone executable
+
+### Build Options
+
+To create a folder-based distribution (faster startup, larger folder):
+
+1. Edit `cropper.spec` and uncomment the `COLLECT` section at the bottom
+2. Comment out the `exe = EXE(...)` single-file configuration
+3. Run `pyinstaller cropper.spec`
+4. Output will be in `dist/StellaSoraCropper/` folder
+
+### Troubleshooting Build Issues
+
+**Problem: "ModuleNotFoundError" during build**
+- Ensure all dependencies are installed: `uv sync`
+- Check `hidden_imports` in `cropper.spec`
+
+**Problem: Executable crashes on startup**
+- Run with console enabled to see errors: Set `console=True` in `cropper.spec`
+- Check that `config.yaml` is bundled: Verify `added_files` in `.spec`
+
+**Problem: EasyOCR models not found**
+- Models should be auto-bundled via `collect_data_files('easyocr')`
+- If missing, manually add to `datas` in `cropper.spec`
 
 **Note:** The executable will be large (~200-300MB) due to bundled dependencies (EasyOCR, PyTorch, etc.).
 
@@ -384,6 +444,8 @@ pyinstaller --onefile --windowed --name="StellaSoraCropper" cropper.py
 icon-cropper/
 ├── config.yaml          # Configuration file
 ├── pyproject.toml       # Python dependencies
+├── uv.lock              # Locked dependency versions
+│
 ├── cropper.py           # Main daemon
 ├── capture.py           # Window capture
 ├── detector.py          # OCR page detection
@@ -391,13 +453,26 @@ icon-cropper/
 ├── csv_loader.py        # CSV validation
 ├── annotator.py         # Annotation GUI
 ├── utils.py             # Utility functions
+│
+├── cropper.spec         # PyInstaller build configuration
+├── version_info.txt     # Windows executable metadata
+├── build.bat            # Windows build script
+├── build.sh             # Linux/WSL build script
+│
 ├── README.md            # This file
-└── temp/                # Temporary session directories (created at runtime)
-    └── YYYYMMDD_HHMMSS/ # Session folder
-        ├── full_screenshot.png
-        ├── 001.png
-        ├── 002.png
-        └── ...
+├── .gitignore           # Git ignore rules
+│
+├── .venv/               # Virtual environment (created by uv)
+├── temp/                # Temporary session directories (created at runtime)
+│   └── YYYYMMDD_HHMMSS/ # Session folder
+│       ├── full_screenshot.png
+│       ├── 001.png
+│       ├── 002.png
+│       └── ...
+│
+├── build/               # PyInstaller build artifacts (gitignored)
+└── dist/                # Built executable (gitignored)
+    └── StellaSoraCropper.exe
 ```
 
 ## Output
