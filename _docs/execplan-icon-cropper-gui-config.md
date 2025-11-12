@@ -14,7 +14,7 @@ This GUI makes the icon-cropper tool resilient to game UI changes (such as patch
 
 - [x] Create the GUI configuration tool architecture *(2025-01-12)*
 - [x] Implement screenshot display with zoom and pan capabilities *(2025-01-12)*
-- [ ] Add visual grid overlay editor with mouse interaction
+- [x] Add visual grid overlay editor with mouse interaction *(2025-11-12)*
 - [ ] Add OCR region editor with draggable rectangles
 - [ ] Implement config.yaml serialization and deserialization
 - [ ] Add live preview mode showing cropped icons
@@ -36,7 +36,70 @@ Created `config_editor.py` with full basic functionality:
 
 **Testing**: All features verified working correctly.
 
+### Milestone 2: Grid Editor Mode ✅ COMPLETE (2025-11-12)
+
+Implemented interactive grid editing with visual feedback:
+- ✅ Edit mode state management (EditMode enum: NONE, GRID_EDIT, OCR_EDIT)
+- ✅ Grid editing workflow (GridEditStep enum: SET_START, SET_CELL, ADJUST)
+- ✅ Three-step grid definition process:
+  1. Click to set grid start position (top-left of first icon)
+  2. Drag to define cell dimensions (width and height)
+  3. Adjust with input fields for fine-tuning
+- ✅ Visual grid overlay with semi-transparent rectangles
+  - Green outlines for cell boundaries
+  - Yellow dashed lines for inner crop regions (with padding)
+  - Red crosshair for start position marker
+  - Orange semi-transparent rectangle during drag
+- ✅ Sidebar input fields for all grid parameters:
+  - Position: start_x, start_y
+  - Cell size: cell_width, cell_height
+  - Spacing: spacing_x, spacing_y
+  - Grid size: columns, rows
+  - Crop padding
+- ✅ Real-time grid overlay updates when input fields change
+- ✅ Coordinate conversion between canvas and image space (handles zoom/pan/scroll)
+- ✅ Mode buttons: "Edit Grid Layout", "Edit OCR Region" (disabled), "Exit Edit Mode"
+- ✅ Instruction labels guide user through workflow
+- ✅ Mouse interaction properly switches between pan mode and grid edit mode
+- ✅ Screenshot buttons for quick access (Open/Capture)
+- ✅ Cursor-centered zooming (Ctrl+Scroll zooms towards cursor position)
+
+**Bug Fixes**:
+- Fixed coordinate misalignment when canvas is scrolled (using `canvasx()`/`canvasy()`)
+
+**UX Improvements**:
+- Intuitive mouse wheel behavior (scroll vertically, Shift+scroll horizontally, Ctrl+scroll zoom)
+- Cursor-centered zooming for precise navigation
+
+**Testing**: Grid editor tested with captured game screenshot. All interaction features working correctly.
+
 ## Surprises & Discoveries
+
+### Canvas Scroll Position Not Accounted in Coordinate Conversion (2025-11-12)
+
+**Problem**: When using scrollbars to navigate the canvas, mouse clicks during grid editing were misaligned with the cursor position. The grid start position and cell dimensions were calculated incorrectly when the canvas was scrolled.
+
+**Root Cause**: The coordinate conversion from canvas widget coordinates to image coordinates wasn't accounting for the scroll position. Mouse event coordinates (`event.x`, `event.y`) are relative to the visible canvas widget, not the scrolled canvas content.
+
+**Evidence**:
+- Grid definition worked correctly when canvas was at scroll position (0, 0)
+- Grid became misaligned when user scrolled horizontally or vertically
+- Misalignment offset matched the scroll position
+
+**Solution**: Use `canvas.canvasx()` and `canvas.canvasy()` to convert widget-relative coordinates to canvas coordinates that include scroll offset.
+
+**Fix Applied**: Updated `canvas_to_image_coords()` in `config_editor.py:730-747` to properly convert coordinates:
+```python
+# Convert widget coordinates to canvas coordinates (accounting for scroll)
+canvas_x_scrolled = self.canvas.canvasx(canvas_x)
+canvas_y_scrolled = self.canvas.canvasy(canvas_y)
+
+# Account for pan offset and zoom
+img_x = (canvas_x_scrolled - self.pan_offset[0]) / self.zoom_level
+img_y = (canvas_y_scrolled - self.pan_offset[1]) / self.zoom_level
+```
+
+**Impact**: Critical bug fix for usability. Grid editing now works correctly regardless of scroll position.
 
 ### WinRT Initialization Fails in Tkinter Main Thread (2025-01-12)
 
@@ -113,6 +176,24 @@ Created `config_editor.py` with full basic functionality:
 - Middle mouse button not available on all mice (especially laptops with touchpads)
 - Left-click drag is easier to discover for users
 - Can still use other mouse buttons for future editing modes (grid definition, region drawing)
+
+### D4: Mouse Wheel Behavior with Modifier Keys (2025-11-12)
+
+**Context**: Initial implementation bound mouse wheel directly to zoom in/out, which is anti-intuitive. Users expect scroll wheel to scroll the view, not zoom.
+
+**Decision**: Use modifier keys to distinguish scroll vs zoom behavior:
+- Mouse wheel alone: Scroll vertically
+- Shift + mouse wheel: Scroll horizontally
+- Ctrl + mouse wheel: Zoom in/out
+
+**Rationale**:
+- Matches standard image viewer UX (Photoshop, GIMP, Windows Photo Viewer, etc.)
+- Scrolling is a more common operation than zooming
+- Ctrl+Wheel for zoom is a well-established convention
+- Shift+Wheel for horizontal scroll matches browser behavior
+- More discoverable and intuitive for users
+
+**Implementation**: Modified `on_mouse_wheel()` and `on_mouse_wheel_linux()` to check `event.state` for modifier key flags (0x0004 for Ctrl, 0x0001 for Shift).
 
 ## Outcomes & Retrospective
 

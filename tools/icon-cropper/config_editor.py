@@ -15,17 +15,32 @@ Usage:
 import sys
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-from typing import Optional
+from typing import Optional, Tuple
 from pathlib import Path
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageDraw
 import threading
 import subprocess
 import tempfile
 import time
+from enum import Enum
 
 # Import capture functionality
 from capture import WindowNotFoundError
 from utils import load_config
+
+
+class EditMode(Enum):
+    """Editing modes for the configuration editor."""
+    NONE = "none"
+    GRID_EDIT = "grid_edit"
+    OCR_EDIT = "ocr_edit"
+
+
+class GridEditStep(Enum):
+    """Steps in the grid editing workflow."""
+    SET_START = "set_start"  # Click to set grid start position
+    SET_CELL = "set_cell"    # Drag to define cell dimensions
+    ADJUST = "adjust"        # Fine-tune with inputs
 
 
 class ConfigEditorApp:
@@ -51,6 +66,29 @@ class ConfigEditorApp:
         # Panning state
         self.is_panning = False
         self.pan_start = [0, 0]
+
+        # Editing mode state
+        self.edit_mode = EditMode.NONE
+        self.grid_edit_step = GridEditStep.SET_START
+
+        # Grid configuration state (from config.yaml character_select page)
+        default_grid = self.config.get('pages', {}).get('character_select', {}).get('grid', {})
+        self.grid_config = {
+            'start_x': default_grid.get('start_x', 0),
+            'start_y': default_grid.get('start_y', 0),
+            'cell_width': default_grid.get('cell_width', 100),
+            'cell_height': default_grid.get('cell_height', 100),
+            'spacing_x': default_grid.get('spacing_x', 0),
+            'spacing_y': default_grid.get('spacing_y', 0),
+            'columns': default_grid.get('columns', 3),
+            'rows': default_grid.get('rows', 4),
+            'crop_padding': default_grid.get('crop_padding', 0),
+        }
+
+        # Grid editing temporary state
+        self.grid_temp_start: Optional[Tuple[int, int]] = None
+        self.grid_drag_start: Optional[Tuple[int, int]] = None
+        self.grid_drag_current: Optional[Tuple[int, int]] = None
 
         # Set up the UI
         self._create_menu_bar()
@@ -105,16 +143,69 @@ class ConfigEditorApp:
         main_frame = ttk.Frame(self.root)
         main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Left panel for tools (placeholder for future milestones)
-        left_panel = ttk.Frame(main_frame, width=250)
-        left_panel.pack(side=tk.LEFT, fill=tk.Y, padx=5, pady=5)
+        # Left panel for tools
+        self.left_panel = ttk.Frame(main_frame, width=280)
+        self.left_panel.pack(side=tk.LEFT, fill=tk.Y, padx=5, pady=5)
+        self.left_panel.pack_propagate(False)  # Maintain fixed width
 
-        ttk.Label(left_panel, text="Tools", font=("Arial", 12, "bold")).pack(pady=5)
-        ttk.Label(
-            left_panel,
-            text="Load a screenshot to begin",
-            wraplength=230
-        ).pack(pady=10)
+        ttk.Label(self.left_panel, text="Tools", font=("Arial", 12, "bold")).pack(pady=5)
+
+        # Screenshot buttons
+        screenshot_frame = ttk.LabelFrame(self.left_panel, text="Screenshot", padding=10)
+        screenshot_frame.pack(fill=tk.X, pady=5)
+
+        ttk.Button(
+            screenshot_frame,
+            text="📂 Open Screenshot",
+            command=self.open_screenshot
+        ).pack(fill=tk.X, pady=2)
+
+        ttk.Button(
+            screenshot_frame,
+            text="📷 Capture Screenshot",
+            command=self.capture_screenshot
+        ).pack(fill=tk.X, pady=2)
+
+        # Mode selection buttons
+        mode_frame = ttk.LabelFrame(self.left_panel, text="Editing Mode", padding=10)
+        mode_frame.pack(fill=tk.X, pady=5)
+
+        self.grid_mode_btn = ttk.Button(
+            mode_frame,
+            text="Edit Grid Layout",
+            command=self.enter_grid_edit_mode
+        )
+        self.grid_mode_btn.pack(fill=tk.X, pady=2)
+
+        self.ocr_mode_btn = ttk.Button(
+            mode_frame,
+            text="Edit OCR Region",
+            command=self.enter_ocr_edit_mode,
+            state=tk.DISABLED  # Milestone 3
+        )
+        self.ocr_mode_btn.pack(fill=tk.X, pady=2)
+
+        ttk.Button(
+            mode_frame,
+            text="Exit Edit Mode",
+            command=self.exit_edit_mode
+        ).pack(fill=tk.X, pady=2)
+
+        # Grid configuration panel
+        self.grid_panel = ttk.LabelFrame(self.left_panel, text="Grid Configuration", padding=10)
+        self.grid_panel.pack(fill=tk.BOTH, expand=True, pady=5)
+
+        # Instructions label
+        self.instruction_label = ttk.Label(
+            self.grid_panel,
+            text="Click 'Edit Grid Layout' to begin",
+            wraplength=240,
+            foreground="blue"
+        )
+        self.instruction_label.pack(pady=5)
+
+        # Grid parameter inputs
+        self._create_grid_inputs()
 
         # Right panel for canvas
         right_panel = ttk.Frame(main_frame)
@@ -153,6 +244,95 @@ class ConfigEditorApp:
         # For Linux
         self.canvas.bind("<Button-4>", lambda e: self.on_mouse_wheel_linux(e, 1))
         self.canvas.bind("<Button-5>", lambda e: self.on_mouse_wheel_linux(e, -1))
+
+    def _create_grid_inputs(self):
+        """Create input fields for grid configuration."""
+        # Create a scrollable frame for inputs
+        inputs_frame = ttk.Frame(self.grid_panel)
+        inputs_frame.pack(fill=tk.BOTH, expand=True)
+
+        self.grid_inputs = {}
+
+        # Position inputs
+        row = 0
+        ttk.Label(inputs_frame, text="Position:", font=("Arial", 9, "bold")).grid(
+            row=row, column=0, columnspan=2, sticky=tk.W, pady=(5, 2)
+        )
+        row += 1
+
+        for param in ['start_x', 'start_y']:
+            label = param.replace('_', ' ').title()
+            ttk.Label(inputs_frame, text=f"{label}:").grid(row=row, column=0, sticky=tk.W, pady=2)
+
+            var = tk.IntVar(value=self.grid_config[param])
+            entry = ttk.Entry(inputs_frame, textvariable=var, width=8)
+            entry.grid(row=row, column=1, sticky=tk.W, pady=2, padx=(5, 0))
+
+            self.grid_inputs[param] = var
+            var.trace_add('write', lambda *args: self.on_grid_param_changed())
+            row += 1
+
+        # Cell dimensions
+        ttk.Label(inputs_frame, text="Cell Size:", font=("Arial", 9, "bold")).grid(
+            row=row, column=0, columnspan=2, sticky=tk.W, pady=(10, 2)
+        )
+        row += 1
+
+        for param in ['cell_width', 'cell_height']:
+            label = param.replace('_', ' ').title()
+            ttk.Label(inputs_frame, text=f"{label}:").grid(row=row, column=0, sticky=tk.W, pady=2)
+
+            var = tk.IntVar(value=self.grid_config[param])
+            entry = ttk.Entry(inputs_frame, textvariable=var, width=8)
+            entry.grid(row=row, column=1, sticky=tk.W, pady=2, padx=(5, 0))
+
+            self.grid_inputs[param] = var
+            var.trace_add('write', lambda *args: self.on_grid_param_changed())
+            row += 1
+
+        # Spacing
+        ttk.Label(inputs_frame, text="Spacing:", font=("Arial", 9, "bold")).grid(
+            row=row, column=0, columnspan=2, sticky=tk.W, pady=(10, 2)
+        )
+        row += 1
+
+        for param in ['spacing_x', 'spacing_y']:
+            label = param.replace('_', ' ').title()
+            ttk.Label(inputs_frame, text=f"{label}:").grid(row=row, column=0, sticky=tk.W, pady=2)
+
+            var = tk.IntVar(value=self.grid_config[param])
+            entry = ttk.Entry(inputs_frame, textvariable=var, width=8)
+            entry.grid(row=row, column=1, sticky=tk.W, pady=2, padx=(5, 0))
+
+            self.grid_inputs[param] = var
+            var.trace_add('write', lambda *args: self.on_grid_param_changed())
+            row += 1
+
+        # Grid dimensions
+        ttk.Label(inputs_frame, text="Grid Size:", font=("Arial", 9, "bold")).grid(
+            row=row, column=0, columnspan=2, sticky=tk.W, pady=(10, 2)
+        )
+        row += 1
+
+        for param in ['columns', 'rows']:
+            label = param.title()
+            ttk.Label(inputs_frame, text=f"{label}:").grid(row=row, column=0, sticky=tk.W, pady=2)
+
+            var = tk.IntVar(value=self.grid_config[param])
+            entry = ttk.Entry(inputs_frame, textvariable=var, width=8)
+            entry.grid(row=row, column=1, sticky=tk.W, pady=2, padx=(5, 0))
+
+            self.grid_inputs[param] = var
+            var.trace_add('write', lambda *args: self.on_grid_param_changed())
+            row += 1
+
+        # Crop padding
+        ttk.Label(inputs_frame, text="Crop Padding:").grid(row=row, column=0, sticky=tk.W, pady=2)
+        var = tk.IntVar(value=self.grid_config['crop_padding'])
+        entry = ttk.Entry(inputs_frame, textvariable=var, width=8)
+        entry.grid(row=row, column=1, sticky=tk.W, pady=2, padx=(5, 0))
+        self.grid_inputs['crop_padding'] = var
+        var.trace_add('write', lambda *args: self.on_grid_param_changed())
 
     def _create_status_bar(self):
         """Create the status bar at the bottom of the window."""
@@ -306,15 +486,39 @@ class ConfigEditorApp:
             height + abs(self.pan_offset[1])
         ))
 
-    def zoom_in(self):
-        """Zoom in the image."""
+        # Draw grid overlay if in grid edit mode
+        if self.edit_mode == EditMode.GRID_EDIT:
+            self.draw_grid_overlay()
+
+    def zoom_in(self, cursor_x: Optional[int] = None, cursor_y: Optional[int] = None):
+        """Zoom in the image.
+
+        Args:
+            cursor_x: X coordinate to zoom towards (canvas widget coordinates)
+            cursor_y: Y coordinate to zoom towards (canvas widget coordinates)
+        """
+        old_zoom = self.zoom_level
         self.zoom_level = min(self.zoom_level * 1.2, 10.0)
+
+        if cursor_x is not None and cursor_y is not None:
+            self._adjust_pan_for_zoom(cursor_x, cursor_y, old_zoom, self.zoom_level)
+
         self.display_image()
         self.update_status(f"Zoom: {int(self.zoom_level * 100)}%")
 
-    def zoom_out(self):
-        """Zoom out the image."""
+    def zoom_out(self, cursor_x: Optional[int] = None, cursor_y: Optional[int] = None):
+        """Zoom out the image.
+
+        Args:
+            cursor_x: X coordinate to zoom towards (canvas widget coordinates)
+            cursor_y: Y coordinate to zoom towards (canvas widget coordinates)
+        """
+        old_zoom = self.zoom_level
         self.zoom_level = max(self.zoom_level / 1.2, 0.1)
+
+        if cursor_x is not None and cursor_y is not None:
+            self._adjust_pan_for_zoom(cursor_x, cursor_y, old_zoom, self.zoom_level)
+
         self.display_image()
         self.update_status(f"Zoom: {int(self.zoom_level * 100)}%")
 
@@ -325,8 +529,29 @@ class ConfigEditorApp:
         self.display_image()
         self.update_status("Zoom: 100%")
 
+    def _adjust_pan_for_zoom(self, cursor_x: int, cursor_y: int, old_zoom: float, new_zoom: float):
+        """Adjust pan offset so that the cursor stays at the same image position during zoom.
+
+        Args:
+            cursor_x: X coordinate of cursor (canvas widget coordinates)
+            cursor_y: Y coordinate of cursor (canvas widget coordinates)
+            old_zoom: Previous zoom level
+            new_zoom: New zoom level
+        """
+        # Convert cursor position to canvas coordinates (accounting for scroll)
+        cursor_canvas_x = self.canvas.canvasx(cursor_x)
+        cursor_canvas_y = self.canvas.canvasy(cursor_y)
+
+        # Get image coordinates at cursor position before zoom
+        img_x = (cursor_canvas_x - self.pan_offset[0]) / old_zoom
+        img_y = (cursor_canvas_y - self.pan_offset[1]) / old_zoom
+
+        # Calculate new pan offset so cursor stays at same image position
+        self.pan_offset[0] = cursor_canvas_x - img_x * new_zoom
+        self.pan_offset[1] = cursor_canvas_y - img_y * new_zoom
+
     def on_mouse_wheel(self, event):
-        """Handle mouse wheel for zooming (Windows/Mac).
+        """Handle mouse wheel for scrolling and zooming (Windows/Mac).
 
         Args:
             event: Mouse wheel event
@@ -334,14 +559,28 @@ class ConfigEditorApp:
         if self.current_image is None:
             return
 
-        # Zoom based on wheel direction
-        if event.delta > 0:
-            self.zoom_in()
+        # Check for modifier keys
+        if event.state & 0x0004:  # Control key
+            # Ctrl + Wheel: Zoom in/out towards cursor
+            if event.delta > 0:
+                self.zoom_in(event.x, event.y)
+            else:
+                self.zoom_out(event.x, event.y)
+        elif event.state & 0x0001:  # Shift key
+            # Shift + Wheel: Scroll horizontally
+            if event.delta > 0:
+                self.canvas.xview_scroll(-1, "units")
+            else:
+                self.canvas.xview_scroll(1, "units")
         else:
-            self.zoom_out()
+            # No modifier: Scroll vertically
+            if event.delta > 0:
+                self.canvas.yview_scroll(-1, "units")
+            else:
+                self.canvas.yview_scroll(1, "units")
 
     def on_mouse_wheel_linux(self, event, direction):
-        """Handle mouse wheel for zooming (Linux).
+        """Handle mouse wheel for scrolling and zooming (Linux).
 
         Args:
             event: Mouse wheel event
@@ -350,27 +589,54 @@ class ConfigEditorApp:
         if self.current_image is None:
             return
 
-        if direction > 0:
-            self.zoom_in()
+        # Check for modifier keys
+        if event.state & 0x0004:  # Control key
+            # Ctrl + Wheel: Zoom in/out towards cursor
+            if direction > 0:
+                self.zoom_in(event.x, event.y)
+            else:
+                self.zoom_out(event.x, event.y)
+        elif event.state & 0x0001:  # Shift key
+            # Shift + Wheel: Scroll horizontally
+            if direction > 0:
+                self.canvas.xview_scroll(-1, "units")
+            else:
+                self.canvas.xview_scroll(1, "units")
         else:
-            self.zoom_out()
+            # No modifier: Scroll vertically
+            if direction > 0:
+                self.canvas.yview_scroll(-1, "units")
+            else:
+                self.canvas.yview_scroll(1, "units")
 
     def on_pan_start(self, event):
-        """Start panning when mouse button is pressed.
+        """Start panning or grid editing when mouse button is pressed.
 
         Args:
             event: Mouse button press event
         """
+        # Check if in grid edit mode
+        if self.edit_mode == EditMode.GRID_EDIT:
+            self.on_grid_click(event)
+            return
+
+        # Normal panning mode
         self.is_panning = True
         self.pan_start = [event.x, event.y]
         self.canvas.config(cursor="fleur")
 
     def on_pan_move(self, event):
-        """Pan the image while dragging.
+        """Pan the image or handle grid dragging while moving mouse.
 
         Args:
             event: Mouse motion event
         """
+        # Check if in grid edit mode and dragging
+        if self.edit_mode == EditMode.GRID_EDIT and self.grid_edit_step == GridEditStep.SET_CELL:
+            self.on_grid_drag(event)
+            return
+
+        # Normal panning
         if not self.is_panning or self.current_image is None:
             return
 
@@ -389,13 +655,89 @@ class ConfigEditorApp:
         self.display_image()
 
     def on_pan_end(self, event):
-        """Stop panning when mouse button is released.
+        """Stop panning or complete grid cell definition when mouse released.
 
         Args:
             event: Mouse button release event
         """
+        # Check if in grid edit mode
+        if self.edit_mode == EditMode.GRID_EDIT and self.grid_edit_step == GridEditStep.SET_CELL:
+            self.on_grid_release(event)
+            return
+
+        # Normal panning
         self.is_panning = False
         self.canvas.config(cursor="")
+
+    def on_grid_click(self, event):
+        """Handle mouse click during grid editing.
+
+        Args:
+            event: Mouse click event
+        """
+        img_x, img_y = self.canvas_to_image_coords(event.x, event.y)
+
+        if self.grid_edit_step == GridEditStep.SET_START:
+            # Set grid start position
+            self.grid_temp_start = (img_x, img_y)
+            self.grid_drag_start = (img_x, img_y)
+            self.grid_edit_step = GridEditStep.SET_CELL
+
+            # Update config
+            self.grid_config['start_x'] = img_x
+            self.grid_config['start_y'] = img_y
+            self.grid_inputs['start_x'].set(img_x)
+            self.grid_inputs['start_y'].set(img_y)
+
+            self.instruction_label.config(
+                text="STEP 2: Drag to define cell width and height"
+            )
+            self.update_status("Grid Edit Mode: Drag to set cell dimensions")
+            self.display_image()
+
+    def on_grid_drag(self, event):
+        """Handle mouse drag during grid cell definition.
+
+        Args:
+            event: Mouse motion event
+        """
+        if not self.grid_drag_start:
+            return
+
+        img_x, img_y = self.canvas_to_image_coords(event.x, event.y)
+        self.grid_drag_current = (img_x, img_y)
+
+        # Update display
+        self.display_image()
+
+    def on_grid_release(self, event):
+        """Handle mouse release to complete cell definition.
+
+        Args:
+            event: Mouse release event
+        """
+        if not self.grid_drag_start or not self.grid_drag_current:
+            return
+
+        # Calculate cell dimensions
+        cell_width = abs(self.grid_drag_current[0] - self.grid_drag_start[0])
+        cell_height = abs(self.grid_drag_current[1] - self.grid_drag_start[1])
+
+        # Update config
+        self.grid_config['cell_width'] = cell_width
+        self.grid_config['cell_height'] = cell_height
+        self.grid_inputs['cell_width'].set(cell_width)
+        self.grid_inputs['cell_height'].set(cell_height)
+
+        # Move to adjust step
+        self.grid_edit_step = GridEditStep.ADJUST
+        self.grid_drag_current = None
+
+        self.instruction_label.config(
+            text="STEP 3: Adjust parameters using input fields below"
+        )
+        self.update_status("Grid Edit Mode: Fine-tune grid parameters")
+        self.display_image()
 
     def show_about(self):
         """Show the About dialog."""
@@ -413,6 +755,171 @@ class ConfigEditorApp:
         """Quit the application."""
         if messagebox.askokcancel("Quit", "Do you want to quit?"):
             self.root.quit()
+
+    # ========== Mode Management ==========
+
+    def enter_grid_edit_mode(self):
+        """Enter grid editing mode."""
+        if self.current_image is None:
+            messagebox.showwarning("No Image", "Please load or capture a screenshot first.")
+            return
+
+        self.edit_mode = EditMode.GRID_EDIT
+        self.grid_edit_step = GridEditStep.SET_START
+        self.grid_temp_start = None
+        self.grid_drag_start = None
+        self.grid_drag_current = None
+
+        self.instruction_label.config(
+            text="STEP 1: Click on the top-left corner of the first icon",
+            foreground="green"
+        )
+        self.update_status("Grid Edit Mode: Click to set grid start position")
+        self.display_image()
+
+    def enter_ocr_edit_mode(self):
+        """Enter OCR region editing mode (Milestone 3)."""
+        messagebox.showinfo("Coming Soon", "OCR region editing will be available in Milestone 3")
+
+    def exit_edit_mode(self):
+        """Exit editing mode and return to normal view."""
+        self.edit_mode = EditMode.NONE
+        self.grid_temp_start = None
+        self.grid_drag_start = None
+        self.grid_drag_current = None
+
+        self.instruction_label.config(
+            text="Click 'Edit Grid Layout' to begin",
+            foreground="blue"
+        )
+        self.update_status("Editing mode exited")
+        self.display_image()
+
+    def on_grid_param_changed(self):
+        """Handle changes to grid parameters from input fields."""
+        if self.edit_mode != EditMode.GRID_EDIT:
+            return
+
+        try:
+            # Update grid_config from input fields
+            for param, var in self.grid_inputs.items():
+                self.grid_config[param] = var.get()
+
+            # Redraw the grid overlay
+            self.display_image()
+        except tk.TclError:
+            # Ignore errors during typing (incomplete numbers)
+            pass
+
+    # ========== Grid Editing Handlers ==========
+
+    def canvas_to_image_coords(self, canvas_x: int, canvas_y: int) -> Tuple[int, int]:
+        """Convert canvas coordinates to image coordinates.
+
+        Args:
+            canvas_x: X coordinate on canvas (widget-relative)
+            canvas_y: Y coordinate on canvas (widget-relative)
+
+        Returns:
+            Tuple of (image_x, image_y) in original image coordinates
+        """
+        # Convert widget coordinates to canvas coordinates (accounting for scroll)
+        canvas_x_scrolled = self.canvas.canvasx(canvas_x)
+        canvas_y_scrolled = self.canvas.canvasy(canvas_y)
+
+        # Account for pan offset and zoom
+        img_x = (canvas_x_scrolled - self.pan_offset[0]) / self.zoom_level
+        img_y = (canvas_y_scrolled - self.pan_offset[1]) / self.zoom_level
+        return int(img_x), int(img_y)
+
+    def image_to_canvas_coords(self, img_x: int, img_y: int) -> Tuple[int, int]:
+        """Convert image coordinates to canvas coordinates.
+
+        Args:
+            img_x: X coordinate on image
+            img_y: Y coordinate on image
+
+        Returns:
+            Tuple of (canvas_x, canvas_y)
+        """
+        canvas_x = img_x * self.zoom_level + self.pan_offset[0]
+        canvas_y = img_y * self.zoom_level + self.pan_offset[1]
+        return int(canvas_x), int(canvas_y)
+
+    def draw_grid_overlay(self):
+        """Draw the grid overlay on the canvas."""
+        if self.current_image is None:
+            return
+
+        # Draw the full grid based on current configuration
+        for row in range(self.grid_config['rows']):
+            for col in range(self.grid_config['columns']):
+                x = self.grid_config['start_x'] + col * (
+                    self.grid_config['cell_width'] + self.grid_config['spacing_x']
+                )
+                y = self.grid_config['start_y'] + row * (
+                    self.grid_config['cell_height'] + self.grid_config['spacing_y']
+                )
+
+                # Convert to canvas coordinates
+                x1, y1 = self.image_to_canvas_coords(x, y)
+                x2, y2 = self.image_to_canvas_coords(
+                    x + self.grid_config['cell_width'],
+                    y + self.grid_config['cell_height']
+                )
+
+                # Draw outer cell (blue, semi-transparent)
+                self.canvas.create_rectangle(
+                    x1, y1, x2, y2,
+                    outline="#4CAF50",
+                    width=2,
+                    tags="grid_overlay"
+                )
+
+                # Draw inner crop area (if padding > 0)
+                if self.grid_config['crop_padding'] > 0:
+                    pad = self.grid_config['crop_padding']
+                    inner_x1, inner_y1 = self.image_to_canvas_coords(x + pad, y + pad)
+                    inner_x2, inner_y2 = self.image_to_canvas_coords(
+                        x + self.grid_config['cell_width'] - pad,
+                        y + self.grid_config['cell_height'] - pad
+                    )
+
+                    self.canvas.create_rectangle(
+                        inner_x1, inner_y1, inner_x2, inner_y2,
+                        outline="#FFC107",
+                        width=1,
+                        dash=(3, 3),
+                        tags="grid_overlay"
+                    )
+
+        # Draw start position marker if in grid edit mode
+        if self.edit_mode == EditMode.GRID_EDIT and self.grid_temp_start:
+            x, y = self.image_to_canvas_coords(*self.grid_temp_start)
+            # Draw a crosshair
+            size = 10
+            self.canvas.create_line(
+                x - size, y, x + size, y,
+                fill="red", width=2, tags="grid_overlay"
+            )
+            self.canvas.create_line(
+                x, y - size, x, y + size,
+                fill="red", width=2, tags="grid_overlay"
+            )
+
+        # Draw drag preview rectangle if dragging
+        if self.grid_drag_start and self.grid_drag_current:
+            x1, y1 = self.image_to_canvas_coords(*self.grid_drag_start)
+            x2, y2 = self.image_to_canvas_coords(*self.grid_drag_current)
+
+            self.canvas.create_rectangle(
+                x1, y1, x2, y2,
+                outline="#FF5722",
+                fill="#FF5722",
+                stipple="gray25",
+                width=3,
+                tags="grid_overlay"
+            )
 
 
 def main():
