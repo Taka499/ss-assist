@@ -36,7 +36,7 @@ pages:
       # Number of columns in the grid
       columns: 3
       # Number of visible rows (may vary)
-      rows: 5
+      rows: 4
       # Top-left corner of the first icon (x, y)
       start_x: 963
       start_y: 151
