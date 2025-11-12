@@ -12,8 +12,8 @@ This GUI makes the icon-cropper tool resilient to game UI changes (such as patch
 
 ## Progress
 
-- [ ] Create the GUI configuration tool architecture
-- [ ] Implement screenshot display with zoom and pan capabilities
+- [x] Create the GUI configuration tool architecture *(2025-01-12)*
+- [x] Implement screenshot display with zoom and pan capabilities *(2025-01-12)*
 - [ ] Add visual grid overlay editor with mouse interaction
 - [ ] Add OCR region editor with draggable rectangles
 - [ ] Implement config.yaml serialization and deserialization
@@ -22,13 +22,97 @@ This GUI makes the icon-cropper tool resilient to game UI changes (such as patch
 - [ ] Write comprehensive tests
 - [ ] Update main cropper.py to integrate with new config workflow
 
+### Milestone 1: Basic GUI Framework ✅ COMPLETE (2025-01-12)
+
+Created `config_editor.py` with full basic functionality:
+- ✅ Tkinter application structure with clean class-based design
+- ✅ Menu bar (File: Open/Capture/Exit, View: Zoom controls, Help: About)
+- ✅ Screenshot capture integration using subprocess isolation
+- ✅ Scrollable canvas with horizontal and vertical scrollbars
+- ✅ Pan controls (click and drag to move image)
+- ✅ Zoom controls (mouse wheel, supports Windows/Mac/Linux)
+- ✅ Status bar showing current state and zoom level
+- ✅ Keyboard shortcuts (Ctrl+O, Ctrl+G, Ctrl+Q)
+
+**Testing**: All features verified working correctly.
+
 ## Surprises & Discoveries
 
-(To be filled in during implementation)
+### WinRT Initialization Fails in Tkinter Main Thread (2025-01-12)
+
+**Problem**: When calling `capture_stella_sora()` directly from tkinter GUI, the Windows Graphics Capture API failed with error: `"Failed to initialize WinRT"`.
+
+**Root Cause**: The Windows Graphics Capture API requires proper WinRT/COM initialization in a clean threading context. Tkinter's main thread has its own event loop and COM apartment state that conflicts with the WinRT initialization.
+
+**Evidence**:
+- Initial direct call from GUI: Failed with WinRT initialization error
+- Threading approach with `pythoncom.CoInitialize()`: Still failed - COM apartment threading model conflicts
+- Subprocess isolation approach: **SUCCESS** - Clean process environment allows proper WinRT initialization
+
+**Impact**: Required refactoring the capture integration from direct function call to subprocess-based approach.
+
+### libpng Color Profile Warnings (2025-01-12)
+
+**Observation**: When displaying PNGs (both tkinter UI assets and game screenshots), libpng emits warnings: `"libpng warning: iCCP: known incorrect sRGB profile"`.
+
+**Cause**: PNG files contain outdated or slightly incorrect sRGB ICC color profile metadata that doesn't match libpng's current specification.
+
+**Impact**: None - warnings are harmless. Images display correctly as libpng automatically falls back to built-in sRGB profile. **Decision**: Leave warnings as-is, no action needed.
 
 ## Decision Log
 
-(To be filled in during implementation)
+### D1: Use Subprocess Isolation for Screenshot Capture (2025-01-12)
+
+**Context**: Windows Graphics Capture API failing with WinRT initialization errors when called from tkinter GUI.
+
+**Options Considered**:
+1. Direct function call from GUI main thread
+2. Threading with COM initialization (`pythoncom.CoInitialize()`)
+3. Subprocess isolation running `capture.py` as separate process
+
+**Decision**: Use subprocess isolation (Option 3).
+
+**Rationale**:
+- Option 1 failed immediately with WinRT errors
+- Option 2 still failed due to COM apartment threading conflicts with tkinter
+- Option 3 succeeds because it gives WinRT a completely clean process environment
+- Subprocess approach is more robust and isolated from GUI threading issues
+- Performance impact is minimal (~1-2 second capture time, acceptable for user-initiated action)
+
+**Trade-offs**:
+- ✅ Pro: Completely isolated, no threading conflicts
+- ✅ Pro: More robust error handling via subprocess return codes
+- ⚠️ Con: Slightly slower than in-process call
+- ⚠️ Con: Requires reading capture from temp file (capture.py saves to `test_capture.png`)
+
+### D2: Use Tkinter for GUI Framework (2025-01-12)
+
+**Context**: Need to choose GUI framework for config editor.
+
+**Decision**: Use tkinter (Python standard library).
+
+**Rationale**:
+- Already included with Python, no new dependencies
+- Sufficient for our needs (canvas, menus, mouse events)
+- Lightweight and fast for our use case
+- Well-documented and stable
+
+**Alternatives Not Chosen**:
+- PyQt/PySide: Too heavy, would add significant dependencies
+- wxPython: Similar weight issue, overkill for our needs
+- Custom web-based UI: Unnecessary complexity
+
+### D3: Pan with Left Mouse Button, Not Middle Button (2025-01-12)
+
+**Context**: Original plan specified middle mouse button for panning.
+
+**Decision**: Use left mouse button click-and-drag for panning.
+
+**Rationale**:
+- More intuitive - matches common image viewer UX patterns
+- Middle mouse button not available on all mice (especially laptops with touchpads)
+- Left-click drag is easier to discover for users
+- Can still use other mouse buttons for future editing modes (grid definition, region drawing)
 
 ## Outcomes & Retrospective
 
