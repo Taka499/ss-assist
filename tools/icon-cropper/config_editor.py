@@ -90,6 +90,14 @@ class ConfigEditorApp:
         self.grid_drag_start: Optional[Tuple[int, int]] = None
         self.grid_drag_current: Optional[Tuple[int, int]] = None
 
+        # Grid resize state
+        self.resize_mode: Optional[str] = None  # 'edge_left', 'edge_right', 'edge_top', 'edge_bottom',
+                                                  # 'corner_tl', 'corner_tr', 'corner_bl', 'corner_br'
+        self.resize_start_pos: Optional[Tuple[int, int]] = None  # Mouse position at resize start
+        self.resize_original_config: Optional[dict] = None  # Grid config snapshot at resize start
+        self.is_resizing = False
+        self.updating_inputs_programmatically = False  # Flag to prevent trace callback loops
+
         # Set up the UI
         self._create_menu_bar()
         self._create_main_layout()
@@ -265,8 +273,8 @@ class ConfigEditorApp:
             ttk.Label(inputs_frame, text=f"{label}:").grid(row=row, column=0, sticky=tk.W, pady=2)
 
             var = tk.IntVar(value=self.grid_config[param])
-            entry = ttk.Entry(inputs_frame, textvariable=var, width=8)
-            entry.grid(row=row, column=1, sticky=tk.W, pady=2, padx=(5, 0))
+            spinbox = ttk.Spinbox(inputs_frame, textvariable=var, width=8, from_=0, to=9999, increment=1)
+            spinbox.grid(row=row, column=1, sticky=tk.W, pady=2, padx=(5, 0))
 
             self.grid_inputs[param] = var
             var.trace_add('write', lambda *args: self.on_grid_param_changed())
@@ -283,8 +291,8 @@ class ConfigEditorApp:
             ttk.Label(inputs_frame, text=f"{label}:").grid(row=row, column=0, sticky=tk.W, pady=2)
 
             var = tk.IntVar(value=self.grid_config[param])
-            entry = ttk.Entry(inputs_frame, textvariable=var, width=8)
-            entry.grid(row=row, column=1, sticky=tk.W, pady=2, padx=(5, 0))
+            spinbox = ttk.Spinbox(inputs_frame, textvariable=var, width=8, from_=1, to=9999, increment=1)
+            spinbox.grid(row=row, column=1, sticky=tk.W, pady=2, padx=(5, 0))
 
             self.grid_inputs[param] = var
             var.trace_add('write', lambda *args: self.on_grid_param_changed())
@@ -301,8 +309,8 @@ class ConfigEditorApp:
             ttk.Label(inputs_frame, text=f"{label}:").grid(row=row, column=0, sticky=tk.W, pady=2)
 
             var = tk.IntVar(value=self.grid_config[param])
-            entry = ttk.Entry(inputs_frame, textvariable=var, width=8)
-            entry.grid(row=row, column=1, sticky=tk.W, pady=2, padx=(5, 0))
+            spinbox = ttk.Spinbox(inputs_frame, textvariable=var, width=8, from_=0, to=999, increment=1)
+            spinbox.grid(row=row, column=1, sticky=tk.W, pady=2, padx=(5, 0))
 
             self.grid_inputs[param] = var
             var.trace_add('write', lambda *args: self.on_grid_param_changed())
@@ -319,8 +327,8 @@ class ConfigEditorApp:
             ttk.Label(inputs_frame, text=f"{label}:").grid(row=row, column=0, sticky=tk.W, pady=2)
 
             var = tk.IntVar(value=self.grid_config[param])
-            entry = ttk.Entry(inputs_frame, textvariable=var, width=8)
-            entry.grid(row=row, column=1, sticky=tk.W, pady=2, padx=(5, 0))
+            spinbox = ttk.Spinbox(inputs_frame, textvariable=var, width=8, from_=1, to=99, increment=1)
+            spinbox.grid(row=row, column=1, sticky=tk.W, pady=2, padx=(5, 0))
 
             self.grid_inputs[param] = var
             var.trace_add('write', lambda *args: self.on_grid_param_changed())
@@ -329,8 +337,8 @@ class ConfigEditorApp:
         # Crop padding
         ttk.Label(inputs_frame, text="Crop Padding:").grid(row=row, column=0, sticky=tk.W, pady=2)
         var = tk.IntVar(value=self.grid_config['crop_padding'])
-        entry = ttk.Entry(inputs_frame, textvariable=var, width=8)
-        entry.grid(row=row, column=1, sticky=tk.W, pady=2, padx=(5, 0))
+        spinbox = ttk.Spinbox(inputs_frame, textvariable=var, width=8, from_=0, to=99, increment=1)
+        spinbox.grid(row=row, column=1, sticky=tk.W, pady=2, padx=(5, 0))
         self.grid_inputs['crop_padding'] = var
         var.trace_add('write', lambda *args: self.on_grid_param_changed())
 
@@ -366,6 +374,7 @@ class ConfigEditorApp:
         if file_path:
             try:
                 self.current_image = Image.open(file_path)
+                self.center_image()
                 self.display_image()
                 self.update_status(f"Loaded: {Path(file_path).name}")
             except Exception as e:
@@ -433,6 +442,7 @@ class ConfigEditorApp:
             image: The captured image
         """
         self.current_image = image
+        self.center_image()
         self.display_image()
         self.update_status(f"Captured: {self.current_image.size[0]}x{self.current_image.size[1]}")
 
@@ -445,6 +455,23 @@ class ConfigEditorApp:
         """
         messagebox.showerror(title, message)
         self.update_status("Capture failed")
+
+    def center_image(self):
+        """Center the current image in the canvas viewport."""
+        if self.current_image is None:
+            return
+
+        # Get canvas dimensions
+        canvas_width = self.canvas.winfo_width()
+        canvas_height = self.canvas.winfo_height()
+
+        # Get image dimensions (at current zoom)
+        img_width = self.current_image.size[0] * self.zoom_level
+        img_height = self.current_image.size[1] * self.zoom_level
+
+        # Calculate center position
+        self.pan_offset[0] = (canvas_width - img_width) / 2
+        self.pan_offset[1] = (canvas_height - img_height) / 2
 
     def display_image(self):
         """Display the current image on the canvas with current zoom and pan."""
@@ -479,11 +506,18 @@ class ConfigEditorApp:
             tags="image"
         )
 
-        # Update scroll region
+        # Update scroll region with padding to allow centering any corner
+        # Add half-canvas padding so corners can be scrolled to center
+        canvas_width = self.canvas.winfo_width()
+        canvas_height = self.canvas.winfo_height()
+        padding_x = canvas_width / 2
+        padding_y = canvas_height / 2
+
         self.canvas.config(scrollregion=(
-            0, 0,
-            width + abs(self.pan_offset[0]),
-            height + abs(self.pan_offset[1])
+            min(0, self.pan_offset[0]) - padding_x,  # Extend left
+            min(0, self.pan_offset[1]) - padding_y,  # Extend top
+            max(width, width + self.pan_offset[0]) + padding_x,  # Extend right
+            max(height, height + self.pan_offset[1]) + padding_y  # Extend bottom
         ))
 
         # Draw grid overlay if in grid edit mode
@@ -615,6 +649,13 @@ class ConfigEditorApp:
         Args:
             event: Mouse button press event
         """
+        # Check if clicking on a resize handle - let tag binding handle it
+        items_under_cursor = self.canvas.find_withtag(tk.CURRENT)
+        if items_under_cursor:
+            tags = self.canvas.gettags(items_under_cursor[0])
+            if 'resize_handle' in tags:
+                return  # Let tag binding handle resize
+
         # Check if in grid edit mode
         if self.edit_mode == EditMode.GRID_EDIT:
             self.on_grid_click(event)
@@ -626,11 +667,16 @@ class ConfigEditorApp:
         self.canvas.config(cursor="fleur")
 
     def on_pan_move(self, event):
-        """Pan the image or handle grid dragging while moving mouse.
+        """Pan the image, handle grid dragging, or handle resize while moving mouse.
 
         Args:
             event: Mouse motion event
         """
+        # Check if resizing
+        if self.is_resizing:
+            self.do_resize(event)
+            return
+
         # Check if in grid edit mode and dragging
         if self.edit_mode == EditMode.GRID_EDIT and self.grid_edit_step == GridEditStep.SET_CELL:
             self.on_grid_drag(event)
@@ -655,11 +701,16 @@ class ConfigEditorApp:
         self.display_image()
 
     def on_pan_end(self, event):
-        """Stop panning or complete grid cell definition when mouse released.
+        """Stop panning, resizing, or complete grid cell definition when mouse released.
 
         Args:
             event: Mouse button release event
         """
+        # Check if resizing
+        if self.is_resizing:
+            self.end_resize(event)
+            return
+
         # Check if in grid edit mode
         if self.edit_mode == EditMode.GRID_EDIT and self.grid_edit_step == GridEditStep.SET_CELL:
             self.on_grid_release(event)
@@ -686,8 +737,15 @@ class ConfigEditorApp:
             # Update config
             self.grid_config['start_x'] = img_x
             self.grid_config['start_y'] = img_y
-            self.grid_inputs['start_x'].set(img_x)
-            self.grid_inputs['start_y'].set(img_y)
+            self.updating_inputs_programmatically = True
+            try:
+                self.grid_inputs['start_x'].set(img_x)
+                self.grid_inputs['start_y'].set(img_y)
+            finally:
+                self.updating_inputs_programmatically = False
+
+            # Reset cursor to default after first click
+            self.canvas.config(cursor="")
 
             self.instruction_label.config(
                 text="STEP 2: Drag to define cell width and height"
@@ -726,8 +784,12 @@ class ConfigEditorApp:
         # Update config
         self.grid_config['cell_width'] = cell_width
         self.grid_config['cell_height'] = cell_height
-        self.grid_inputs['cell_width'].set(cell_width)
-        self.grid_inputs['cell_height'].set(cell_height)
+        self.updating_inputs_programmatically = True
+        try:
+            self.grid_inputs['cell_width'].set(cell_width)
+            self.grid_inputs['cell_height'].set(cell_height)
+        finally:
+            self.updating_inputs_programmatically = False
 
         # Move to adjust step
         self.grid_edit_step = GridEditStep.ADJUST
@@ -770,6 +832,9 @@ class ConfigEditorApp:
         self.grid_drag_start = None
         self.grid_drag_current = None
 
+        # Set crosshair cursor for initial selection
+        self.canvas.config(cursor="crosshair")
+
         self.instruction_label.config(
             text="STEP 1: Click on the top-left corner of the first icon",
             foreground="green"
@@ -798,6 +863,10 @@ class ConfigEditorApp:
     def on_grid_param_changed(self):
         """Handle changes to grid parameters from input fields."""
         if self.edit_mode != EditMode.GRID_EDIT:
+            return
+
+        # Skip if we're updating inputs programmatically (e.g., during resize)
+        if self.updating_inputs_programmatically:
             return
 
         try:
@@ -893,8 +962,10 @@ class ConfigEditorApp:
                         tags="grid_overlay"
                     )
 
-        # Draw start position marker if in grid edit mode
-        if self.edit_mode == EditMode.GRID_EDIT and self.grid_temp_start:
+        # Draw start position marker if in grid edit mode (only during initial steps)
+        if (self.edit_mode == EditMode.GRID_EDIT and
+            self.grid_temp_start and
+            self.grid_edit_step in (GridEditStep.SET_START, GridEditStep.SET_CELL)):
             x, y = self.image_to_canvas_coords(*self.grid_temp_start)
             # Draw a crosshair
             size = 10
@@ -920,6 +991,256 @@ class ConfigEditorApp:
                 width=3,
                 tags="grid_overlay"
             )
+
+        # Draw resize handles on the first cell when in ADJUST mode
+        if self.grid_edit_step == GridEditStep.ADJUST:
+            self._draw_resize_handles()
+
+
+    # ========== Grid Resize Handlers ==========
+
+    def _draw_resize_handles(self):
+        """Draw interactive resize handles on the first grid cell as canvas items."""
+        if self.current_image is None:
+            return
+
+        # Get the first cell bounds (top-left cell)
+        cell_start_x = self.grid_config['start_x']
+        cell_start_y = self.grid_config['start_y']
+        cell_end_x = cell_start_x + self.grid_config['cell_width']
+        cell_end_y = cell_start_y + self.grid_config['cell_height']
+
+        # Convert to canvas coordinates
+        canvas_x1, canvas_y1 = self.image_to_canvas_coords(cell_start_x, cell_start_y)
+        canvas_x2, canvas_y2 = self.image_to_canvas_coords(cell_end_x, cell_end_y)
+
+        # Handle size (pixels on canvas)
+        handle_size = 8
+
+        # Define handle positions and their tags/cursors
+        handles = [
+            # Corners
+            ('corner_tl', canvas_x1, canvas_y1, 'size_nw_se'),
+            ('corner_tr', canvas_x2, canvas_y1, 'size_ne_sw'),
+            ('corner_bl', canvas_x1, canvas_y2, 'size_ne_sw'),
+            ('corner_br', canvas_x2, canvas_y2, 'size_nw_se'),
+            # Edges (midpoints)
+            ('edge_left', canvas_x1, (canvas_y1 + canvas_y2) / 2, 'sb_h_double_arrow'),
+            ('edge_right', canvas_x2, (canvas_y1 + canvas_y2) / 2, 'sb_h_double_arrow'),
+            ('edge_top', (canvas_x1 + canvas_x2) / 2, canvas_y1, 'sb_v_double_arrow'),
+            ('edge_bottom', (canvas_x1 + canvas_x2) / 2, canvas_y2, 'sb_v_double_arrow'),
+        ]
+
+        # Unbind old events from all handle tags to prevent conflicts
+        for tag, _, _, _ in handles:
+            self.canvas.tag_unbind(tag, '<Enter>')
+            self.canvas.tag_unbind(tag, '<Leave>')
+            self.canvas.tag_unbind(tag, '<Button-1>')
+
+        for tag, cx, cy, cursor in handles:
+            # Draw semi-transparent handle rectangle
+            handle_id = self.canvas.create_rectangle(
+                cx - handle_size, cy - handle_size,
+                cx + handle_size, cy + handle_size,
+                fill='#2196F3',
+                outline='white',
+                width=2,
+                tags=('grid_overlay', 'resize_handle', tag)
+            )
+
+            # Bind events to this handle - use default arguments to capture values
+            self.canvas.tag_bind(tag, '<Enter>',
+                lambda e, cursor_val=cursor: self.canvas.config(cursor=cursor_val))
+            self.canvas.tag_bind(tag, '<Leave>',
+                lambda e: self.canvas.config(cursor=''))
+            # Return 'break' to stop event propagation to canvas binding
+            self.canvas.tag_bind(tag, '<Button-1>',
+                lambda e, tag_val=tag: self._on_handle_click(e, tag_val) or 'break')
+
+    def _on_handle_click(self, event, handle_tag):
+        """Handle click on a resize handle.
+
+        Args:
+            event: Mouse button press event
+            handle_tag: Tag identifying which handle was clicked
+        """
+        self.resize_mode = handle_tag
+        self.start_resize(event)
+
+    def start_resize(self, event):
+        """Start resizing the grid cell.
+
+        Args:
+            event: Mouse button press event
+        """
+        self.is_resizing = True
+        img_x, img_y = self.canvas_to_image_coords(event.x, event.y)
+        self.resize_start_pos = (img_x, img_y)
+
+        # Save original config for reference
+        self.resize_original_config = self.grid_config.copy()
+
+    def do_resize(self, event):
+        """Handle resize dragging.
+
+        Args:
+            event: Mouse motion event
+        """
+        if not self.is_resizing or not self.resize_mode or not self.resize_start_pos:
+            return
+
+        img_x, img_y = self.canvas_to_image_coords(event.x, event.y)
+        start_x, start_y = self.resize_start_pos
+        orig = self.resize_original_config
+
+        # Calculate delta
+        dx = img_x - start_x
+        dy = img_y - start_y
+
+        # Check modifier keys
+        ctrl_pressed = bool(event.state & 0x0004)
+        shift_pressed = bool(event.state & 0x0001)
+
+        if self.resize_mode.startswith('edge_'):
+            # Edge resizing - single dimension
+            if ctrl_pressed:
+                # Ctrl: scale from center along edge direction
+                if self.resize_mode == 'edge_left':
+                    # Moving left edge: both edges move symmetrically
+                    self.grid_config['start_x'] = orig['start_x'] - dx
+                    self.grid_config['cell_width'] = max(1, orig['cell_width'] + 2 * dx)
+                elif self.resize_mode == 'edge_right':
+                    # Moving right edge: both edges move symmetrically
+                    self.grid_config['start_x'] = orig['start_x'] - dx
+                    self.grid_config['cell_width'] = max(1, orig['cell_width'] + 2 * dx)
+                elif self.resize_mode == 'edge_top':
+                    # Moving top edge: both edges move symmetrically
+                    self.grid_config['start_y'] = orig['start_y'] - dy
+                    self.grid_config['cell_height'] = max(1, orig['cell_height'] + 2 * dy)
+                elif self.resize_mode == 'edge_bottom':
+                    # Moving bottom edge: both edges move symmetrically
+                    self.grid_config['start_y'] = orig['start_y'] - dy
+                    self.grid_config['cell_height'] = max(1, orig['cell_height'] + 2 * dy)
+            else:
+                # Normal edge resize: opposite edge stays fixed
+                if self.resize_mode == 'edge_left':
+                    new_width = orig['cell_width'] - dx
+                    self.grid_config['start_x'] = orig['start_x'] + dx
+                    self.grid_config['cell_width'] = max(1, new_width)
+                elif self.resize_mode == 'edge_right':
+                    self.grid_config['cell_width'] = max(1, orig['cell_width'] + dx)
+                elif self.resize_mode == 'edge_top':
+                    new_height = orig['cell_height'] - dy
+                    self.grid_config['start_y'] = orig['start_y'] + dy
+                    self.grid_config['cell_height'] = max(1, new_height)
+                elif self.resize_mode == 'edge_bottom':
+                    self.grid_config['cell_height'] = max(1, orig['cell_height'] + dy)
+
+        elif self.resize_mode.startswith('corner_'):
+            # Corner resizing - both dimensions
+            if shift_pressed:
+                # Shift: maintain aspect ratio
+                if self.resize_mode == 'corner_br':
+                    # Bottom-right: scale proportionally from top-left
+                    scale = max(dx / max(orig['cell_width'], 1), dy / max(orig['cell_height'], 1))
+                    self.grid_config['cell_width'] = max(1, int(orig['cell_width'] + scale * orig['cell_width']))
+                    self.grid_config['cell_height'] = max(1, int(orig['cell_height'] + scale * orig['cell_height']))
+                elif self.resize_mode == 'corner_tl':
+                    scale = max(-dx / max(orig['cell_width'], 1), -dy / max(orig['cell_height'], 1))
+                    new_width = max(1, int(orig['cell_width'] - scale * orig['cell_width']))
+                    new_height = max(1, int(orig['cell_height'] - scale * orig['cell_height']))
+                    self.grid_config['start_x'] = orig['start_x'] + orig['cell_width'] - new_width
+                    self.grid_config['start_y'] = orig['start_y'] + orig['cell_height'] - new_height
+                    self.grid_config['cell_width'] = new_width
+                    self.grid_config['cell_height'] = new_height
+                elif self.resize_mode == 'corner_tr':
+                    # Top-right: bottom-left is anchor. Moving right or up enlarges both dimensions.
+                    scale = max(dx / max(orig['cell_width'], 1), -dy / max(orig['cell_height'], 1))
+                    new_width = max(1, int(orig['cell_width'] + scale * orig['cell_width']))
+                    new_height = max(1, int(orig['cell_height'] + scale * orig['cell_height']))
+                    # Top edge moves, so adjust start_y
+                    self.grid_config['start_y'] = orig['start_y'] + orig['cell_height'] - new_height
+                    self.grid_config['cell_width'] = new_width
+                    self.grid_config['cell_height'] = new_height
+                elif self.resize_mode == 'corner_bl':
+                    # Bottom-left: top-right is anchor. Moving left or down enlarges both dimensions.
+                    scale = max(-dx / max(orig['cell_width'], 1), dy / max(orig['cell_height'], 1))
+                    new_width = max(1, int(orig['cell_width'] + scale * orig['cell_width']))
+                    new_height = max(1, int(orig['cell_height'] + scale * orig['cell_height']))
+                    # Left edge moves, so adjust start_x
+                    self.grid_config['start_x'] = orig['start_x'] + orig['cell_width'] - new_width
+                    self.grid_config['cell_width'] = new_width
+                    self.grid_config['cell_height'] = new_height
+            elif ctrl_pressed:
+                # Ctrl: scale from center
+                if self.resize_mode == 'corner_br':
+                    self.grid_config['start_x'] = orig['start_x'] - dx
+                    self.grid_config['start_y'] = orig['start_y'] - dy
+                    self.grid_config['cell_width'] = max(1, orig['cell_width'] + 2 * dx)
+                    self.grid_config['cell_height'] = max(1, orig['cell_height'] + 2 * dy)
+                elif self.resize_mode == 'corner_tl':
+                    self.grid_config['start_x'] = orig['start_x'] + dx
+                    self.grid_config['start_y'] = orig['start_y'] + dy
+                    self.grid_config['cell_width'] = max(1, orig['cell_width'] - 2 * dx)
+                    self.grid_config['cell_height'] = max(1, orig['cell_height'] - 2 * dy)
+                elif self.resize_mode == 'corner_tr':
+                    self.grid_config['start_x'] = orig['start_x'] - dx
+                    self.grid_config['start_y'] = orig['start_y'] + dy
+                    self.grid_config['cell_width'] = max(1, orig['cell_width'] + 2 * dx)
+                    self.grid_config['cell_height'] = max(1, orig['cell_height'] - 2 * dy)
+                elif self.resize_mode == 'corner_bl':
+                    self.grid_config['start_x'] = orig['start_x'] + dx
+                    self.grid_config['start_y'] = orig['start_y'] - dy
+                    self.grid_config['cell_width'] = max(1, orig['cell_width'] - 2 * dx)
+                    self.grid_config['cell_height'] = max(1, orig['cell_height'] + 2 * dy)
+            else:
+                # Default: opposite corner fixed
+                if self.resize_mode == 'corner_br':
+                    self.grid_config['cell_width'] = max(1, orig['cell_width'] + dx)
+                    self.grid_config['cell_height'] = max(1, orig['cell_height'] + dy)
+                elif self.resize_mode == 'corner_tl':
+                    new_width = max(1, orig['cell_width'] - dx)
+                    new_height = max(1, orig['cell_height'] - dy)
+                    self.grid_config['start_x'] = orig['start_x'] + orig['cell_width'] - new_width
+                    self.grid_config['start_y'] = orig['start_y'] + orig['cell_height'] - new_height
+                    self.grid_config['cell_width'] = new_width
+                    self.grid_config['cell_height'] = new_height
+                elif self.resize_mode == 'corner_tr':
+                    new_height = max(1, orig['cell_height'] - dy)
+                    self.grid_config['start_y'] = orig['start_y'] + orig['cell_height'] - new_height
+                    self.grid_config['cell_width'] = max(1, orig['cell_width'] + dx)
+                    self.grid_config['cell_height'] = new_height
+                elif self.resize_mode == 'corner_bl':
+                    new_width = max(1, orig['cell_width'] - dx)
+                    self.grid_config['start_x'] = orig['start_x'] + orig['cell_width'] - new_width
+                    self.grid_config['cell_width'] = new_width
+                    self.grid_config['cell_height'] = max(1, orig['cell_height'] + dy)
+
+        # Update input fields (set flag to prevent trace callback loop)
+        self.updating_inputs_programmatically = True
+        try:
+            for param, var in self.grid_inputs.items():
+                if param in self.grid_config:
+                    var.set(self.grid_config[param])
+        finally:
+            self.updating_inputs_programmatically = False
+
+        # OPTIMIZED: Only redraw grid overlay during resize, not entire canvas
+        # This prevents handles from being destroyed/recreated
+        self.canvas.delete("grid_overlay")
+        self.draw_grid_overlay()
+
+    def end_resize(self, event):
+        """Complete the resize operation.
+
+        Args:
+            event: Mouse button release event
+        """
+        self.is_resizing = False
+        self.resize_start_pos = None
+        self.resize_original_config = None
+        self.resize_mode = None
+        self.canvas.config(cursor='')
 
 
 def main():

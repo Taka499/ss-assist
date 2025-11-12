@@ -50,28 +50,43 @@ Implemented interactive grid editing with visual feedback:
   - Yellow dashed lines for inner crop regions (with padding)
   - Red crosshair for start position marker
   - Orange semi-transparent rectangle during drag
-- ✅ Sidebar input fields for all grid parameters:
+- ✅ Sidebar input widgets (Spinbox) for all grid parameters with up/down arrows:
   - Position: start_x, start_y
   - Cell size: cell_width, cell_height
   - Spacing: spacing_x, spacing_y
   - Grid size: columns, rows
   - Crop padding
 - ✅ Real-time grid overlay updates when input fields change
+- ✅ **Interactive resize handles (PowerPoint-like)**:
+  - 8 handles total: 4 corners (TL, TR, BR, BL) + 4 edges (Top, Right, Bottom, Left)
+  - No modifier: Resize with opposite edge/corner fixed
+  - Shift: Maintain aspect ratio (proportional scaling)
+  - Ctrl: Center-fixed scaling (corners: both dimensions, edges: along edge direction)
+  - Visual feedback with crosshair cursor during resize
+  - Handles appear as small blue circles at grid cell corners/edges
 - ✅ Coordinate conversion between canvas and image space (handles zoom/pan/scroll)
 - ✅ Mode buttons: "Edit Grid Layout", "Edit OCR Region" (disabled), "Exit Edit Mode"
 - ✅ Instruction labels guide user through workflow
 - ✅ Mouse interaction properly switches between pan mode and grid edit mode
 - ✅ Screenshot buttons for quick access (Open/Capture)
 - ✅ Cursor-centered zooming (Ctrl+Scroll zooms towards cursor position)
+- ✅ Image centering on load/capture with extended scroll region for flexibility
 
 **Bug Fixes**:
 - Fixed coordinate misalignment when canvas is scrolled (using `canvasx()`/`canvasy()`)
+- Fixed lambda closure bug causing only 3 handles to work (used default arguments)
+- **Fixed critical circular dependency bug in Spinbox trace callbacks** (see Surprises & Discoveries)
+- Fixed Shift+resize inverted scaling for top-right and bottom-left corners
+- Fixed scroll region to include negative pan offsets and padding for full image accessibility
 
 **UX Improvements**:
 - Intuitive mouse wheel behavior (scroll vertically, Shift+scroll horizontally, Ctrl+scroll zoom)
 - Cursor-centered zooming for precise navigation
+- Spinbox widgets for precise value adjustments with arrow keys
+- Crosshair cursor when entering grid edit mode for visual feedback
+- Extended scroll region (half-canvas padding) allows centering any corner of the image
 
-**Testing**: Grid editor tested with captured game screenshot. All interaction features working correctly.
+**Testing**: Grid editor fully tested with captured game screenshot. All interaction features (resize handles, modifier keys, spinboxes, scrolling, centering) working correctly.
 
 ## Surprises & Discoveries
 
@@ -100,6 +115,48 @@ img_y = (canvas_y_scrolled - self.pan_offset[1]) / self.zoom_level
 ```
 
 **Impact**: Critical bug fix for usability. Grid editing now works correctly regardless of scroll position.
+
+### Circular Dependency in Spinbox Trace Callbacks (2025-11-12)
+
+**Problem**: Interactive resize handles appeared to work initially (registering clicks, calculating new values), but the grid would not update visually. Only 3 left handles responded, and they only moved the grid horizontally without resizing. Investigation revealed all 8 handles DID register clicks and `do_resize()` DID calculate correct new values, but `draw_grid_overlay()` was reading old values from `self.grid_config`.
+
+**Root Cause**: Spinbox widgets use Tkinter's `trace_add()` to automatically update `self.grid_config` when the user types or clicks the arrows. This created a circular dependency:
+1. User drags resize handle
+2. `do_resize()` calculates new value: `self.grid_config['cell_width'] = 134`
+3. `do_resize()` updates spinbox to reflect change: `self.grid_inputs['cell_width'].set(134)`
+4. `var.set()` triggers the trace callback → `on_grid_param_changed()`
+5. `on_grid_param_changed()` reads ALL spinbox values (but spinbox still displays old value `135` due to timing)
+6. `on_grid_param_changed()` overwrites `self.grid_config` with old values
+7. `draw_grid_overlay()` reads old values and displays unchanged grid
+
+**Evidence**:
+- Debug output showed all handles registering clicks correctly
+- Debug output showed `do_resize()` calculating correct new dimensions
+- Debug output showed `draw_grid_overlay()` reading different (old) values
+- The trace callback was executing after every `var.set()` call, even programmatic ones
+
+**Solution**: Added a `self.updating_inputs_programmatically` flag to distinguish between user-initiated changes (type in spinbox, click arrows) and programmatic updates (from resize handles). The trace callback checks this flag and skips updating `self.grid_config` when the flag is True.
+
+**Fix Applied**:
+- Added flag in `__init__`: `self.updating_inputs_programmatically = False` (line 99)
+- Check flag in trace callback `on_grid_param_changed()`: Return early if flag is True (lines 828-830)
+- Set flag around programmatic updates in `do_resize()`: Wrap `var.set()` calls in try/finally block (lines 1164-1171)
+
+**Code Pattern**:
+```python
+# In do_resize() after calculating new values:
+self.updating_inputs_programmatically = True
+try:
+    for param, var in self.grid_inputs.items():
+        if param in self.grid_config:
+            var.set(self.grid_config[param])
+finally:
+    self.updating_inputs_programmatically = False
+```
+
+**Impact**: This was a critical blocker for the interactive resize feature. Without this fix, resize handles appeared to work but had no effect. The fix enables bidirectional synchronization: handles update spinboxes, spinboxes update handles, without infinite loops or stale data.
+
+**Lesson Learned**: Tkinter variable traces fire on ALL value changes, including programmatic ones. When implementing two-way data binding (model ↔ UI), always use a flag to prevent circular updates. This pattern is common in GUI frameworks (React's `useEffect` deps, Angular's change detection guards, etc.).
 
 ### WinRT Initialization Fails in Tkinter Main Thread (2025-01-12)
 
@@ -194,6 +251,46 @@ img_y = (canvas_y_scrolled - self.pan_offset[1]) / self.zoom_level
 - More discoverable and intuitive for users
 
 **Implementation**: Modified `on_mouse_wheel()` and `on_mouse_wheel_linux()` to check `event.state` for modifier key flags (0x0004 for Ctrl, 0x0001 for Shift).
+
+### D5: Interactive Resize Handles with Modifier Keys (2025-11-12)
+
+**Context**: After implementing basic grid definition (click to set start, drag to define cell), users requested PowerPoint-like resize handles for more intuitive grid adjustment. Need to decide interaction model and modifier key behavior.
+
+**Decision**: Implement 8 resize handles (4 corners + 4 edges) with modifier key support:
+- **No modifier**: Resize with opposite edge/corner as fixed anchor point
+- **Shift**: Maintain aspect ratio (proportional scaling)
+- **Ctrl**: Center-fixed scaling (corners: scale both dimensions from center, edges: scale along edge direction from center)
+
+**Rationale**:
+- PowerPoint/Photoshop-style handles are highly discoverable and familiar to users
+- 8 handles provide full control: corners for diagonal resize, edges for single-dimension resize
+- Modifier keys match industry standards:
+  - Shift for constrained (proportional) scaling is universal across design tools
+  - Ctrl for center-fixed scaling matches Adobe/Figma conventions
+- Visual handles (blue circles) provide clear affordance for interaction
+- No modifier = simple resize is the most common operation, should be easiest
+
+**Implementation Details**:
+- Handles created as canvas circles (5px radius) at cell corners/edges
+- Tag-based event binding: `canvas.tag_bind('resize_handle', '<Button-1>', handler)`
+- Drag tracking: Store original config on press, calculate delta on motion, apply transform
+- Modifier detection: Check `event.state & 0x0004` (Ctrl) and `event.state & 0x0001` (Shift)
+- Performance optimization: Only redraw grid overlay during resize, not entire canvas
+
+**Alternatives Considered**:
+1. **Arrow keys only** - Too slow for large adjustments, poor discoverability
+2. **Spinbox widgets only** - Implemented as complement, but lacks visual feedback during adjustment
+3. **Single resize handle at bottom-right** - Too limited, common UX pattern is 8 handles
+4. **Different modifier keys** - Alt could conflict with window manager, Shift+Ctrl too complex
+
+**Trade-offs**:
+- ✅ Pro: Highly intuitive and discoverable
+- ✅ Pro: Matches user expectations from other tools
+- ✅ Pro: Fast for large adjustments, precise with modifier keys
+- ⚠️ Con: More complex event handling code (handle detection, modifier key logic)
+- ⚠️ Con: Potential performance impact (mitigated by selective redrawing)
+
+**Outcome**: Users found resize handles intuitive and powerful. Combined with spinboxes for fine-tuning, provides excellent UX for grid configuration.
 
 ## Outcomes & Retrospective
 
