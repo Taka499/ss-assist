@@ -22,7 +22,7 @@ This refactoring is critical for the success of Milestone 3 and future features.
 - [x] Extract `GridEditor` for grid editing state machine and workflow *(2025-11-13)*
 - [x] Extract `ResizeController` for resize handle logic and modifier keys *(2025-11-13)*
 - [x] Extract `UIBuilder` for creating menu bar, toolbar, and sidebar widgets *(2025-11-13)*
-- [ ] Refactor `ConfigEditorApp` to orchestrate the new modules
+- [x] Refactor `ConfigEditorApp` to orchestrate the new modules *(2025-11-13)*
 - [ ] Test all existing functionality (screenshot capture, grid editing, resize handles)
 - [ ] Verify no behavioral regressions
 - [ ] Update ExecPlan with completion timestamp and retrospective
