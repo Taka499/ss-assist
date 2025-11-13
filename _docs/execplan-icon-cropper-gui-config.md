@@ -17,7 +17,7 @@ This GUI makes the icon-cropper tool resilient to game UI changes (such as patch
 - [x] Add visual grid overlay editor with mouse interaction *(2025-11-12)*
 - [x] Add OCR region editor with draggable rectangles *(2025-11-13)*
 - [x] Refactor UX to Photoshop-like persistent overlay paradigm *(2025-11-13)*
-- [ ] Implement config.yaml serialization and deserialization
+- [x] Implement config.yaml serialization and deserialization *(2025-11-14)*
 - [ ] Add live preview mode showing cropped icons
 - [ ] Add validation for grid configurations
 - [ ] Write comprehensive tests
@@ -121,6 +121,52 @@ Implemented OCR region editing with full feature parity to grid editor:
 
 **Testing**: OCR region editor fully tested with game screenshots. All features (drag, resize, spinboxes, tabs, mode switching) working correctly with smooth, lag-free performance.
 
+### Milestone 4: Config.yaml Serialization ✅ COMPLETE (2025-11-14)
+
+Implemented comment-preserving YAML serialization with validation and backup:
+- ✅ Config serializer module (`editor/config_serializer.py`) - Comment-preserving load/save using ruamel.yaml
+- ✅ Automatic backup creation with timestamp (e.g., `config.yaml.backup.20251114_022359`)
+- ✅ Grid configuration validation (bounds checking, positive dimensions, padding validation)
+- ✅ OCR region validation (bounds checking, positive dimensions)
+- ✅ Save functionality integrated into config_editor.py with user-friendly dialogs
+- ✅ Save button added to UI sidebar (💾 Save Configuration)
+- ✅ Keyboard shortcut added (Ctrl+S)
+- ✅ File menu item added (File → Save Configuration)
+
+**Validation Features**:
+- Checks that grid fits within image bounds
+- Validates positive cell dimensions and grid size
+- Ensures crop padding doesn't exceed cell dimensions
+- Validates OCR region is within image bounds
+- Prevents saving without a loaded screenshot (needed for dimension validation)
+
+**Save Workflow**:
+1. User clicks Save button or presses Ctrl+S
+2. System validates grid configuration (if drawn)
+3. System validates OCR region (if drawn)
+4. System creates timestamped backup of current config.yaml
+5. System updates config with new values using ruamel.yaml (preserves comments)
+6. System shows success dialog with details
+
+**Testing**: Comprehensive test script (`test_config_serializer.py`) verifies:
+- Config loading works correctly
+- Comment preservation through save/load roundtrip
+- Grid validation catches invalid configurations
+- OCR validation catches invalid regions
+- Backup creation works with timestamps
+- All key comments preserved: "# Screenshot Cropper Configuration", "# Window detection settings", "# OCR settings for page detection", "# Grid layout for icon cropping"
+
+**Bug Fixes**:
+- Fixed tab content overflow - added scrollable frames for Grid Layout and OCR Region tabs
+- Fixed "No Image" false positive - corrected image attribute check from `self.image` to `self.current_image`
+- Added mousewheel scrolling to tab content (using Enter/Leave events to avoid conflicts with main canvas)
+
+**Decision - Use ruamel.yaml Instead of pyyaml**:
+- `pyyaml` does not preserve comments or formatting
+- `ruamel.yaml` is designed for round-trip YAML editing
+- Preserves comments, formatting, and structure
+- Slightly larger dependency but essential for user-editable config files
+
 ## Surprises & Discoveries
 
 ### Canvas Scroll Position Not Accounted in Coordinate Conversion (2025-11-12)
@@ -211,6 +257,51 @@ finally:
 **Cause**: PNG files contain outdated or slightly incorrect sRGB ICC color profile metadata that doesn't match libpng's current specification.
 
 **Impact**: None - warnings are harmless. Images display correctly as libpng automatically falls back to built-in sRGB profile. **Decision**: Leave warnings as-is, no action needed.
+
+### Tab Content Overflow Issue (2025-11-14)
+
+**Problem**: After implementing Milestone 4, the Grid Layout tab content exceeded the visible window height. All spinbox inputs were present but many were hidden below the fold, requiring users to resize the window to access bottom controls.
+
+**Root Cause**: The tab frame used `pack()` without scrolling capability. As more input widgets were added (Position, Cell Size, Spacing, Grid Size, Padding - total 9 spinboxes + labels), the content height exceeded typical window sizes.
+
+**Evidence**:
+- User reported: "Grid Layout tab is exceeding the window"
+- Tab content height: ~450px with all controls
+- Typical left panel height: ~600px (but shared with Mode buttons, Save button, Instructions label)
+- Available space for tab content: ~350px - causing overflow
+
+**Solution**: Implemented scrollable frames for both Grid Layout and OCR Region tabs:
+- Created `_create_scrollable_frame()` helper method in `ui_builder.py`
+- Wraps tab content in Canvas with vertical scrollbar
+- Mousewheel scrolling enabled when hovering (using Enter/Leave events)
+- Avoids conflicts with main canvas zoom (Ctrl+Wheel)
+
+**Impact**: Tab content now scrolls smoothly regardless of window size. Users can access all controls even on smaller screens.
+
+### Save Validation Incorrect Image Check (2025-11-14)
+
+**Problem**: Save configuration showed "No Image" warning even when screenshot was loaded and grid drawn. This blocked users from saving valid configurations.
+
+**Root Cause**: Incorrect attribute name check in `save_config()` method. Code checked for `self.canvas_controller.image`, but the actual attribute is `self.canvas_controller.current_image`.
+
+**Evidence**:
+- User reported with screenshot: "Even if there's screenshot loaded and I finished drawing the grid, saving configuration shows up with no image pop up"
+- Code inspection revealed mismatch:
+  - `canvas_controller.py:34` defines: `self.current_image: Optional[Image.Image] = None`
+  - `config_editor.py:667` checked: `self.canvas_controller.image` (wrong attribute)
+
+**Solution**: Updated image check to use correct attribute:
+```python
+# Before (incorrect):
+if not hasattr(self.canvas_controller, 'image') or self.canvas_controller.image is None:
+
+# After (correct):
+if self.canvas_controller.current_image is None:
+```
+
+**Impact**: Save functionality now works correctly when screenshot is loaded. Users can successfully save grid and OCR configurations.
+
+**Lesson Learned**: When accessing attributes across modules, verify the actual attribute names in the source class definition rather than assuming naming conventions. This type of bug is easy to miss in manual testing if you always follow the happy path (load image first, then never test edge cases).
 
 ## Decision Log
 
@@ -324,6 +415,53 @@ finally:
 - ⚠️ Con: Potential performance impact (mitigated by selective redrawing)
 
 **Outcome**: Users found resize handles intuitive and powerful. Combined with spinboxes for fine-tuning, provides excellent UX for grid configuration.
+
+### D6: Use ruamel.yaml for Comment-Preserving Serialization (2025-11-14)
+
+**Context**: Need to save user-edited grid and OCR configurations back to config.yaml while preserving comments and structure. The config file is human-editable and contains important documentation comments.
+
+**Options Considered**:
+1. **pyyaml** - Standard Python YAML library (already in dependencies)
+2. **ruamel.yaml** - Round-trip YAML library designed for preserving comments and formatting
+3. **Manual file editing** - Parse YAML manually, edit values with regex/string manipulation
+4. **JSON with comments** - Convert to JSON5 or similar format
+
+**Decision**: Use ruamel.yaml (Option 2).
+
+**Rationale**:
+- **pyyaml limitation**: Strips all comments and formatting during load/dump cycle. Would make config.yaml unreadable after first save.
+- **ruamel.yaml advantages**:
+  - Designed specifically for round-trip editing (load → modify → save → preserves comments)
+  - Preserves comment position, indentation, and structure
+  - API compatible with pyyaml (easy migration)
+  - Well-maintained and widely used for config file editing
+- **Manual editing risks**: Error-prone, fragile to formatting changes, difficult to maintain
+- **JSON limitation**: Would require migrating entire config format, breaking existing workflows
+
+**Implementation Details**:
+```python
+from ruamel.yaml import YAML
+
+yaml = YAML()
+yaml.preserve_quotes = True
+yaml.default_flow_style = False
+yaml.width = 4096  # Prevent line wrapping
+```
+
+**Testing**: Test script (`test_config_serializer.py`) verifies all key comments preserved:
+- "# Screenshot Cropper Configuration"
+- "# Window detection settings"
+- "# OCR settings for page detection"
+- "# Grid layout for icon cropping"
+
+**Trade-offs**:
+- ✅ Pro: Perfect comment preservation
+- ✅ Pro: Maintains human-readability of config file
+- ✅ Pro: Users can safely edit config.yaml manually alongside GUI edits
+- ⚠️ Con: Additional dependency (~500KB, acceptable for desktop tool)
+- ⚠️ Con: Slightly slower than pyyaml (negligible for small config files)
+
+**Outcome**: Successfully implemented. All tests pass with 100% comment preservation. Config file remains clean and readable after GUI edits.
 
 ## Outcomes & Retrospective
 

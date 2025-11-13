@@ -32,6 +32,51 @@ class UIBuilder:
         self.root = root
         self.callbacks = callbacks
 
+    def _create_scrollable_frame(self, parent: ttk.Frame) -> ttk.Frame:
+        """Create a scrollable frame inside a parent frame.
+
+        Args:
+            parent: Parent frame to contain the scrollable area
+
+        Returns:
+            Inner frame that can hold widgets (will be scrollable)
+        """
+        # Create canvas for scrolling
+        canvas = tk.Canvas(parent, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(parent, orient=tk.VERTICAL, command=canvas.yview)
+
+        # Create inner frame that will hold the actual content
+        scrollable_frame = ttk.Frame(canvas, padding=10)
+
+        # Configure scrolling
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        # Create window in canvas
+        canvas.create_window((0, 0), window=scrollable_frame, anchor=tk.NW)
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        # Pack canvas and scrollbar
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Enable mousewheel scrolling when mouse is over this canvas
+        def on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        def bind_mousewheel(event):
+            canvas.bind("<MouseWheel>", on_mousewheel)
+
+        def unbind_mousewheel(event):
+            canvas.unbind("<MouseWheel>")
+
+        canvas.bind("<Enter>", bind_mousewheel)
+        canvas.bind("<Leave>", unbind_mousewheel)
+
+        return scrollable_frame
+
     def create_menu_bar(self):
         """Create and configure the application menu bar.
 
@@ -53,6 +98,12 @@ class UIBuilder:
             label="Capture Screenshot",
             command=self.callbacks['capture_screenshot'],
             accelerator="Ctrl+G"
+        )
+        file_menu.add_separator()
+        file_menu.add_command(
+            label="Save Configuration",
+            command=self.callbacks['save_config'],
+            accelerator="Ctrl+S"
         )
         file_menu.add_separator()
         file_menu.add_command(
@@ -147,6 +198,16 @@ class UIBuilder:
             command=self.callbacks['enter_pan_mode']
         ).pack(fill=tk.X, pady=2)
 
+        # Save configuration button
+        save_frame = ttk.LabelFrame(left_panel, text="Save", padding=10)
+        save_frame.pack(fill=tk.X, pady=5)
+
+        ttk.Button(
+            save_frame,
+            text="💾 Save Configuration (Ctrl+S)",
+            command=self.callbacks['save_config']
+        ).pack(fill=tk.X, pady=2)
+
         # Instructions label (shared between tabs)
         instruction_label = ttk.Label(
             left_panel,
@@ -161,13 +222,15 @@ class UIBuilder:
         notebook = ttk.Notebook(left_panel)
         notebook.pack(fill=tk.BOTH, expand=True, pady=5)
 
-        # Grid configuration tab
-        grid_tab = ttk.Frame(notebook, padding=10)
-        notebook.add(grid_tab, text="Grid Layout")
+        # Grid configuration tab (scrollable)
+        grid_tab_outer = ttk.Frame(notebook)
+        notebook.add(grid_tab_outer, text="Grid Layout")
+        grid_tab = self._create_scrollable_frame(grid_tab_outer)
 
-        # OCR region tab
-        ocr_tab = ttk.Frame(notebook, padding=10)
-        notebook.add(ocr_tab, text="OCR Region")
+        # OCR region tab (scrollable)
+        ocr_tab_outer = ttk.Frame(notebook)
+        notebook.add(ocr_tab_outer, text="OCR Region")
+        ocr_tab = self._create_scrollable_frame(ocr_tab_outer)
 
         # Store references for returning
         self._grid_tab = grid_tab

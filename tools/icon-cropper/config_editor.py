@@ -33,6 +33,7 @@ from editor.resize_controller import ResizeController
 from editor.ocr_editor import OCREditor
 from editor.ocr_resize_controller import OCRResizeController
 from editor.ui_builder import UIBuilder
+from editor.config_serializer import ConfigSerializer
 
 
 class ConfigEditorApp:
@@ -50,6 +51,10 @@ class ConfigEditorApp:
 
         # Load configuration
         self.config = load_config()
+
+        # Initialize configuration serializer
+        config_path = Path(__file__).parent / "config.yaml"
+        self.config_serializer = ConfigSerializer(config_path)
 
         # Initialize grid configuration (from config.yaml character_select page)
         default_grid = self.config.get('pages', {}).get('character_select', {}).get('grid', {})
@@ -122,6 +127,7 @@ class ConfigEditorApp:
         callbacks = {
             'open_screenshot': self.open_screenshot,
             'capture_screenshot': self.capture_screenshot,
+            'save_config': self.save_config,
             'quit_app': self.quit_app,
             'zoom_in': lambda: self.canvas_controller.zoom_in() if hasattr(self, 'canvas_controller') else None,
             'zoom_out': lambda: self.canvas_controller.zoom_out() if hasattr(self, 'canvas_controller') else None,
@@ -171,6 +177,7 @@ class ConfigEditorApp:
         # Keyboard shortcuts
         self.root.bind('<Control-o>', lambda e: self.open_screenshot())
         self.root.bind('<Control-g>', lambda e: self.capture_screenshot())
+        self.root.bind('<Control-s>', lambda e: self.save_config())
         self.root.bind('<Control-q>', lambda e: self.quit_app())
 
     def _on_display_complete(self):
@@ -652,6 +659,97 @@ class ConfigEditorApp:
             "editing config.yaml.\n\n"
             "Part of the Stella Sora Request Assistant project."
         )
+
+    def save_config(self):
+        """Save the current configuration to config.yaml."""
+        try:
+            # Check if we have an image loaded (needed for validation)
+            if self.canvas_controller.current_image is None:
+                messagebox.showwarning(
+                    "No Image",
+                    "Please load or capture a screenshot before saving.\n"
+                    "The image dimensions are needed for validation."
+                )
+                return
+
+            image_width = self.canvas_controller.current_image.width
+            image_height = self.canvas_controller.current_image.height
+
+            # Validate grid configuration if grid has been drawn
+            if self.grid_drawn:
+                is_valid, error_msg = self.config_serializer.validate_grid_config(
+                    self.grid_config,
+                    image_width,
+                    image_height
+                )
+                if not is_valid:
+                    messagebox.showerror(
+                        "Invalid Grid Configuration",
+                        f"Grid validation failed:\n\n{error_msg}\n\n"
+                        "Please adjust the grid settings and try again."
+                    )
+                    return
+
+            # Validate OCR region if it has been drawn
+            ocr_region = None
+            if self.ocr_drawn:
+                ocr_region = [
+                    self.ocr_config['x'],
+                    self.ocr_config['y'],
+                    self.ocr_config['width'],
+                    self.ocr_config['height']
+                ]
+                is_valid, error_msg = self.config_serializer.validate_ocr_region(
+                    ocr_region,
+                    image_width,
+                    image_height
+                )
+                if not is_valid:
+                    messagebox.showerror(
+                        "Invalid OCR Region",
+                        f"OCR region validation failed:\n\n{error_msg}\n\n"
+                        "Please adjust the OCR region and try again."
+                    )
+                    return
+
+            # Load current config for updating
+            config, load_error = self.config_serializer.load()
+            if load_error:
+                messagebox.showerror("Load Error", f"Failed to load config:\n{load_error}")
+                return
+
+            # Save configuration (always save grid if drawn, optionally save OCR)
+            if self.grid_drawn:
+                success, save_error = self.config_serializer.save(
+                    config,
+                    'character_select',  # Currently hardcoded to character_select page
+                    self.grid_config,
+                    ocr_region=ocr_region if self.ocr_drawn else None,
+                    create_backup=True
+                )
+
+                if success:
+                    messagebox.showinfo(
+                        "Configuration Saved",
+                        "Configuration has been saved successfully!\n\n"
+                        f"Grid settings updated for 'character_select' page.\n"
+                        + ("OCR region updated.\n" if self.ocr_drawn else "")
+                        + "\nA backup of the previous config has been created."
+                    )
+                    self.update_status("Configuration saved successfully")
+                else:
+                    messagebox.showerror("Save Error", f"Failed to save config:\n{save_error}")
+                    self.update_status("Configuration save failed")
+            else:
+                messagebox.showwarning(
+                    "Nothing to Save",
+                    "Please draw a grid layout before saving.\n\n"
+                    "Use the '🔲 Draw Grid Layout' button to define the grid."
+                )
+
+        except Exception as e:
+            messagebox.showerror("Error", f"An unexpected error occurred:\n{str(e)}")
+            self.update_status("Configuration save failed")
 
     def quit_app(self):
         """Quit the application."""
