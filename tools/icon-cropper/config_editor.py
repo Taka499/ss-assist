@@ -30,6 +30,8 @@ from editor.canvas_controller import CanvasController
 from editor.grid_editor import GridEditor, EditMode, GridEditStep
 from editor.grid_renderer import GridRenderer
 from editor.resize_controller import ResizeController
+from editor.ocr_editor import OCREditor
+from editor.ocr_resize_controller import OCRResizeController
 from editor.ui_builder import UIBuilder
 
 
@@ -63,6 +65,19 @@ class ConfigEditorApp:
             'crop_padding': default_grid.get('crop_padding', 0),
         }
 
+        # Initialize OCR configuration (from config.yaml ocr section)
+        default_ocr = self.config.get('ocr', {}).get('detection_region', [0, 0, 0, 0])
+        self.ocr_config = {
+            'x': default_ocr[0] if len(default_ocr) >= 1 else 0,
+            'y': default_ocr[1] if len(default_ocr) >= 2 else 0,
+            'width': default_ocr[2] if len(default_ocr) >= 3 else 0,
+            'height': default_ocr[3] if len(default_ocr) >= 4 else 0,
+        }
+
+        # Track whether user has drawn grid/OCR (don't show default config unless drawn)
+        self.grid_drawn = False
+        self.ocr_drawn = False
+
         # Build UI first (need canvas and widgets before initializing controllers)
         self._build_ui()
 
@@ -86,6 +101,18 @@ class ConfigEditorApp:
             self.grid_editor
         )
 
+        self.ocr_editor = OCREditor(
+            self.ocr_config,
+            on_instruction_update=self._update_instruction_label,
+            on_status_update=self.update_status
+        )
+
+        self.ocr_resize_controller = OCRResizeController(
+            self.ocr_config,
+            self.ocr_inputs,
+            self.ocr_editor
+        )
+
         # Bind events
         self._bind_events()
 
@@ -102,7 +129,7 @@ class ConfigEditorApp:
             'show_about': self.show_about,
             'enter_grid_edit_mode': self.enter_grid_edit_mode,
             'enter_ocr_edit_mode': self.enter_ocr_edit_mode,
-            'exit_edit_mode': self.exit_edit_mode
+            'enter_pan_mode': self.enter_pan_mode
         }
 
         ui_builder = UIBuilder(self.root, callbacks)
@@ -111,15 +138,21 @@ class ConfigEditorApp:
         ui_builder.create_menu_bar()
 
         # Create main layout
-        self.left_panel, self.canvas, self.instruction_label, self.status_bar = (
-            ui_builder.create_main_layout()
-        )
+        (self.left_panel, self.canvas, self.instruction_label,
+         self.status_bar, grid_tab, ocr_tab) = ui_builder.create_main_layout()
 
-        # Create grid input widgets
+        # Create grid input widgets in Grid tab
         self.grid_inputs = ui_builder.create_grid_inputs(
-            self.left_panel,
+            grid_tab,
             self.grid_config,
             on_change_callback=self._on_grid_param_changed
+        )
+
+        # Create OCR input widgets in OCR tab
+        self.ocr_inputs = ui_builder.create_ocr_inputs(
+            ocr_tab,
+            self.ocr_config,
+            on_change_callback=self._on_ocr_param_changed
         )
 
     def _bind_events(self):
@@ -143,15 +176,30 @@ class ConfigEditorApp:
     def _on_display_complete(self):
         """Callback invoked after canvas display is complete.
 
-        Draws grid overlay if in grid edit mode.
+        Shows overlays if:
+        - Currently in drawing mode (to show crosshair/drag preview), OR
+        - Already drawn (to show persistent overlay)
         """
-        if self.grid_editor.is_in_grid_edit_mode():
+        # Show grid overlay if actively drawing OR if it has been drawn
+        if self.grid_editor.is_in_grid_edit_mode() or self.grid_drawn:
             self.draw_grid_overlay()
+
+        # Show OCR overlay if actively drawing OR if it has been drawn
+        if self.ocr_editor.is_in_ocr_edit_mode() or self.ocr_drawn:
+            self.draw_ocr_overlay()
 
     def _on_grid_param_changed(self):
         """Handle changes to grid parameters from input fields."""
         self.grid_editor.on_grid_param_changed(self.grid_inputs)
-        if self.grid_editor.is_in_grid_edit_mode():
+        # Always update display if grid has been drawn
+        if self.grid_drawn:
+            self.canvas_controller.display_image()
+
+    def _on_ocr_param_changed(self):
+        """Handle changes to OCR region parameters from input fields."""
+        self.ocr_editor.on_ocr_param_changed(self.ocr_inputs)
+        # Always update display if OCR has been drawn
+        if self.ocr_drawn:
             self.canvas_controller.display_image()
 
     def _update_instruction_label(self, text: str, color: str):
@@ -272,25 +320,50 @@ class ConfigEditorApp:
     # ========== Mode Management ==========
 
     def enter_grid_edit_mode(self):
-        """Enter grid editing mode."""
+        """Enter grid drawing mode."""
+        if self.canvas_controller.current_image is None:
+            messagebox.showwarning("No Image", "Please load or capture a screenshot first.")
+            return
+
+        # Exit OCR mode if active
+        if self.ocr_editor.is_in_ocr_edit_mode():
+            self.ocr_editor.exit_ocr_edit_mode(self.canvas)
+
         success = self.grid_editor.enter_grid_edit_mode(
             self.canvas,
             self.canvas_controller.current_image
         )
 
         if not success:
-            messagebox.showwarning("No Image", "Please load or capture a screenshot first.")
             return
 
         self.canvas_controller.display_image()
 
     def enter_ocr_edit_mode(self):
-        """Enter OCR region editing mode (Milestone 3)."""
-        messagebox.showinfo("Coming Soon", "OCR region editing will be available in Milestone 3")
+        """Enter OCR region drawing mode."""
+        if self.canvas_controller.current_image is None:
+            messagebox.showwarning("No Image", "Please load or capture a screenshot first.")
+            return
 
-    def exit_edit_mode(self):
-        """Exit editing mode and return to normal view."""
+        # Exit grid mode if active
+        if self.grid_editor.is_in_grid_edit_mode():
+            self.grid_editor.exit_edit_mode(self.canvas)
+
+        success = self.ocr_editor.enter_ocr_edit_mode(
+            self.canvas,
+            self.canvas_controller.current_image
+        )
+
+        if not success:
+            return
+
+        self.canvas_controller.display_image()
+
+    def enter_pan_mode(self):
+        """Enter pan/zoom mode (normal mode)."""
+        # Exit any active editing mode
         self.grid_editor.exit_edit_mode(self.canvas)
+        self.ocr_editor.exit_ocr_edit_mode(self.canvas)
         self.canvas_controller.display_image()
 
     # ========== Mouse Event Handlers ==========
@@ -303,19 +376,8 @@ class ConfigEditorApp:
         Args:
             event: Mouse button press event
         """
-        # Check if clicking on a resize handle
-        items_under_cursor = self.canvas.find_withtag(tk.CURRENT)
-        if items_under_cursor:
-            tags = self.canvas.gettags(items_under_cursor[0])
-            if 'resize_handle' in tags:
-                # Find the handle tag (e.g., 'corner_br')
-                handle_tag = [t for t in tags if t.startswith(('corner_', 'edge_'))][0]
-                self.resize_controller.on_handle_click(
-                    event, handle_tag, self.canvas,
-                    self.canvas_controller.zoom_level,
-                    self.canvas_controller.pan_offset
-                )
-                return
+        # Note: Resize handles are bound directly via tag_bind in GridRenderer
+        # and handle clicks through callbacks, so we don't check for them here
 
         # Check if in grid edit mode
         if self.grid_editor.is_in_grid_edit_mode():
@@ -324,6 +386,16 @@ class ConfigEditorApp:
                 self.canvas_controller.zoom_level,
                 self.canvas_controller.pan_offset,
                 self.grid_inputs
+            )
+            self.canvas_controller.display_image()
+            return
+
+        # Check if in OCR edit mode
+        if self.ocr_editor.is_in_ocr_edit_mode():
+            self.ocr_editor.on_ocr_click(
+                event, self.canvas,
+                self.canvas_controller.zoom_level,
+                self.canvas_controller.pan_offset
             )
             self.canvas_controller.display_image()
             return
@@ -339,7 +411,7 @@ class ConfigEditorApp:
         Args:
             event: Mouse motion event
         """
-        # Check if resizing
+        # Check if resizing grid
         if self.resize_controller.is_resizing:
             # Performance optimization: Skip spinbox updates during drag
             self.resize_controller.do_resize(
@@ -366,9 +438,39 @@ class ConfigEditorApp:
             # Handles and spinboxes will be updated on mouse release
             return
 
+        # Check if resizing OCR region
+        if self.ocr_resize_controller.is_resizing:
+            self.ocr_resize_controller.do_resize(
+                event, self.canvas,
+                self.canvas_controller.zoom_level,
+                self.canvas_controller.pan_offset,
+                update_spinboxes=False  # Defer to mouse release
+            )
+            # Redraw OCR overlay during drag, NOT handles
+            self.canvas.delete("ocr_overlay")
+            self.grid_renderer.draw_ocr_overlay(
+                self.canvas,
+                self.ocr_config,
+                self.canvas_controller.zoom_level,
+                self.canvas_controller.pan_offset,
+                is_active=True,
+                is_defining=False  # During resize, we're in ADJUST step
+            )
+            return
+
         # Check if dragging grid cell
         if self.grid_editor.is_dragging_cell():
             self.grid_editor.on_grid_drag(
+                event, self.canvas,
+                self.canvas_controller.zoom_level,
+                self.canvas_controller.pan_offset
+            )
+            self.canvas_controller.display_image()
+            return
+
+        # Check if dragging OCR region
+        if self.ocr_editor.is_dragging():
+            self.ocr_editor.on_ocr_drag(
                 event, self.canvas,
                 self.canvas_controller.zoom_level,
                 self.canvas_controller.pan_offset
@@ -387,7 +489,7 @@ class ConfigEditorApp:
         Args:
             event: Mouse button release event
         """
-        # Check if resizing
+        # Check if resizing grid
         if self.resize_controller.is_resizing:
             self.resize_controller.end_resize(event, self.canvas)
             # Update spinboxes with final values (skipped during drag for performance)
@@ -403,6 +505,14 @@ class ConfigEditorApp:
             self.draw_grid_overlay()
             return
 
+        # Check if resizing OCR region
+        if self.ocr_resize_controller.is_resizing:
+            self.ocr_resize_controller.end_resize(event, self.canvas)
+            # Redraw OCR overlay with handles after resize completes
+            self.canvas.delete("ocr_overlay")
+            self.draw_ocr_overlay()
+            return
+
         # Check if completing grid cell definition
         if self.grid_editor.is_dragging_cell():
             self.grid_editor.on_grid_release(
@@ -411,6 +521,21 @@ class ConfigEditorApp:
                 self.canvas_controller.pan_offset,
                 self.grid_inputs
             )
+            # Mark grid as drawn
+            self.grid_drawn = True
+            self.canvas_controller.display_image()
+            return
+
+        # Check if completing OCR region definition
+        if self.ocr_editor.is_dragging():
+            self.ocr_editor.on_ocr_release(
+                event, self.canvas,
+                self.canvas_controller.zoom_level,
+                self.canvas_controller.pan_offset,
+                self.ocr_inputs
+            )
+            # Mark OCR as drawn
+            self.ocr_drawn = True
             self.canvas_controller.display_image()
             return
 
@@ -420,7 +545,10 @@ class ConfigEditorApp:
     # ========== Grid Overlay Drawing ==========
 
     def draw_grid_overlay(self):
-        """Draw the grid overlay on the canvas."""
+        """Draw the grid overlay on the canvas.
+
+        Always shows the grid if drawn. Shows handles only in grid edit mode.
+        """
         if self.canvas_controller.current_image is None:
             return
 
@@ -437,7 +565,7 @@ class ConfigEditorApp:
             self.grid_editor.grid_drag_current
         )
 
-        # Draw resize handles if in adjust step
+        # Draw resize handles only in ADJUST step (after user finishes drawing)
         if self.grid_editor.is_in_adjust_step():
             self.grid_renderer.draw_resize_handles(
                 self.canvas,
@@ -458,6 +586,53 @@ class ConfigEditorApp:
             'break' to stop event propagation
         """
         self.resize_controller.on_handle_click(
+            event, handle_tag, self.canvas,
+            self.canvas_controller.zoom_level,
+            self.canvas_controller.pan_offset
+        )
+        return 'break'
+
+    def draw_ocr_overlay(self):
+        """Draw the OCR region overlay on the canvas.
+
+        Always shows the OCR region if drawn. Shows handles only in OCR edit mode.
+        """
+        if self.canvas_controller.current_image is None:
+            return
+
+        # Draw OCR overlay
+        self.grid_renderer.draw_ocr_overlay(
+            self.canvas,
+            self.ocr_config,
+            self.canvas_controller.zoom_level,
+            self.canvas_controller.pan_offset,
+            is_active=self.ocr_editor.is_in_ocr_edit_mode(),
+            is_defining=(self.ocr_editor.edit_step == "define"),
+            drag_start=self.ocr_editor.drag_start,
+            drag_current=self.ocr_editor.drag_current
+        )
+
+        # Draw resize handles only in ADJUST step (after user finishes drawing)
+        if self.ocr_editor.is_in_adjust_step():
+            self.grid_renderer.draw_ocr_resize_handles(
+                self.canvas,
+                self.ocr_config,
+                self.canvas_controller.zoom_level,
+                self.canvas_controller.pan_offset,
+                self._on_ocr_handle_click
+            )
+
+    def _on_ocr_handle_click(self, event, handle_tag: str):
+        """Callback for OCR resize handle clicks (from GridRenderer).
+
+        Args:
+            event: Mouse button press event
+            handle_tag: OCR handle identifier (e.g., 'ocr_corner_br')
+
+        Returns:
+            'break' to stop event propagation
+        """
+        self.ocr_resize_controller.on_handle_click(
             event, handle_tag, self.canvas,
             self.canvas_controller.zoom_level,
             self.canvas_controller.pan_offset

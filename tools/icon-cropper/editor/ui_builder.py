@@ -126,40 +126,52 @@ class UIBuilder:
         ).pack(fill=tk.X, pady=2)
 
         # Mode selection buttons
-        mode_frame = ttk.LabelFrame(left_panel, text="Editing Mode", padding=10)
+        mode_frame = ttk.LabelFrame(left_panel, text="Mode", padding=10)
         mode_frame.pack(fill=tk.X, pady=5)
 
         ttk.Button(
             mode_frame,
-            text="Edit Grid Layout",
+            text="🔲 Draw Grid Layout",
             command=self.callbacks['enter_grid_edit_mode']
         ).pack(fill=tk.X, pady=2)
 
         ttk.Button(
             mode_frame,
-            text="Edit OCR Region",
-            command=self.callbacks['enter_ocr_edit_mode'],
-            state=tk.DISABLED  # Milestone 3
+            text="📄 Draw OCR Region",
+            command=self.callbacks['enter_ocr_edit_mode']
         ).pack(fill=tk.X, pady=2)
 
         ttk.Button(
             mode_frame,
-            text="Exit Edit Mode",
-            command=self.callbacks['exit_edit_mode']
+            text="🖱️ Pan/Zoom Mode",
+            command=self.callbacks['enter_pan_mode']
         ).pack(fill=tk.X, pady=2)
 
-        # Grid configuration panel
-        grid_panel = ttk.LabelFrame(left_panel, text="Grid Configuration", padding=10)
-        grid_panel.pack(fill=tk.BOTH, expand=True, pady=5)
-
-        # Instructions label
+        # Instructions label (shared between tabs)
         instruction_label = ttk.Label(
-            grid_panel,
-            text="Click 'Edit Grid Layout' to begin",
+            left_panel,
+            text="Select a mode above to begin",
             wraplength=240,
-            foreground="blue"
+            foreground="blue",
+            padding=5
         )
         instruction_label.pack(pady=5)
+
+        # Notebook for Grid and OCR tabs
+        notebook = ttk.Notebook(left_panel)
+        notebook.pack(fill=tk.BOTH, expand=True, pady=5)
+
+        # Grid configuration tab
+        grid_tab = ttk.Frame(notebook, padding=10)
+        notebook.add(grid_tab, text="Grid Layout")
+
+        # OCR region tab
+        ocr_tab = ttk.Frame(notebook, padding=10)
+        notebook.add(ocr_tab, text="OCR Region")
+
+        # Store references for returning
+        self._grid_tab = grid_tab
+        self._ocr_tab = ocr_tab
 
         # Right panel for canvas
         right_panel = ttk.Frame(main_frame)
@@ -197,7 +209,7 @@ class UIBuilder:
         )
         status_bar.pack(side=tk.BOTTOM, fill=tk.X)
 
-        return left_panel, canvas, instruction_label, status_bar
+        return left_panel, canvas, instruction_label, status_bar, grid_tab, ocr_tab
 
     def create_grid_inputs(
         self,
@@ -324,3 +336,52 @@ class UIBuilder:
         var.trace_add('write', lambda *args: on_change_callback())
 
         return grid_inputs
+
+    def create_ocr_inputs(
+        self,
+        parent: ttk.Frame,
+        ocr_config: Dict[str, int],
+        on_change_callback: Callable
+    ) -> Dict[str, tk.IntVar]:
+        """Create OCR region parameter input widgets.
+
+        Creates Spinbox widgets for OCR region parameters (x, y, width, height)
+        with trace callbacks.
+
+        Args:
+            parent: Parent frame for input widgets
+            ocr_config: Dictionary with initial OCR region parameter values
+            on_change_callback: Callback invoked when any parameter changes
+
+        Returns:
+            Dictionary mapping parameter names to IntVar instances
+        """
+        inputs_frame = ttk.Frame(parent)
+        inputs_frame.pack(fill=tk.BOTH, expand=True)
+
+        ocr_inputs = {}
+        row = 0
+
+        # OCR region position and size
+        ttk.Label(inputs_frame, text="Position & Size:", font=("Arial", 9, "bold")).grid(
+            row=row, column=0, columnspan=2, sticky=tk.W, pady=(5, 2)
+        )
+        row += 1
+
+        for param in ['x', 'y', 'width', 'height']:
+            label = param.upper() if len(param) == 1 else param.title()
+            ttk.Label(inputs_frame, text=f"{label}:").grid(
+                row=row, column=0, sticky=tk.W, pady=2
+            )
+
+            var = tk.IntVar(value=ocr_config.get(param, 0))
+            spinbox = ttk.Spinbox(
+                inputs_frame, textvariable=var, width=8, from_=0, to=9999, increment=1
+            )
+            spinbox.grid(row=row, column=1, sticky=tk.W, pady=2, padx=(5, 0))
+
+            ocr_inputs[param] = var
+            var.trace_add('write', lambda *args: on_change_callback())
+            row += 1
+
+        return ocr_inputs

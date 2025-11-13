@@ -12,17 +12,18 @@ This GUI makes the icon-cropper tool resilient to game UI changes (such as patch
 
 ## Progress
 
-- [x] Create the GUI configuration tool architecture *(2025-01-12)*
-- [x] Implement screenshot display with zoom and pan capabilities *(2025-01-12)*
+- [x] Create the GUI configuration tool architecture *(2025-11-12)*
+- [x] Implement screenshot display with zoom and pan capabilities *(2025-11-12)*
 - [x] Add visual grid overlay editor with mouse interaction *(2025-11-12)*
-- [ ] Add OCR region editor with draggable rectangles
+- [x] Add OCR region editor with draggable rectangles *(2025-11-13)*
+- [x] Refactor UX to Photoshop-like persistent overlay paradigm *(2025-11-13)*
 - [ ] Implement config.yaml serialization and deserialization
 - [ ] Add live preview mode showing cropped icons
 - [ ] Add validation for grid configurations
 - [ ] Write comprehensive tests
 - [ ] Update main cropper.py to integrate with new config workflow
 
-### Milestone 1: Basic GUI Framework ✅ COMPLETE (2025-01-12)
+### Milestone 1: Basic GUI Framework ✅ COMPLETE (2025-11-12)
 
 Created `config_editor.py` with full basic functionality:
 - ✅ Tkinter application structure with clean class-based design
@@ -87,6 +88,38 @@ Implemented interactive grid editing with visual feedback:
 - Extended scroll region (half-canvas padding) allows centering any corner of the image
 
 **Testing**: Grid editor fully tested with captured game screenshot. All interaction features (resize handles, modifier keys, spinboxes, scrolling, centering) working correctly.
+
+### Milestone 3: OCR Region Editor ✅ COMPLETE (2025-11-13)
+
+Implemented OCR region editing with full feature parity to grid editor:
+- ✅ OCR editor module (`editor/ocr_editor.py`) - State machine for DEFINE → ADJUST workflow
+- ✅ OCR region rendering with yellow rectangles and "OCR Region" label
+- ✅ Click-and-drag region definition with drag preview
+- ✅ 8 interactive resize handles (yellow, matching grid pattern)
+- ✅ OCR resize controller (`editor/ocr_resize_controller.py`) - Handles resizing with performance optimization
+- ✅ Sidebar input fields (X, Y, Width, Height) with bidirectional sync
+- ✅ Tab-based UI (Grid Layout tab + OCR Region tab) to solve fixed panel width issue
+- ✅ Mode switching (Grid ↔ OCR ↔ Pan/Zoom) with mutual exclusivity
+
+**UX Refactoring - Photoshop-like Paradigm**:
+- ✅ Changed from "Edit Mode" to "Draw Mode" paradigm
+- ✅ Three modes: **🔲 Draw Grid Layout**, **📄 Draw OCR Region**, **🖱️ Pan/Zoom Mode**
+- ✅ Persistent overlays (always visible after drawing, not hidden when switching modes)
+- ✅ Clean canvas by default (no default grid/OCR shown until user draws)
+- ✅ Handles appear only in appropriate mode after drawing (ADJUST step)
+- ✅ Spinboxes always work after drawing (even in Pan/Zoom mode)
+- ✅ Modes are mutually exclusive (switching automatically exits previous mode)
+
+**Bug Fixes**:
+- Fixed OCR drag not working (corrected `is_dragging()` logic to check only `drag_start`)
+- Fixed OCR resize handles not responding (removed duplicate handle detection)
+- Fixed mode switching confusion (Grid mode → OCR mode now properly exits Grid)
+- Fixed left panel scrollability (added tabs to separate Grid and OCR parameters)
+- Fixed default grid appearing during initial draw (conditional rendering based on edit step)
+- Fixed handles appearing during SET_START/SET_CELL (only show in ADJUST step)
+- Fixed red crosshair and orange preview disappearing (display overlay during active mode)
+
+**Testing**: OCR region editor fully tested with game screenshots. All features (drag, resize, spinboxes, tabs, mode switching) working correctly with smooth, lag-free performance.
 
 ## Surprises & Discoveries
 
@@ -158,7 +191,7 @@ finally:
 
 **Lesson Learned**: Tkinter variable traces fire on ALL value changes, including programmatic ones. When implementing two-way data binding (model ↔ UI), always use a flag to prevent circular updates. This pattern is common in GUI frameworks (React's `useEffect` deps, Angular's change detection guards, etc.).
 
-### WinRT Initialization Fails in Tkinter Main Thread (2025-01-12)
+### WinRT Initialization Fails in Tkinter Main Thread (2025-11-12)
 
 **Problem**: When calling `capture_stella_sora()` directly from tkinter GUI, the Windows Graphics Capture API failed with error: `"Failed to initialize WinRT"`.
 
@@ -171,7 +204,7 @@ finally:
 
 **Impact**: Required refactoring the capture integration from direct function call to subprocess-based approach.
 
-### libpng Color Profile Warnings (2025-01-12)
+### libpng Color Profile Warnings (2025-11-12)
 
 **Observation**: When displaying PNGs (both tkinter UI assets and game screenshots), libpng emits warnings: `"libpng warning: iCCP: known incorrect sRGB profile"`.
 
@@ -181,7 +214,7 @@ finally:
 
 ## Decision Log
 
-### D1: Use Subprocess Isolation for Screenshot Capture (2025-01-12)
+### D1: Use Subprocess Isolation for Screenshot Capture (2025-11-12)
 
 **Context**: Windows Graphics Capture API failing with WinRT initialization errors when called from tkinter GUI.
 
@@ -205,7 +238,7 @@ finally:
 - ⚠️ Con: Slightly slower than in-process call
 - ⚠️ Con: Requires reading capture from temp file (capture.py saves to `test_capture.png`)
 
-### D2: Use Tkinter for GUI Framework (2025-01-12)
+### D2: Use Tkinter for GUI Framework (2025-11-12)
 
 **Context**: Need to choose GUI framework for config editor.
 
@@ -222,7 +255,7 @@ finally:
 - wxPython: Similar weight issue, overkill for our needs
 - Custom web-based UI: Unnecessary complexity
 
-### D3: Pan with Left Mouse Button, Not Middle Button (2025-01-12)
+### D3: Pan with Left Mouse Button, Not Middle Button (2025-11-12)
 
 **Context**: Original plan specified middle mouse button for panning.
 
@@ -294,7 +327,81 @@ finally:
 
 ## Outcomes & Retrospective
 
-(To be filled in at completion)
+### Milestones 1-3 Retrospective (2025-11-13)
+
+**What Was Achieved:**
+
+Successfully implemented the core GUI framework and two complete editing modes (Grid and OCR) with full feature parity. The config editor now provides a Photoshop-like visual editing experience where users can:
+- Capture or load game screenshots
+- Pan and zoom with intuitive controls (drag to pan, Ctrl+scroll to zoom)
+- Draw grid layouts with click-and-drag interface
+- Draw OCR regions with identical interaction patterns
+- Adjust both with 8-handle resize system and spinbox inputs
+- Switch between modes without losing overlays
+
+**Key Technical Achievements:**
+
+1. **State Machine Architecture**: Implemented clean state machines for both Grid (SET_START → SET_CELL → ADJUST) and OCR (DEFINE → ADJUST) workflows. This pattern proved robust and extensible.
+
+2. **Coordinate System Abstraction**: Successfully separated canvas coordinates (with zoom/pan/scroll) from image coordinates. The `coordinate_system.py` module makes all mouse interactions work correctly regardless of viewport state.
+
+3. **Modular Architecture**: Breaking the monolith into specialized modules (`grid_editor.py`, `ocr_editor.py`, `grid_renderer.py`, `canvas_controller.py`, `ui_builder.py`, resize controllers) made the codebase maintainable and testable. Each module has a single, clear responsibility.
+
+4. **Subprocess Isolation Pattern**: The WinRT/COM threading issue was elegantly solved by running screenshot capture in a subprocess. This pattern is now proven and can be reused for other WinRT API integrations.
+
+5. **Bidirectional Data Binding**: Successfully implemented two-way sync between UI widgets (spinboxes) and internal state (config dictionaries) with circular dependency prevention using flags. This pattern works smoothly across both Grid and OCR editors.
+
+6. **Performance Optimization**: Deferring spinbox updates during drag operations (updating only on mouse release) eliminated lag and created smooth, responsive resize interactions.
+
+**UX Evolution - The Photoshop Paradigm Shift:**
+
+The most significant design evolution was refactoring from "Edit Mode" to "Draw Mode" with persistent overlays. Initial implementation had confusing behavior:
+- Overlays disappeared when exiting edit mode
+- Users couldn't see both Grid and OCR simultaneously
+- Mode switching felt fragmented and unpredictable
+
+The Photoshop-like paradigm solved these issues:
+- Overlays persist after drawing (always visible once created)
+- Modes are mutually exclusive but non-destructive
+- Clean canvas by default (no confusing default grid)
+- Handles appear only when appropriate (in ADJUST step of active mode)
+- Tab-based UI cleanly separates Grid and OCR parameters
+
+This UX model proved far more intuitive in testing. Users could draw, adjust, switch modes, pan/zoom to verify, and iterate rapidly without confusion.
+
+**Critical Bugs and Lessons:**
+
+1. **Canvas Scroll Coordinate Bug**: Initially missed accounting for scroll position in coordinate conversion. Lesson: Always use `canvas.canvasx()`/`canvasy()` when converting widget-relative event coordinates.
+
+2. **Circular Dependency in Traces**: Tkinter variable traces fire on ALL value changes (even programmatic ones), creating circular updates. Lesson: Always use a flag (`updating_inputs_programmatically`) to distinguish user input from programmatic updates.
+
+3. **WinRT Threading Conflict**: Windows Graphics Capture API failed in tkinter's main thread. Lesson: When integrating Windows COM/WinRT APIs with GUI frameworks, prefer subprocess isolation over threading hacks.
+
+4. **Handle Event Propagation**: Initial implementation had duplicate handle detection in both canvas binding and handle binding, causing conflicts. Lesson: Use `'break'` return value to stop event propagation, and avoid duplicate event handlers.
+
+5. **Conditional Rendering Logic**: Default grid appeared during initial drawing because display logic didn't account for edit state. Lesson: Rendering must check both persistent state (`grid_drawn`) AND active editing state (`is_in_grid_edit_mode()`).
+
+6. **Lambda Closure Bug**: Only 3 handles worked initially because lambda closures captured loop variables incorrectly. Lesson: Always use default arguments in lambdas to capture loop values: `lambda e, val=current_val: callback(val)`.
+
+**What Remains:**
+
+- **Milestone 4**: Config.yaml serialization/deserialization - Save edited configurations back to YAML file
+- **Milestone 5**: Live preview mode - Show extracted icons to verify grid alignment
+- **Milestone 6**: Validation and testing - Comprehensive validation, error handling, and automated tests
+
+**Lessons for Future Milestones:**
+
+1. **YAML Preservation**: When implementing config saving (Milestone 4), must preserve comments and structure. Consider using `ruamel.yaml` instead of `pyyaml` for comment-preserving round-trip serialization.
+
+2. **Validation Strategy**: Grid validation should happen at multiple points: during editing (prevent invalid inputs), before saving (comprehensive checks), and at load time (detect corrupted configs).
+
+3. **Testing Approach**: With the modular architecture in place, each component can be unit tested independently. Integration tests should verify the full workflow: capture → draw → adjust → save → load in main cropper.
+
+4. **Performance Monitoring**: Current performance is excellent with small grids (3×4), but should test with larger grids (10×10) to ensure resize handles and overlay rendering remain responsive.
+
+**Overall Assessment:**
+
+The first three milestones exceeded expectations. The codebase is clean, maintainable, and well-architected. The UX is intuitive and matches professional design tools. The technical challenges (WinRT integration, coordinate systems, state machines) were solved elegantly with reusable patterns. The foundation is solid for completing the remaining milestones.
 
 ## Context and Orientation
 

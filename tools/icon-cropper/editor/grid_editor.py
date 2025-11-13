@@ -83,10 +83,10 @@ class GridEditor:
         canvas.config(cursor="crosshair")
 
         self.on_instruction_update(
-            "STEP 1: Click on the top-left corner of the first icon",
+            "STEP 1: Click the top-left corner of the first icon",
             "green"
         )
-        self.on_status_update("Grid Edit Mode: Click to set grid start position")
+        self.on_status_update("Grid Draw Mode: Click to set grid start position")
 
         return True
 
@@ -100,10 +100,10 @@ class GridEditor:
         canvas.config(cursor="")
 
         self.on_instruction_update(
-            "Click 'Edit Grid Layout' to begin",
+            "Select a mode above to begin",
             "blue"
         )
-        self.on_status_update("Editing mode exited")
+        self.on_status_update("Pan/Zoom mode active")
 
     def on_grid_click(
         self,
@@ -151,7 +151,7 @@ class GridEditor:
                 "STEP 2: Drag to define cell width and height",
                 "green"
             )
-            self.on_status_update("Grid Edit Mode: Drag to set cell dimensions")
+            self.on_status_update("Grid Draw Mode: Drag to set cell dimensions")
 
     def on_grid_drag(
         self,
@@ -217,10 +217,10 @@ class GridEditor:
         self.grid_drag_current = None
 
         self.on_instruction_update(
-            "STEP 3: Adjust parameters using input fields below",
+            "Grid drawn! Use handles or spinboxes to adjust",
             "green"
         )
-        self.on_status_update("Grid Edit Mode: Fine-tune grid parameters")
+        self.on_status_update("Grid Draw Mode: Adjust grid parameters")
 
     def on_grid_param_changed(self, grid_inputs: Dict[str, tk.IntVar]):
         """Handle changes to grid parameters from input fields.
