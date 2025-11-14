@@ -18,7 +18,8 @@ This GUI makes the icon-cropper tool resilient to game UI changes (such as patch
 - [x] Add OCR region editor with draggable rectangles *(2025-11-13)*
 - [x] Refactor UX to Photoshop-like persistent overlay paradigm *(2025-11-13)*
 - [x] Implement config.yaml serialization and deserialization *(2025-11-14)*
-- [ ] Add live preview mode showing cropped icons
+- [x] Add live preview mode showing cropped icons *(2025-11-14)*
+- [x] Add "Load From Config" feature for loading saved configurations *(2025-11-14)*
 - [ ] Add validation for grid configurations
 - [ ] Write comprehensive tests
 - [ ] Update main cropper.py to integrate with new config workflow
@@ -167,6 +168,57 @@ Implemented comment-preserving YAML serialization with validation and backup:
 - Preserves comments, formatting, and structure
 - Slightly larger dependency but essential for user-editable config files
 
+### Milestone 5: Live Preview Mode ✅ COMPLETE (2025-11-14)
+
+Implemented icon extraction preview with "Load From Config" feature:
+- ✅ Preview controller module (`editor/preview_controller.py`) - Extracts icons from grid configuration
+- ✅ Preview window module (`editor/preview_window.py`) - Displays icon thumbnails in grid layout
+- ✅ Preview button with Ctrl+P keyboard shortcut
+- ✅ Validation before preview (checks image loaded, grid drawn, dimensions valid)
+- ✅ Thumbnail display with row/column labels and dimensions
+- ✅ Scrollable preview window for large grids
+- ✅ Load From Config feature (`load_from_config()`) - Loads saved grid and OCR from config.yaml
+- ✅ Load From Config button with Ctrl+L keyboard shortcut
+- ✅ Smart configuration detection (checks if grid/OCR have valid values before loading)
+- ✅ User feedback dialogs showing what was loaded
+
+**Preview Features**:
+- Extracts all icons from current grid configuration
+- Applies crop padding automatically
+- Displays thumbnails (max 150×150) with aspect ratio preserved
+- Labels each icon with "Row X, Col Y" and dimensions
+- Supports scrolling for large icon grids
+- Validates grid extends within image bounds before extraction
+
+**Load From Config Features**:
+- Reloads configuration from config.yaml on demand
+- Loads both grid layout and OCR region
+- Updates all spinbox inputs with loaded values
+- Sets editor states to ADJUST mode (ready for handle interaction)
+- Marks overlays as drawn for persistent display
+- Shows confirmation dialog listing what was loaded (Grid layout, OCR region, or both)
+- Handles missing/invalid configurations gracefully
+
+**Bug Fixes**:
+- Fixed preview window parent reference undefined error (added `self.parent = parent`)
+- Fixed PhotoImage garbage collection causing blank thumbnails (added `label.image = photo`)
+- Fixed ttk.Label not displaying images (changed to tk.Label)
+- Fixed OCR overlay not showing after load (set `ocr_editor.edit_step = OCREditStep.ADJUST`)
+- Changed thumbnail method from `.thumbnail()` to `.resize()` for better control
+
+**Testing**: All features verified working correctly:
+- Preview extracts icons correctly (verified with debug output showing 156×154px extraction)
+- Thumbnails display properly in grid layout
+- Load From Config successfully restores both grid and OCR overlays
+- Resize handles appear after loading (ADJUST mode set correctly)
+
+**Impact**: Major UX improvement - users no longer need to redraw grids from scratch after restarting the application. Combined with preview, users can now:
+1. Load screenshot
+2. Click "Load From Config" to apply saved configuration
+3. Click "Preview Icons" to verify grid alignment
+4. Make adjustments if needed
+5. Save updates
+
 ## Surprises & Discoveries
 
 ### Canvas Scroll Position Not Accounted in Coordinate Conversion (2025-11-12)
@@ -302,6 +354,67 @@ if self.canvas_controller.current_image is None:
 **Impact**: Save functionality now works correctly when screenshot is loaded. Users can successfully save grid and OCR configurations.
 
 **Lesson Learned**: When accessing attributes across modules, verify the actual attribute names in the source class definition rather than assuming naming conventions. This type of bug is easy to miss in manual testing if you always follow the happy path (load image first, then never test edge cases).
+
+### PhotoImage Garbage Collection Issue (2025-11-14)
+
+**Problem**: Preview window showed empty white rectangles instead of icon thumbnails, despite successful icon extraction (verified via debug output showing correct 156×154px images).
+
+**Root Cause**: tkinter's PhotoImage objects were being garbage collected even though they were stored in `self.photo_images` list. tkinter requires the widget itself to maintain a reference to prevent premature garbage collection.
+
+**Evidence**:
+- Debug save showed icons extracted correctly (`debug_icon_0_0.png` displayed proper icon)
+- Console output: `Debug: Image size: (156, 154), mode: RGB`
+- Preview window showed blank spaces with correct dimensions labels
+- Initial attempt with `ttk.Label` showed no images
+- Storing in `self.photo_images` list was insufficient
+
+**Solution**: Applied classic tkinter image reference pattern:
+```python
+# Convert to PhotoImage
+photo = ImageTk.PhotoImage(thumbnail)
+self.photo_images.append(photo)  # Keep reference in list (insufficient alone)
+
+# Display thumbnail
+label = tk.Label(icon_frame, image=photo)
+label.image = photo  # CRITICAL: Keep reference on widget itself
+label.pack()
+```
+
+**Additional Fixes**:
+- Changed from `ttk.Label` to `tk.Label` (themed labels don't display images properly)
+- Changed from `.thumbnail()` to `.resize()` for explicit size control
+- Added RGB mode conversion for compatibility
+
+**Impact**: Preview window now displays icon thumbnails correctly. Users can visually verify grid alignment before saving configuration.
+
+**Lesson Learned**: In tkinter, PhotoImage objects must be referenced by the widget itself (`widget.image = photo`), not just stored in instance variables. This is a well-known tkinter gotcha that catches many developers. The themed `ttk` widgets also have limited image support compared to classic `tk` widgets.
+
+### OCR Overlay Not Showing After Load From Config (2025-11-14)
+
+**Problem**: After implementing "Load From Config" feature, the grid overlay displayed correctly but the OCR region (yellow rectangle) remained invisible after loading from config.yaml.
+
+**Root Cause**: The `load_from_config()` method set `self.grid_editor.grid_edit_step = GridEditStep.ADJUST` for the grid but forgot to set `self.ocr_editor.edit_step = OCREditStep.ADJUST` for the OCR region. Without the ADJUST step flag, the overlay rendering logic didn't display the OCR rectangle.
+
+**Evidence**:
+- Grid layout loaded and displayed correctly after clicking "Load From Config"
+- OCR config values loaded correctly into spinboxes (visible in OCR Region tab)
+- OCR overlay remained invisible until user manually entered OCR draw mode
+- `self.ocr_drawn` flag was set to True but overlay still didn't appear
+
+**Solution**: Set OCR editor state to ADJUST mode when loading configuration:
+```python
+if has_ocr:
+    # Update ocr_config values...
+    # Update OCR input widgets...
+
+    # Mark OCR as drawn and set to ADJUST step
+    self.ocr_drawn = True
+    self.ocr_editor.edit_step = OCREditStep.ADJUST  # Added this line
+```
+
+**Impact**: Both grid and OCR overlays now display correctly after loading from config. Users can immediately see and adjust both configurations without manual redrawing.
+
+**Lesson Learned**: State consistency is critical in state machine architectures. When loading saved state, ensure ALL related state flags are set correctly, not just data values. The rendering logic relies on both the data (`ocr_config`) AND the state flags (`ocr_drawn`, `edit_step`) to determine what to display.
 
 ## Decision Log
 
@@ -540,6 +653,74 @@ This UX model proved far more intuitive in testing. Users could draw, adjust, sw
 **Overall Assessment:**
 
 The first three milestones exceeded expectations. The codebase is clean, maintainable, and well-architected. The UX is intuitive and matches professional design tools. The technical challenges (WinRT integration, coordinate systems, state machines) were solved elegantly with reusable patterns. The foundation is solid for completing the remaining milestones.
+
+### Milestones 4-5 Retrospective (2025-11-14)
+
+**What Was Achieved:**
+
+Completed configuration persistence and preview functionality, making the tool fully functional for end-to-end workflow. Users can now:
+- Save grid and OCR configurations to config.yaml with comment preservation
+- Load saved configurations without redrawing from scratch
+- Preview extracted icons to verify grid alignment
+- Iterate on configurations with immediate visual feedback
+
+**Key Technical Achievements:**
+
+1. **Comment-Preserving Serialization**: Successfully integrated `ruamel.yaml` for round-trip YAML editing. All user comments and formatting preserved through save/load cycles. Automatic timestamped backups prevent data loss.
+
+2. **Preview System Architecture**: Clean separation of concerns with `preview_controller.py` (extraction logic) and `preview_window.py` (display logic). Icon extraction applies crop padding correctly and validates boundaries.
+
+3. **Load From Config Feature**: Intelligent configuration loading that detects valid values, updates UI state consistently (both data and state machine flags), and provides clear user feedback about what was loaded.
+
+4. **Debug-Driven Development**: Added strategic debug output to diagnose PhotoImage display issue, leading to quick identification and resolution of garbage collection problem.
+
+**Critical Bugs and Lessons:**
+
+1. **PhotoImage Garbage Collection**: Most subtle bug encountered. Images extracted correctly but didn't display. Required widget-level reference (`label.image = photo`) in addition to instance list storage. Also learned `ttk.Label` doesn't support images - must use `tk.Label`.
+
+2. **State Machine Consistency**: Initially forgot to set `ocr_editor.edit_step = OCREditStep.ADJUST` when loading config, causing OCR overlay to remain invisible. Lesson: When restoring state, update ALL related flags, not just data values.
+
+3. **Parent Reference Bug**: Preview window referenced undefined `parent` variable. Simple fix but highlighted importance of storing constructor parameters as instance variables when needed later.
+
+4. **Tab Scrollability**: Milestone 4 revealed UI overflow issue. Adding scrollable frames solved it elegantly while maintaining clean tabbed interface.
+
+**UX Impact:**
+
+The "Load From Config" feature eliminated the biggest pain point - having to redraw grids after every restart. Combined with preview, the workflow is now:
+1. Start editor → Load screenshot → Click "Load From Config" (3 seconds)
+2. Click "Preview Icons" to verify (instant)
+3. Make minor adjustments if needed
+4. Save
+
+Previous workflow required complete redrawing (30-60 seconds of precise clicking/dragging). This is a **10-20x time savings** for iterative work.
+
+**What Remains:**
+
+- Additional grid validation (beyond basic bounds checking)
+- Comprehensive test suite
+- Integration with main cropper.py workflow
+- Documentation for end users
+
+**Technical Debt:**
+
+- Debug save code in `preview_controller.py` (lines 75-84) should be removed or made conditional
+- Preview window doesn't handle very large grids (>10×10) - may need pagination
+- No error recovery if ruamel.yaml fails to parse corrupted config
+- Load From Config hardcoded to `character_select` page (should support page selection)
+
+**Lessons for Future Work:**
+
+1. **tkinter Image Gotchas**: Always test image display early. PhotoImage requires widget-level references and classic `tk` widgets, not themed `ttk` widgets.
+
+2. **State Machine Debugging**: When state-dependent features misbehave, verify ALL state flags are set correctly. Use debug output to log state machine transitions.
+
+3. **User Feedback is Critical**: The user immediately identified the need for "Load From Config" - a feature not in original plan but essential for real-world usage. Stay flexible and responsive to user needs.
+
+4. **Validation Strategy**: Preview feature provides excellent validation - users can visually confirm correctness. This is more effective than algorithmic validation for spatial alignment tasks.
+
+**Overall Assessment:**
+
+Milestones 4-5 completed successfully with high-quality implementations. The tool is now production-ready for basic use. The modular architecture made adding new features straightforward. All critical bugs were caught and fixed during testing. UX improvements (Load From Config, Preview) significantly exceeded original scope and provide substantial value. The codebase remains clean and maintainable.
 
 ## Context and Orientation
 

@@ -30,10 +30,12 @@ from editor.canvas_controller import CanvasController
 from editor.grid_editor import GridEditor, EditMode, GridEditStep
 from editor.grid_renderer import GridRenderer
 from editor.resize_controller import ResizeController
-from editor.ocr_editor import OCREditor
+from editor.ocr_editor import OCREditor, OCREditStep
 from editor.ocr_resize_controller import OCRResizeController
 from editor.ui_builder import UIBuilder
 from editor.config_serializer import ConfigSerializer
+from editor.preview_controller import PreviewController
+from editor.preview_window import PreviewWindow
 
 
 class ConfigEditorApp:
@@ -118,6 +120,8 @@ class ConfigEditorApp:
             self.ocr_editor
         )
 
+        self.preview_controller = PreviewController()
+
         # Bind events
         self._bind_events()
 
@@ -127,6 +131,8 @@ class ConfigEditorApp:
         callbacks = {
             'open_screenshot': self.open_screenshot,
             'capture_screenshot': self.capture_screenshot,
+            'load_from_config': self.load_from_config,
+            'preview_icons': self.preview_icons,
             'save_config': self.save_config,
             'quit_app': self.quit_app,
             'zoom_in': lambda: self.canvas_controller.zoom_in() if hasattr(self, 'canvas_controller') else None,
@@ -177,6 +183,8 @@ class ConfigEditorApp:
         # Keyboard shortcuts
         self.root.bind('<Control-o>', lambda e: self.open_screenshot())
         self.root.bind('<Control-g>', lambda e: self.capture_screenshot())
+        self.root.bind('<Control-l>', lambda e: self.load_from_config())
+        self.root.bind('<Control-p>', lambda e: self.preview_icons())
         self.root.bind('<Control-s>', lambda e: self.save_config())
         self.root.bind('<Control-q>', lambda e: self.quit_app())
 
@@ -323,6 +331,106 @@ class ConfigEditorApp:
         """
         messagebox.showerror(title, message)
         self.update_status("Capture failed")
+
+    def load_from_config(self):
+        """Load grid and OCR configuration from config.yaml and display overlays."""
+        try:
+            # Reload config to get latest values
+            self.config = load_config()
+
+            # Check if image is loaded
+            if self.canvas_controller.current_image is None:
+                messagebox.showinfo(
+                    "No Image Loaded",
+                    "Please load or capture a screenshot first.\n\n"
+                    "The configuration will be applied to the image."
+                )
+                return
+
+            # Load grid configuration from config.yaml
+            default_grid = self.config.get('pages', {}).get('character_select', {}).get('grid', {})
+
+            # Check if grid config exists and has valid values
+            has_grid = (
+                default_grid.get('cell_width', 0) > 0 and
+                default_grid.get('cell_height', 0) > 0
+            )
+
+            if has_grid:
+                # Update grid_config
+                self.grid_config['start_x'] = default_grid.get('start_x', 0)
+                self.grid_config['start_y'] = default_grid.get('start_y', 0)
+                self.grid_config['cell_width'] = default_grid.get('cell_width', 100)
+                self.grid_config['cell_height'] = default_grid.get('cell_height', 100)
+                self.grid_config['spacing_x'] = default_grid.get('spacing_x', 0)
+                self.grid_config['spacing_y'] = default_grid.get('spacing_y', 0)
+                self.grid_config['columns'] = default_grid.get('columns', 3)
+                self.grid_config['rows'] = default_grid.get('rows', 4)
+                self.grid_config['crop_padding'] = default_grid.get('crop_padding', 0)
+
+                # Update grid input widgets
+                for param, var in self.grid_inputs.items():
+                    if param in self.grid_config:
+                        var.set(self.grid_config[param])
+
+                # Mark grid as drawn
+                self.grid_drawn = True
+                self.grid_editor.grid_edit_step = GridEditStep.ADJUST
+
+            # Load OCR configuration from config.yaml
+            default_ocr = self.config.get('ocr', {}).get('detection_region', [0, 0, 0, 0])
+
+            # Check if OCR config exists and has valid values
+            has_ocr = len(default_ocr) >= 4 and default_ocr[2] > 0 and default_ocr[3] > 0
+
+            if has_ocr:
+                # Update ocr_config
+                self.ocr_config['x'] = default_ocr[0]
+                self.ocr_config['y'] = default_ocr[1]
+                self.ocr_config['width'] = default_ocr[2]
+                self.ocr_config['height'] = default_ocr[3]
+
+                # Update OCR input widgets
+                for param, var in self.ocr_inputs.items():
+                    if param in self.ocr_config:
+                        var.set(self.ocr_config[param])
+
+                # Mark OCR as drawn and set to ADJUST step
+                self.ocr_drawn = True
+                self.ocr_editor.edit_step = OCREditStep.ADJUST
+
+            # Display the overlays
+            self.canvas_controller.display_image()
+
+            # Provide feedback
+            loaded = []
+            if has_grid:
+                loaded.append("Grid layout")
+            if has_ocr:
+                loaded.append("OCR region")
+
+            if loaded:
+                messagebox.showinfo(
+                    "Configuration Loaded",
+                    f"Successfully loaded from config.yaml:\n\n"
+                    f"• {chr(10).join(loaded)}\n\n"
+                    f"You can now adjust the overlays using handles or spinboxes."
+                )
+                self.update_status(f"Loaded: {', '.join(loaded)}")
+            else:
+                messagebox.showwarning(
+                    "No Configuration Found",
+                    "No valid grid or OCR configuration found in config.yaml.\n\n"
+                    "Please draw the grid and OCR region manually."
+                )
+                self.update_status("No config to load")
+
+        except Exception as e:
+            messagebox.showerror(
+                "Load Error",
+                f"Failed to load configuration:\n\n{str(e)}"
+            )
+            self.update_status("Load failed")
 
     # ========== Mode Management ==========
 
@@ -659,6 +767,62 @@ class ConfigEditorApp:
             "editing config.yaml.\n\n"
             "Part of the Stella Sora Request Assistant project."
         )
+
+    def preview_icons(self):
+        """Preview extracted icons from the current grid configuration."""
+        try:
+            # Validate that we have everything needed for preview
+            is_valid, error_msg = self.preview_controller.validate_grid_for_preview(
+                self.canvas_controller.current_image,
+                self.grid_config
+            )
+
+            if not is_valid:
+                messagebox.showwarning(
+                    "Cannot Preview",
+                    error_msg
+                )
+                return
+
+            # Check if grid has been drawn
+            if not self.grid_drawn:
+                messagebox.showinfo(
+                    "Grid Not Drawn",
+                    "Please draw a grid layout first before previewing icons.\n\n"
+                    "Click '🔲 Draw Grid Layout' to start."
+                )
+                return
+
+            # Extract icons
+            self.update_status("Extracting icons...")
+            icons = self.preview_controller.extract_icons(
+                self.canvas_controller.current_image,
+                self.grid_config
+            )
+
+            if not icons:
+                messagebox.showwarning(
+                    "No Icons Extracted",
+                    "No icons were extracted from the grid.\n"
+                    "Please check your grid configuration."
+                )
+                return
+
+            # Open preview window
+            self.update_status(f"Extracted {len(icons)} icons")
+            PreviewWindow(
+                self.root,
+                icons,
+                self.grid_config['columns'],
+                self.grid_config['rows']
+            )
+
+        except Exception as e:
+            messagebox.showerror(
+                "Preview Error",
+                f"An error occurred while generating preview:\n\n{str(e)}"
+            )
+            self.update_status("Preview failed")
 
     def save_config(self):
         """Save the current configuration to config.yaml."""

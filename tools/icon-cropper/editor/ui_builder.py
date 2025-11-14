@@ -198,9 +198,33 @@ class UIBuilder:
             command=self.callbacks['enter_pan_mode']
         ).pack(fill=tk.X, pady=2)
 
-        # Save configuration button
-        save_frame = ttk.LabelFrame(left_panel, text="Save", padding=10)
+        # Load configuration button
+        load_frame = ttk.LabelFrame(left_panel, text="Load Config", padding=10)
+        load_frame.pack(fill=tk.X, pady=5)
+
+        ttk.Button(
+            load_frame,
+            text="📂 Load From Config (Ctrl+L)",
+            command=self.callbacks['load_from_config']
+        ).pack(fill=tk.X, pady=2)
+
+        ttk.Label(
+            load_frame,
+            text="Apply saved grid & OCR\nfrom config.yaml",
+            font=("Arial", 9),
+            foreground="gray",
+            justify=tk.CENTER
+        ).pack(pady=(0, 5))
+
+        # Preview and Save buttons
+        save_frame = ttk.LabelFrame(left_panel, text="Preview & Save", padding=10)
         save_frame.pack(fill=tk.X, pady=5)
+
+        ttk.Button(
+            save_frame,
+            text="👁️ Preview Icons (Ctrl+P)",
+            command=self.callbacks['preview_icons']
+        ).pack(fill=tk.X, pady=2)
 
         ttk.Button(
             save_frame,
