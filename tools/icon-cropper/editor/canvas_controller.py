@@ -5,9 +5,10 @@ This module manages the canvas state and provides methods for:
 - Zoom in/out with cursor-centered zooming
 - Pan (drag to move image)
 - Mouse wheel handling (scroll, zoom with modifiers)
+- Overlay management (grid, OCR, annotations, etc.)
 """
 
-from typing import Optional, Tuple, Callable
+from typing import Optional, Tuple, Callable, Dict, List, Any
 from PIL import Image, ImageTk
 import tkinter as tk
 from .coordinate_system import canvas_to_image_coords, image_to_canvas_coords
@@ -41,6 +42,10 @@ class CanvasController:
         # Panning state
         self.is_panning: bool = False
         self.pan_start: Tuple[int, int] = [0, 0]
+
+        # Overlay state - unified system for all overlay types
+        # Structure: {'grid': [config1, config2], 'ocr': [config1], 'annotation': [...]}
+        self.overlays: Dict[str, List[Optional[Dict[str, Any]]]] = {}
 
     def load_image(self, image: Image.Image):
         """Load an image and prepare for display.
@@ -167,6 +172,69 @@ class CanvasController:
         self.zoom_level = 1.0
         self.pan_offset = [0, 0]
         self.display_image()
+
+    # Overlay management methods
+
+    def set_overlay(self, overlay_type: str, config: Dict[str, Any], overlay_id: int = 0):
+        """Set or update an overlay of a specific type.
+
+        Args:
+            overlay_type: Type of overlay ('grid', 'ocr', 'annotation', etc.)
+            config: Configuration dict for the overlay
+            overlay_id: Index for multiple overlays of same type (default: 0)
+        """
+        if overlay_type not in self.overlays:
+            self.overlays[overlay_type] = []
+
+        # Extend list if needed
+        while len(self.overlays[overlay_type]) <= overlay_id:
+            self.overlays[overlay_type].append(None)
+
+        self.overlays[overlay_type][overlay_id] = config
+
+    def get_overlay(self, overlay_type: str, overlay_id: int = 0) -> Optional[Dict[str, Any]]:
+        """Get overlay config by type and ID.
+
+        Args:
+            overlay_type: Type of overlay ('grid', 'ocr', etc.)
+            overlay_id: Index for multiple overlays (default: 0)
+
+        Returns:
+            Overlay config dict, or None if not found
+        """
+        if overlay_type in self.overlays and overlay_id < len(self.overlays[overlay_type]):
+            return self.overlays[overlay_type][overlay_id]
+        return None
+
+    def has_overlay(self, overlay_type: str) -> bool:
+        """Check if any overlay of this type exists.
+
+        Args:
+            overlay_type: Type of overlay to check
+
+        Returns:
+            True if at least one overlay of this type exists
+        """
+        return overlay_type in self.overlays and any(self.overlays[overlay_type])
+
+    def clear_overlay(self, overlay_type: Optional[str] = None):
+        """Clear overlays.
+
+        Args:
+            overlay_type: If specified, clear only this type. If None, clear all.
+        """
+        if overlay_type:
+            self.overlays.pop(overlay_type, None)
+        else:
+            self.overlays.clear()
+
+    def clear(self):
+        """Clear the canvas and reset all state (image, zoom, pan, overlays)."""
+        self.canvas.delete("all")
+        self.current_image = None
+        self.zoom_level = 1.0
+        self.pan_offset = [0, 0]
+        self.overlays.clear()  # Automatically resets all overlays
 
     def _adjust_pan_for_zoom(
         self,

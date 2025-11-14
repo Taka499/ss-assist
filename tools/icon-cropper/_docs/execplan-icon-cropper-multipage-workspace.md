@@ -1,4 +1,4 @@
-# Icon Cropper Multi-Page Workspace Support
+# Icon Cropper Multi-Workspace Support
 
 This ExecPlan is a living document. The sections `Progress`, `Surprises & Discoveries`, `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
@@ -6,69 +6,241 @@ This document must be maintained in accordance with `_docs/PLANS.md`.
 
 ## Purpose / Big Picture
 
-Currently, the icon-cropper config editor can only edit one page type (hardcoded to `character_select`) and overwrites screenshots every time a new capture is made (`test_capture.png`). After this change, users will be able to:
+Transform the icon-cropper config editor from a single-page tool into a **workspace-based cropping tool** where each workspace is a self-contained project for cropping icons from game screenshots.
 
-1. **Manage multiple page configurations** - Create, edit, and switch between different page types (character_select, item_inventory, mission_list, etc.) in a single session without manually editing config.yaml
-2. **Build screenshot collections** - Capture multiple screenshots for the same page type to handle game UI with scrolling or pagination
-3. **Organize work in workspaces** - Each page type gets its own workspace directory containing screenshots, configuration metadata, and future cropped icons
-4. **Create new page configurations** - Add new page types through the GUI instead of manually editing YAML
+Currently, the tool hardcodes all operations to one page (`character_select`), uses a global `config.yaml`, and overwrites screenshots. After this change, users will have:
 
-**How to see it working:** After implementation, users launch `uv run python config_editor.py` and see a page selector dropdown at the top of the sidebar. They can select "item_inventory", capture multiple screenshots by scrolling through the game's item list, draw the grid once, and all screenshots are preserved. Switching back to "character_select" shows that page's screenshots and configuration without any loss of data. Clicking the [+] button creates a new page type with a clean workspace.
+1. **Independent workspaces** - Each workspace contains its own config.yaml, screenshots, and (future) cropped icons
+2. **Multiple screenshot support** - Capture and manage multiple screenshots per workspace to handle scrolling/pagination
+3. **Portable projects** - Workspaces can be zipped, shared, or archived as complete units
+4. **Simple mental model** - One workspace = one cropping task (e.g., "character_select", "item_inventory")
+
+**How to see it working:** Launch `uv run python config_editor.py` from `tools/icon-cropper/`. You see a workspace selector dropdown at the top. Select "character_select" workspace, capture multiple screenshots by scrolling through the game UI, draw the grid once, and all screenshots are preserved. Switch to "item_inventory" workspace - it has its own config, screenshots, and grid settings. Click [+] to create a new workspace with a fresh config from template.
+
+**Why this matters:** The config editor GUI already implements the complete icon-cropping pipeline (screenshot → grid drawing → preview). Looking at the original IMPLEMENTATION_PLAN.md, the only missing piece is the cropping algorithm itself. Making workspaces self-contained transforms this from a "config editor" into a complete icon-cropping tool aligned with the original vision.
 
 ## Progress
 
-- [ ] Create workspace directory structure and management module
-- [ ] Implement workspace.json metadata schema
-- [ ] Add page selector dropdown UI with [+] create button
-- [ ] Add screenshot list widget (scrollable, radio button selection)
-- [ ] Update capture workflow to save numbered screenshots to workspace
-- [ ] Implement screenshot selection (click to display on canvas)
-- [ ] Implement delete screenshot with safety checks
-- [ ] Create "New Page" dialog with validation
-- [ ] Implement page switching with unsaved changes warning
-- [ ] Update load_from_config() to use selected page
-- [ ] Update save_config() to save to selected page in config.yaml
-- [ ] Add workspace state persistence (remember last page)
-- [ ] Migrate existing test_capture.png workflow to workspace model
-- [ ] Test multi-page workflow end-to-end
-- [ ] Test screenshot list with 5+ screenshots
+### Phase 1: Initial Implementation (Config-Centric) - COMPLETED BUT WRONG ARCHITECTURE
+- [x] (2025-11-15) Create workspace directory structure and management module
+- [x] (2025-11-15) Implement workspace.json metadata schema
+- [x] (2025-11-15) Add page selector dropdown UI with [+] create button
+- [x] (2025-11-15) Add screenshot list widget (scrollable, radio button selection)
+- [x] (2025-11-15) Update capture workflow to save numbered screenshots to workspace
+- [x] (2025-11-15) Implement screenshot selection (click to display on canvas)
+- [x] (2025-11-15) Implement delete screenshot with safety checks
+- [x] (2025-11-15) Create "New Page" dialog with validation
+- [x] (2025-11-15) Implement page switching with unsaved changes warning
+- [x] (2025-11-15) Update load_from_config() to use selected page
+- [x] (2025-11-15) Update save_config() to save to selected page in config.yaml
+- [x] (2025-11-15) Add workspace state persistence (remember last page)
+- [x] (2025-11-15) Migrate existing test_capture.png workflow to workspace model
+- [x] (2025-11-15) Test multi-page workflow end-to-end - ISSUES FOUND, ARCHITECTURE WRONG
+
+### Phase 2: Refactor to Workspace-Centric Architecture - COMPLETED WITH ISSUES
+- [x] (2025-11-15) Create config.yaml template for new workspaces
+- [x] (2025-11-15) Add editor/config_template.py module with create_workspace_config()
+- [x] (2025-11-15) Refactor ConfigSerializer to support per-workspace config.yaml paths
+- [x] (2025-11-15) Update WorkspaceManager.create_workspace() to create config.yaml from template
+- [x] (2025-11-15) Refactor config_editor.py initialization to load workspace config
+- [x] (2025-11-15) Update load_from_config() to read from workspace/config.yaml
+- [x] (2025-11-15) Update save_config() to write to workspace/config.yaml
+- [x] (2025-11-15) Remove "available_pages" concept - list workspaces from directories
+- [x] (2025-11-15) Update page dropdown to show workspace names
+- [x] (2025-11-15) Rename "Create New Page" to "Create New Workspace"
+- [x] (2025-11-15) Fix bug: Remove last screenshot protection (allow empty lists)
+- [x] (2025-11-15) Replace all self.current_page → self.current_workspace
+- [x] (2025-11-15) Update preferences to use "last_workspace" instead of "last_page"
+- [x] (2025-11-15) Create default workspaces (character_select, item_inventory) with configs
+- [x] (2025-11-15) Add CanvasController.clear() method for state reset
+- [x] (2025-11-15) Fix canvas clearing on workspace switch and screenshot delete
+- [x] (2025-11-15) Fix: Grid/OCR overlays persist when switching workspaces (FIXED in Phase 3)
+- [ ] Fix regression: Restore grid handles visibility
+- [ ] Test workspace-centric workflow end-to-end
 - [ ] Update documentation (README, CLAUDE.md)
+
+### Phase 3: Refactor Overlay Management Architecture - COMPLETED
+- [x] (2025-11-15) Implemented unified overlay management system in CanvasController
+- [x] (2025-11-15) Added overlay API: set_overlay(), get_overlay(), has_overlay(), clear_overlay()
+- [x] (2025-11-15) Updated clear() to automatically reset all overlays
+- [x] (2025-11-15) Removed grid_drawn/ocr_drawn flags from config_editor.py
+- [x] (2025-11-15) Updated all overlay checks to use has_overlay() API
+- [x] (2025-11-15) Updated overlay setters to use set_overlay() API
+- [x] (2025-11-15) Workspace switching now automatically clears all overlays
+
+### Phase 3: Future Improvements (Not Part of This ExecPlan)
+- [ ] Fix inconsistency: OCR Region drawing erases existing region
+- [ ] Fix: Preview icon page horizontal scrolling with Shift+scroll
+- [ ] Implement actual cropping algorithm (complete IMPLEMENTATION_PLAN.md vision)
 
 ## Surprises & Discoveries
 
-(To be filled during implementation)
+### S1: New Page Creation Doesn't Persist to config.yaml (2025-11-15)
+
+**Observation:** When creating a new page via the [+] button dialog, the page is added to the in-memory `self.config['pages']` dict and workspace is created, but the config.yaml file is never updated. When save_config() is later called, it fails with "Page 'gacha_detail' not found in config".
+
+**Evidence:** Error dialog showing "Failed to save config: Page 'gacha_detail' not found in config"
+
+**Root Cause:** The `create_new_page()` method modifies `self.config` but never calls `config_serializer.save()`. The ConfigSerializer.save() method reloads config.yaml from disk and expects the page to already exist.
+
+**Impact:** Users cannot save configurations for newly created pages.
+
+**Resolution:** This is a symptom of the config-centric architecture. In workspace-centric design, each workspace has its own config.yaml created from a template, eliminating this issue.
+
+### S2: Cannot Delete Last Screenshot (2025-11-15)
+
+**Observation:** The WorkspaceManager.delete_screenshot() method refuses to delete the last screenshot in a workspace, returning False when `len(screenshots) <= 1`.
+
+**Evidence:** Error dialog "Cannot delete the last screenshot"
+
+**Design Decision:** This was implemented as a safety check (Decision D4 in original plan), but user feedback indicates this is too restrictive. Users should be able to have workspaces with no screenshots.
+
+**Impact:** Users cannot clear out all screenshots to start fresh, they must manually delete workspace directories.
+
+**Fix Required:** Remove the `if len(metadata["screenshots"]) <= 1: return False` check.
+
+### S3: Grid Handles Disappeared (2025-11-15)
+
+**Observation:** After the UI refactoring, the 8 resize handles on the grid overlay are no longer visible. Grid can be drawn but not adjusted via handles.
+
+**Evidence:** Visual inspection shows grid overlay renders but handles missing.
+
+**Root Cause:** Likely a regression introduced during UI changes. The grid_renderer.draw_grid_overlay() or handle binding code may have been affected.
+
+**Impact:** Users cannot resize grids interactively, must use spinboxes only.
+
+**Investigation Needed:** Check grid_renderer and handle drawing logic.
+
+### S4: OCR Region Drawing Erases Existing Region (2025-11-15)
+
+**Observation:** When clicking "Draw OCR Region", any existing OCR region on canvas disappears. In contrast, "Draw Grid Layout" preserves the existing grid overlay.
+
+**Evidence:** Visual behavior inconsistency between grid and OCR editing modes.
+
+**Design Issue:** This is unrelated to workspace feature, but points to future requirement: users want to define multiple grid regions or OCR regions per page (e.g., for complex layouts with multiple icon grids).
+
+**Impact:** Users cannot verify existing OCR region before re-drawing it.
+
+**Note:** Out of scope for this ExecPlan.
+
+### S5: Preview Icon Window Cannot Scroll Horizontally with Shift+Scroll (2025-11-15)
+
+**Observation:** The preview icon window doesn't support Shift+scroll for horizontal scrolling, making it hard to navigate wide grids.
+
+**Evidence:** User testing feedback.
+
+**Note:** Unrelated to workspace feature, out of scope.
+
+### S6: Workspace Architecture - Fundamental Design Error (2025-11-15)
+
+**Observation:** User correctly identified that each workspace SHOULD have its own config.yaml file, not share a global one.
+
+**Root Cause:** Initial implementation was "config-centric" (global config.yaml with multiple pages) instead of "workspace-centric" (each workspace is self-contained).
+
+**Realization:** Looking at IMPLEMENTATION_PLAN.md, the original vision was a complete icon-cropping tool. The config editor GUI already has the complete pipeline: screenshot → grid drawing → preview. The only missing piece is the cropping algorithm itself. Therefore, workspaces should be the primary entity, not pages in a config file.
+
+**Impact:** Requires architectural refactor from config-centric to workspace-centric design. See Decision D1 (REVISED).
+
+**What This Means:**
+- Each workspace = one complete cropping project
+- Workspaces are portable (can be zipped/shared)
+- No concept of "global available pages" - pages are just workspace directory names
+- Simpler mental model for users
+- Aligns with IMPLEMENTATION_PLAN.md vision
+
+### S7: Overlay State Management - Architecture Issue (2025-11-15)
+
+**Observation:** After implementing workspace-centric architecture, grid and OCR overlays from previous workspace persist when switching to a new workspace. The canvas shows the old overlays even though the config has been reloaded.
+
+**Evidence:** User testing - switching from workspace A (with grid) to workspace B (without grid) still shows workspace A's grid overlay on the canvas.
+
+**Root Cause:** Visual state is split across multiple concerns:
+- `config_editor.py`: Owns `grid_drawn` and `ocr_drawn` flags
+- `canvas_controller.py`: Owns image display state (current_image, zoom, pan)
+- `grid_renderer.py`: Draws overlays based on flags from config_editor
+- Manual synchronization required: Every `canvas_controller.clear()` must be followed by manually resetting `grid_drawn = False` and `ocr_drawn = False`
+
+**Impact:**
+- Hard to maintain: Multiple places need to be updated when clearing state
+- Overlays persist across workspace switches because `display_image()` redraws them based on stale flags
+- Violates single responsibility principle: visual state should be owned by the visual controller
+
+**Solution:** Refactor to make CanvasController own ALL visual state:
+```python
+class CanvasController:
+    def __init__(self, ...):
+        self.current_image = None
+        self.zoom_level = 1.0
+        self.pan_offset = [0, 0]
+        self.grid_overlay = None      # NEW: owns grid state
+        self.ocr_overlay = None        # NEW: owns OCR state
+
+    def clear(self):
+        """Clear canvas and ALL visual state."""
+        self.canvas.delete("all")
+        self.current_image = None
+        self.grid_overlay = None       # Automatically resets
+        self.ocr_overlay = None         # Automatically resets
+        self.zoom_level = 1.0
+        self.pan_offset = [0, 0]
+```
+
+**Benefits:**
+- Single source of truth for all visual state
+- `clear()` automatically resets everything - no manual flag management needed
+- Workspace switching becomes: `canvas_controller.clear()` → load new config → `canvas_controller.set_overlays(grid, ocr)` → `canvas_controller.display_image()`
+- Eliminates coupling between config_editor and visual rendering
+
+**Status:** Requires Phase 3 refactoring (see Phase 3 tasks above).
 
 ## Decision Log
 
-### D1: Workspace-Per-Page Architecture (2025-11-15)
+### D1: Workspace-Centric Architecture - REVISED (2025-11-15)
 
-**Decision:** Use a workspace directory for each page type containing all related files (screenshots, metadata, future cropped icons).
+**Original Decision (WRONG):** Use a global config.yaml with multiple pages, workspace directories only contain screenshots and metadata.
 
-**Rationale:**
-- Each page type shows different game UI, requiring different screenshots
-- Screenshot list feature enables handling scrolling/pagination in game UI
-- Organizing by page makes it easy to manage multiple configurations
-- Prepares for future batch cropping feature (cropped icons per screenshot)
-- Avoids screenshot filename conflicts between pages
+**Revised Decision:** Each workspace is self-contained with its own config.yaml. Workspaces are independent cropping projects.
 
-**Structure:**
+**Rationale for Revision:**
+- The config editor has evolved beyond "just editing config.yaml" - it's a complete icon cropping tool
+- Looking at IMPLEMENTATION_PLAN.md, the only missing piece is the cropping algorithm itself
+- Each workspace represents a complete "cropping project" (screenshots + grid settings + output config)
+- Self-contained workspaces are portable - can be zipped/shared/archived independently
+- Aligns with the original vision: workspaces are the primary entity, not pages in a config file
+- Simpler mental model: "one workspace = one cropping task" vs "one config.yaml = many pages"
+- Eliminates the concept of "available pages" - pages are just workspace names
+
+**New Structure:**
 ```
-tools/icon-cropper/workspaces/
-├── character_select/
-│   ├── screenshots/
-│   │   ├── 001.png
-│   │   ├── 002.png
-│   │   └── 003.png
-│   ├── cropped/              # Future: batch crop output
-│   │   ├── 001/
-│   │   └── 002/
-│   └── workspace.json        # Metadata
-├── item_inventory/
-│   ├── screenshots/
-│   └── workspace.json
-└── new_page_1/               # User-created pages
-    └── ...
+tools/icon-cropper/
+├── config.yaml                    # Template for new workspaces (no longer used at runtime)
+├── workspaces/
+│   ├── character_select/
+│   │   ├── config.yaml           # Grid, OCR, output settings for THIS workspace
+│   │   ├── screenshots/
+│   │   │   ├── 001.png
+│   │   │   ├── 002.png
+│   │   │   └── 003.png
+│   │   ├── cropped/              # Future: batch crop output
+│   │   │   ├── 001/
+│   │   │   └── 002/
+│   │   └── workspace.json        # Metadata (selected screenshot, timestamps)
+│   ├── item_inventory/
+│   │   ├── config.yaml           # Different config for different workspace
+│   │   ├── screenshots/
+│   │   └── workspace.json
+│   └── gacha_detail/             # User-created workspaces
+│       ├── config.yaml
+│       ├── screenshots/
+│       └── workspace.json
 ```
+
+**Migration Impact:**
+- Global config.yaml becomes a template only
+- ConfigSerializer must accept config path parameter (workspace-specific)
+- Workspace selector dropdown lists directory names from `workspaces/`
+- "Create new page" becomes "Create new workspace" - copies template to new directory
+- Each workspace's config.yaml contains only that workspace's settings (no `pages:` section)
 
 ### D2: No Screenshot Preview Dialog (2025-11-15)
 
@@ -102,48 +274,220 @@ tools/icon-cropper/workspaces/
 - Avoids filename collisions
 - Users can add notes in workspace.json metadata if needed
 
-### D5: Page Creation with Clone Option (2025-11-15)
+### D5: Workspace Creation with Clone Option (2025-11-15)
 
-**Decision:** New page dialog offers optional cloning from an existing page's grid configuration.
+**Decision:** New workspace dialog offers optional cloning from an existing workspace's config.yaml.
 
 **Rationale:**
 - Many game UIs have similar layouts (same grid, different content)
 - Cloning saves time re-drawing identical grids
-- Still allows creating from scratch (default empty config)
-- Users can pick any existing page as a template
+- Still allows creating from scratch (uses template)
+- Users can pick any existing workspace as a source
+
+**Updated from "Page Creation":** Now clones entire config.yaml, not just grid section from global config.
 
 ### D6: Preserve Overlays When Switching Screenshots (2025-11-15)
 
 **Decision:** When user selects a different screenshot from the list, keep grid and OCR overlays visible.
 
 **Rationale:**
-- Same page configuration applies to all screenshots in the workspace
+- Same workspace configuration applies to all screenshots in the workspace
 - User needs to verify grid alignment across all screenshots (especially for scrolling UI)
 - Switching screenshots is primarily for verification, not configuration changes
-- Grid/OCR are page-level settings, not screenshot-level
+- Grid/OCR are workspace-level settings, not screenshot-level
+
+### D7: Allow Empty Screenshot Lists - REVISED (2025-11-15)
+
+**Original Decision:** Protect last screenshot from deletion to prevent empty workspaces.
+
+**Revised Decision:** Allow empty screenshot lists. Remove the `len(screenshots) <= 1` protection.
+
+**Rationale:**
+- User feedback: restriction is too rigid
+- Empty workspaces are valid - users may configure grid first, capture later
+- Simpler code - no special case handling
+- UI can handle empty lists gracefully (show "No screenshots" message)
+- Delete button can be disabled when list is empty (UI-level check, not data-level)
+
+### D8: Overlay State Should Be Owned by CanvasController (2025-11-15)
+
+**Decision:** Refactor overlay management so CanvasController owns all visual state, including grid and OCR overlays.
+
+**Problem:** Current architecture splits visual state across multiple classes:
+- `config_editor.py` owns `grid_drawn` and `ocr_drawn` flags
+- `canvas_controller.py` owns image state
+- Requires manual synchronization when clearing canvas
+
+**New Design:**
+- Move `grid_overlay` and `ocr_overlay` state into CanvasController
+- `clear()` automatically resets all visual state (no manual flag management)
+- Add `set_grid_overlay(grid_config)` and `set_ocr_overlay(ocr_config)` methods
+- `display_image()` manages overlay rendering internally based on its own state
+
+**Rationale:**
+- **Single Responsibility:** Visual controller should own all visual state
+- **Maintainability:** No manual synchronization needed when clearing
+- **Correctness:** Eliminates bugs where overlays persist after workspace switch
+- **Encapsulation:** config_editor doesn't need to track rendering state
+
+**Implementation Path:**
+1. Add overlay state fields to CanvasController
+2. Add setter methods for grid/OCR overlays
+3. Update `clear()` to reset overlay state
+4. Update `display_image()` to render overlays from internal state
+5. Remove `grid_drawn`/`ocr_drawn` from config_editor.py
+6. Update all callers to use new API
+
+**Status:** Planned for Phase 3 (see S7 for detailed analysis).
 
 ## Outcomes & Retrospective
 
-(To be filled at completion)
+### Phase 2 Outcomes (2025-11-15)
+
+**Achievements:**
+- ✅ Successfully refactored from config-centric to workspace-centric architecture
+- ✅ Each workspace is now self-contained with its own config.yaml
+- ✅ Workspaces can be created, cloned, and switched independently
+- ✅ Config files are automatically created from templates
+- ✅ Empty screenshot lists are now allowed (better UX)
+- ✅ Canvas clearing works correctly on workspace switch and screenshot delete
+
+**Issues Discovered:**
+- ❌ Grid/OCR overlays persist when switching workspaces (architecture issue)
+- ❌ Visual state management is split across multiple classes (maintainability issue)
+- ⚠️ Grid handles visibility regression (not yet investigated)
+
+**Key Learnings:**
+
+1. **Template-based config creation is essential:** Having `create_workspace()` always create a config.yaml from template eliminates error handling complexity and ensures consistency.
+
+2. **State ownership matters:** Splitting visual state (grid_drawn, ocr_drawn) from visual controller (CanvasController) creates maintenance burden and bugs. Visual state should be owned by the visual controller.
+
+3. **Clear before load pattern:** When switching contexts (workspaces), always clear ALL state first, then load new state. Order matters: clear → load config → load screenshots → display.
+
+4. **User testing reveals architectural issues:** The overlay persistence bug was not caught during implementation - it only became apparent during actual workspace switching tests. Early and frequent testing is critical.
+
+**Next Steps:**
+- Phase 3: Refactor overlay management to fix the architecture issue (see S7 and D8)
+- Fix grid handles visibility regression
+- Comprehensive end-to-end testing
+- Update documentation
+
+### Phase 3 Outcomes (2025-11-15)
+
+**Achievements:**
+- ✅ Implemented unified overlay management system in CanvasController
+- ✅ Created extensible overlay API (set_overlay, get_overlay, has_overlay, clear_overlay)
+- ✅ Removed all grid_drawn/ocr_drawn flags from config_editor.py
+- ✅ Fixed overlay persistence bug - overlays now clear automatically on workspace switch
+- ✅ Fixed OCR overlay visibility - OCR regions now show correctly after workspace load
+- ✅ Fixed OCR renderer consistency - OCR overlays now behave like grid overlays
+- ✅ Removed legacy screenshot migration code
+
+**Issues Fixed:**
+
+1. **Overlay Persistence (S7)**: Overlays from previous workspace no longer persist after switching
+   - Root cause: Split visual state between config_editor and CanvasController
+   - Solution: Unified overlay state in CanvasController with automatic cleanup
+
+2. **OCR Overlay Not Showing**: OCR regions weren't visible after workspace load or mode switching
+   - Root cause 1: edit_step not set to ADJUST when loading existing OCR config
+   - Root cause 2: OCR renderer hid overlay during DEFINE step (inconsistent with grid)
+   - Solution: Set edit_step to ADJUST when overlay exists, fixed renderer to show overlay based on data existence
+
+3. **Spinbox Callback Race Condition**: Workspace loading triggered premature redraws via spinbox callbacks
+   - Root cause: var.set() during workspace load triggered _on_grid_param_changed callbacks
+   - Solution: Added _loading_workspace flag to skip callbacks during workspace initialization
+
+**Key Improvements:**
+
+1. **Unified Overlay System**: All overlays now use dict-based system:
+   ```python
+   self.overlays = {'grid': [config], 'ocr': [config], ...}
+   ```
+
+2. **Clean API**: Simple, consistent methods:
+   ```python
+   canvas_controller.set_overlay('grid', config)
+   canvas_controller.has_overlay('grid')
+   canvas_controller.clear()  # Clears everything
+   ```
+
+3. **Automatic Cleanup**: Workspace switching is now safe:
+   ```python
+   self.canvas_controller.clear()  # Resets image, zoom, pan, AND overlays
+   ```
+
+4. **Extensibility**: Future overlay types require zero code changes:
+   ```python
+   canvas_controller.set_overlay('annotation', {...})
+   canvas_controller.set_overlay('grid', config, 1)  # Multiple grids
+   ```
+
+5. **Renderer Consistency**: Both grid and OCR renderers now show overlays based on data existence, not workflow state
+
+**Code Changes:**
+- Modified `editor/canvas_controller.py`: Added overlay management (+65 lines)
+- Modified `config_editor.py`: Removed grid_drawn/ocr_drawn, added overlay API usage (~20 locations)
+- Modified `editor/grid_renderer.py`: Fixed OCR rendering logic for consistency
+- Removed legacy migration code
+
+**Testing Results:**
+- ✅ Workspace switching clears overlays correctly
+- ✅ Grid overlays show on first screenshot selection
+- ✅ OCR overlays show on first screenshot selection
+- ✅ Overlays persist within same workspace
+- ✅ Mode switching (Grid → Pan → Grid) preserves overlays
+- ✅ Mode switching (OCR → Pan → OCR) preserves overlays
+- ⚠️ Resize handles not visible (pre-existing issue S3)
+
+**Lessons Learned:**
+
+1. **Extensible design prevents future refactors**: Dict-based overlay system allows unlimited overlay types without code changes
+
+2. **Single source of truth eliminates synchronization bugs**: Moving overlay state into CanvasController eliminated all manual flag management
+
+3. **Renderer should render data, not workflow state**: OCR renderer was hiding overlays based on edit_step instead of data existence - inconsistent with grid behavior
+
+4. **Callback suppression during batch updates**: When programmatically updating UI elements (spinboxes), suppress callbacks to prevent race conditions
+
+5. **Consistency between similar components**: Grid and OCR editors should behave identically - differences indicate design flaws
+
+**Remaining Work:**
+- Fix grid/OCR resize handles visibility (S3)
+- End-to-end testing of complete workspace workflow
+- Update documentation (README, CLAUDE.md)
 
 ## Context and Orientation
 
-The icon-cropper GUI tool is located at `tools/icon-cropper/config_editor.py`. It provides a visual interface for configuring grid-based icon extraction from game screenshots. The tool currently:
+**What exists:** The icon-cropper tool at `tools/icon-cropper/` is a GUI application for configuring grid-based icon extraction from game screenshots. It was originally designed to edit a global `config.yaml` file with multiple page definitions.
 
-- Loads `tools/icon-cropper/config.yaml` which contains a `pages` section with multiple page definitions
-- Hardcodes all operations to the `character_select` page (see config_editor.py lines 62-63)
-- Saves screenshots to `tools/icon-cropper/test_capture.png`, overwriting previous captures
-- Has no UI for page selection or creation
+**Current state (Phase 1 complete):**
+- WorkspaceManager class exists, manages workspace directories and metadata
+- UI has workspace selector dropdown, screenshot list, capture/delete buttons
+- Screenshots save to `workspaces/{name}/screenshots/001.png`, etc.
+- workspace.json tracks selected screenshot and metadata
+- **Problem:** Still uses global config.yaml with `pages:` section
+- **Problem:** ConfigSerializer hardcoded to global config path
 
 **Key files:**
-- `config_editor.py` - Main application orchestrator
-- `editor/ui_builder.py` - UI component construction
+- `config_editor.py` - Main application (477 lines)
+- `editor/workspace_manager.py` - Workspace directory management (Phase 1 implementation)
 - `editor/config_serializer.py` - YAML load/save with comment preservation
+- `editor/ui_builder.py` - UI component construction
 - `editor/canvas_controller.py` - Screenshot display management
 - `capture.py` - Screenshot capture from game window
-- `config.yaml` - Configuration file with pages section
+- `config.yaml` - Currently global, will become template
 
-**Current config.yaml structure:**
+**Terminology:**
+- **Workspace** - A self-contained cropping project directory containing config.yaml, screenshots/, cropped/, and workspace.json
+- **config.yaml** - Per-workspace configuration file defining grid layout, OCR region, output settings
+- **workspace.json** - Metadata file tracking selected screenshot, capture timestamps, notes
+- **Screenshot list** - Multiple numbered screenshots (001.png, 002.png, ...) for handling scrolling/pagination
+- **Grid configuration** - Layout parameters (start position, cell size, spacing, columns, rows) for icon extraction
+- **Template** - The global config.yaml will become a template for creating new workspace configs
+
+**Current config.yaml structure (WRONG - will be changed):**
 ```yaml
 pages:
   character_select:
@@ -158,530 +502,477 @@ pages:
       target_dir: "public/assets/characters"
 ```
 
-**Terminology:**
-- **Page** - A distinct UI screen in the game (character selection, item inventory, etc.)
-- **Workspace** - A directory containing all files related to one page type
-- **Screenshot list** - Multiple screenshots for the same page type (for scrolling/pagination)
-- **Grid configuration** - The layout parameters (start position, cell size, spacing) for icon extraction
-- **OCR region** - The area where page-identifying text is detected
+**Target workspace config.yaml structure (CORRECT):**
+```yaml
+# No 'pages:' wrapper - this IS the workspace config
+ocr_match: "ホーム画面設定"
+workspace_name: "character_select"
+
+grid:
+  columns: 3
+  rows: 5
+  start_x: 963
+  start_y: 151
+  cell_width: 146
+  cell_height: 146
+  spacing_x: 4
+  spacing_y: 4
+  crop_padding: 8
+
+output:
+  category: "characters"
+  target_dir: "public/assets/characters"
+  filename_pattern: "{number:03d}.png"
+
+# OCR region can be per-workspace or use global detection_region
+ocr:
+  detection_region: [10, 10, 500, 100]  # [x, y, width, height]
+```
 
 ## Plan of Work
 
-We will refactor the config editor from a single-page, single-screenshot model to a multi-page workspace model. The work breaks into five main areas:
+We will refactor from config-centric to workspace-centric architecture. The work breaks into four main areas:
 
-**1. Workspace Infrastructure** - Create a `WorkspaceManager` class that handles directory creation, metadata save/load, and file management. Each workspace will have a `screenshots/` subdirectory and a `workspace.json` file tracking the selected screenshot and capture history.
+**1. Template Creation** - Convert the global config.yaml into a template structure. Extract a single page's config (e.g., character_select) as the baseline. Create a template that new workspaces will copy.
 
-**2. UI Components** - Add a page selector dropdown and [+] button to the top of the left sidebar (above existing mode buttons). Add a screenshot list widget below the mode buttons showing all screenshots for the current page with radio button selection. Add a delete button next to the capture button.
+**2. WorkspaceManager Updates** - Add method to create config.yaml from template when creating new workspace. Update list_workspaces() to be the source of truth for workspace names (no more "available_pages" from config).
 
-**3. Screenshot Management** - Modify the capture workflow to save screenshots as `workspaces/{page_name}/screenshots/{001-999}.png` instead of `test_capture.png`. Implement selection logic that loads the chosen screenshot onto the canvas while preserving grid/OCR overlays.
+**3. ConfigSerializer Refactoring** - Remove hardcoded global config path. Accept config_path parameter. Update all load/save methods to work with workspace-specific paths. Preserve YAML comment handling.
 
-**4. Page Switching** - Implement logic to detect unsaved changes before switching pages, load the new page's workspace, and restore the last-selected screenshot. Add a "Create New Page" dialog with name validation and optional configuration cloning.
+**4. ConfigEditorApp Refactoring** - Load workspace config from `workspaces/{name}/config.yaml` instead of global. Update save_config() to write to workspace config. Update load_from_config() to read from workspace config. Remove "available_pages" - list from directories. Update initialization, page switching, and workspace creation flows.
 
-**5. Config Integration** - Update `load_from_config()` and `save_config()` to work with the selected page instead of hardcoded `character_select`. Ensure the config.yaml `pages` section is updated correctly with per-page grid and OCR settings.
+**5. Bug Fixes** - Remove last screenshot protection. Restore grid handle visibility (regression fix). Update UI to handle empty screenshot lists.
 
 ## Concrete Steps
 
-### Step 1: Create WorkspaceManager Module
+### Step 1: Create Workspace Config Template
 
-Create `tools/icon-cropper/editor/workspace_manager.py`:
+Create `tools/icon-cropper/config_template.yaml`:
+
+```yaml
+# Workspace configuration template
+# This file is copied when creating new workspaces
+
+workspace_name: "WORKSPACE_NAME"  # Will be replaced
+ocr_match: "WORKSPACE_NAME_identifier"  # Will be replaced
+
+grid:
+  columns: 3
+  rows: 4
+  start_x: 0
+  start_y: 0
+  cell_width: 100
+  cell_height: 100
+  spacing_x: 0
+  spacing_y: 0
+  crop_padding: 0
+
+output:
+  category: "WORKSPACE_NAME"  # Will be replaced
+  target_dir: "output/WORKSPACE_NAME"  # Will be replaced
+  filename_pattern: "{number:03d}.png"
+
+ocr:
+  detection_region: [0, 0, 0, 0]  # User will configure
+```
+
+Create `tools/icon-cropper/editor/config_template.py`:
 
 ```python
-"""Workspace management for multi-page configuration editing.
-
-Each workspace represents one page type and contains:
-- screenshots/ directory with numbered PNG files
-- workspace.json metadata file
-- cropped/ directory (future use)
-"""
+"""Config template utilities for workspace creation."""
 
 from pathlib import Path
-from typing import List, Optional, Dict, Any
-import json
-from datetime import datetime
-from PIL import Image
+from typing import Dict, Any
+import yaml
 
-class WorkspaceManager:
-    """Manages workspace directories and metadata for page configurations."""
+def load_template() -> Dict[str, Any]:
+    """Load the config template.
 
-    def __init__(self, workspaces_root: Path):
-        """Initialize workspace manager.
+    Returns:
+        Template config dict
+    """
+    template_path = Path(__file__).parent.parent / "config_template.yaml"
+    with open(template_path, 'r', encoding='utf-8') as f:
+        return yaml.safe_load(f)
 
-        Args:
-            workspaces_root: Root directory for all workspaces (e.g., tools/icon-cropper/workspaces)
-        """
-        self.workspaces_root = workspaces_root
-        self.workspaces_root.mkdir(parents=True, exist_ok=True)
-
-    def create_workspace(self, page_name: str) -> Path:
-        """Create a new workspace for a page.
-
-        Args:
-            page_name: Name of the page (e.g., "character_select")
-
-        Returns:
-            Path to the created workspace directory
-        """
-        workspace_path = self.workspaces_root / page_name
-        workspace_path.mkdir(parents=True, exist_ok=True)
-
-        # Create subdirectories
-        (workspace_path / "screenshots").mkdir(exist_ok=True)
-        (workspace_path / "cropped").mkdir(exist_ok=True)
-
-        # Create empty metadata if doesn't exist
-        metadata_path = workspace_path / "workspace.json"
-        if not metadata_path.exists():
-            metadata = {
-                "page_name": page_name,
-                "created_at": datetime.now().isoformat(),
-                "selected_screenshot": None,
-                "screenshots": []
-            }
-            self._save_metadata(workspace_path, metadata)
-
-        return workspace_path
-
-    def get_workspace_path(self, page_name: str) -> Path:
-        """Get path to a workspace, creating if it doesn't exist."""
-        return self.create_workspace(page_name)
-
-    def workspace_exists(self, page_name: str) -> bool:
-        """Check if a workspace exists."""
-        return (self.workspaces_root / page_name).exists()
-
-    def list_workspaces(self) -> List[str]:
-        """List all existing workspace names."""
-        if not self.workspaces_root.exists():
-            return []
-        return [d.name for d in self.workspaces_root.iterdir() if d.is_dir()]
-
-    def add_screenshot(self, page_name: str, image: Image.Image) -> str:
-        """Add a screenshot to a workspace.
-
-        Args:
-            page_name: Name of the page
-            image: PIL Image to save
-
-        Returns:
-            Filename of the saved screenshot (e.g., "001.png")
-        """
-        workspace_path = self.get_workspace_path(page_name)
-        screenshots_dir = workspace_path / "screenshots"
-
-        # Find next available number
-        existing = list(screenshots_dir.glob("*.png"))
-        if existing:
-            numbers = [int(f.stem) for f in existing if f.stem.isdigit()]
-            next_num = max(numbers) + 1 if numbers else 1
-        else:
-            next_num = 1
-
-        # Save screenshot
-        filename = f"{next_num:03d}.png"
-        filepath = screenshots_dir / filename
-        image.save(filepath)
-
-        # Update metadata
-        metadata = self._load_metadata(workspace_path)
-        metadata["screenshots"].append({
-            "filename": filename,
-            "captured_at": datetime.now().isoformat(),
-            "resolution": [image.width, image.height],
-            "notes": ""
-        })
-        metadata["selected_screenshot"] = filename
-        self._save_metadata(workspace_path, metadata)
-
-        return filename
-
-    def get_screenshots(self, page_name: str) -> List[Dict[str, Any]]:
-        """Get list of screenshots for a page.
-
-        Returns:
-            List of screenshot metadata dicts
-        """
-        workspace_path = self.get_workspace_path(page_name)
-        metadata = self._load_metadata(workspace_path)
-        return metadata.get("screenshots", [])
-
-    def get_selected_screenshot(self, page_name: str) -> Optional[str]:
-        """Get the currently selected screenshot filename."""
-        workspace_path = self.get_workspace_path(page_name)
-        metadata = self._load_metadata(workspace_path)
-        return metadata.get("selected_screenshot")
-
-    def set_selected_screenshot(self, page_name: str, filename: str):
-        """Set the selected screenshot."""
-        workspace_path = self.get_workspace_path(page_name)
-        metadata = self._load_metadata(workspace_path)
-        metadata["selected_screenshot"] = filename
-        self._save_metadata(workspace_path, metadata)
-
-    def delete_screenshot(self, page_name: str, filename: str) -> bool:
-        """Delete a screenshot.
-
-        Args:
-            page_name: Name of the page
-            filename: Screenshot filename to delete
-
-        Returns:
-            True if deleted, False if it was the last screenshot (not deleted)
-        """
-        workspace_path = self.get_workspace_path(page_name)
-        metadata = self._load_metadata(workspace_path)
-
-        # Don't delete last screenshot
-        if len(metadata["screenshots"]) <= 1:
-            return False
-
-        # Delete file
-        filepath = workspace_path / "screenshots" / filename
-        if filepath.exists():
-            filepath.unlink()
-
-        # Update metadata
-        metadata["screenshots"] = [s for s in metadata["screenshots"] if s["filename"] != filename]
-
-        # If we deleted the selected screenshot, select another
-        if metadata["selected_screenshot"] == filename:
-            metadata["selected_screenshot"] = metadata["screenshots"][-1]["filename"] if metadata["screenshots"] else None
-
-        self._save_metadata(workspace_path, metadata)
-        return True
-
-    def get_screenshot_path(self, page_name: str, filename: str) -> Path:
-        """Get full path to a screenshot file."""
-        return self.workspaces_root / page_name / "screenshots" / filename
-
-    def _load_metadata(self, workspace_path: Path) -> Dict[str, Any]:
-        """Load workspace metadata from JSON file."""
-        metadata_path = workspace_path / "workspace.json"
-        if not metadata_path.exists():
-            return {
-                "page_name": workspace_path.name,
-                "created_at": datetime.now().isoformat(),
-                "selected_screenshot": None,
-                "screenshots": []
-            }
-
-        with open(metadata_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
-
-    def _save_metadata(self, workspace_path: Path, metadata: Dict[str, Any]):
-        """Save workspace metadata to JSON file."""
-        metadata_path = workspace_path / "workspace.json"
-        with open(metadata_path, 'w', encoding='utf-8') as f:
-            json.dump(metadata, f, indent=2, ensure_ascii=False)
-```
-
-### Step 2: Add Page Selector and Screenshot List UI
-
-Modify `tools/icon-cropper/editor/ui_builder.py` to add the new UI components. In the `create_main_layout` method, add the page selector above the mode buttons:
-
-```python
-# In ui_builder.py, inside create_main_layout():
-
-# Page selector frame (at top of left panel)
-page_frame = tk.Frame(left_panel, bg=PANEL_BG)
-page_frame.pack(fill=tk.X, padx=10, pady=(10, 5))
-
-tk.Label(page_frame, text="Page:", bg=PANEL_BG, fg=TEXT_COLOR, font=LABEL_FONT).pack(side=tk.LEFT, padx=(0, 5))
-
-# Dropdown showing current page
-self.page_var = tk.StringVar(value="character_select")
-page_dropdown = ttk.Combobox(page_frame, textvariable=self.page_var, width=20, state='readonly')
-page_dropdown.pack(side=tk.LEFT, padx=5)
-page_dropdown.bind('<<ComboboxSelected>>', lambda e: callbacks['on_page_changed'](self.page_var.get()))
-
-# [+] button to create new page
-add_page_btn = tk.Button(
-    page_frame,
-    text="+",
-    command=callbacks['create_new_page'],
-    bg=BUTTON_BG,
-    fg=BUTTON_FG,
-    font=BUTTON_FONT,
-    width=3
-)
-add_page_btn.pack(side=tk.LEFT, padx=2)
-
-# Separator
-tk.Frame(left_panel, height=2, bg=DIVIDER_COLOR).pack(fill=tk.X, padx=10, pady=5)
-
-# Screenshot list frame
-screenshot_frame = tk.LabelFrame(left_panel, text="Screenshots", bg=PANEL_BG, fg=TEXT_COLOR, font=LABEL_FONT)
-screenshot_frame.pack(fill=tk.BOTH, expand=False, padx=10, pady=5)
-
-# Scrollable screenshot list
-list_canvas = tk.Canvas(screenshot_frame, bg=PANEL_BG, height=150, highlightthickness=0)
-list_scrollbar = tk.Scrollbar(screenshot_frame, orient=tk.VERTICAL, command=list_canvas.yview)
-list_canvas.configure(yscrollcommand=list_scrollbar.set)
-
-list_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-list_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-screenshot_list_frame = tk.Frame(list_canvas, bg=PANEL_BG)
-list_canvas.create_window((0, 0), window=screenshot_list_frame, anchor='nw')
-
-# Store reference for updating
-self.screenshot_list_frame = screenshot_list_frame
-self.screenshot_list_canvas = list_canvas
-
-# Screenshot action buttons
-screenshot_btn_frame = tk.Frame(left_panel, bg=PANEL_BG)
-screenshot_btn_frame.pack(fill=tk.X, padx=10, pady=5)
-
-tk.Button(
-    screenshot_btn_frame,
-    text="📷 Capture",
-    command=callbacks['capture_screenshot'],
-    bg=BUTTON_BG,
-    fg=BUTTON_FG,
-    font=BUTTON_FONT
-).pack(side=tk.LEFT, padx=2, fill=tk.X, expand=True)
-
-tk.Button(
-    screenshot_btn_frame,
-    text="🗑️ Delete",
-    command=callbacks['delete_screenshot'],
-    bg=BUTTON_BG,
-    fg=BUTTON_FG,
-    font=BUTTON_FONT
-).pack(side=tk.LEFT, padx=2, fill=tk.X, expand=True)
-```
-
-Also add a method to update the screenshot list:
-
-```python
-def update_screenshot_list(self, screenshots: List[Dict[str, Any]], selected: Optional[str], on_select_callback):
-    """Update the screenshot list widget.
+def create_workspace_config(workspace_name: str, clone_from_path: Path = None) -> Dict[str, Any]:
+    """Create a new workspace config.
 
     Args:
-        screenshots: List of screenshot metadata dicts
-        selected: Currently selected screenshot filename
-        on_select_callback: Function to call when a screenshot is selected
+        workspace_name: Name of the workspace
+        clone_from_path: Optional path to existing workspace config to clone
+
+    Returns:
+        Config dict ready to save
     """
-    # Clear existing widgets
-    for widget in self.screenshot_list_frame.winfo_children():
-        widget.destroy()
-
-    # Create radio buttons for each screenshot
-    selected_var = tk.StringVar(value=selected or "")
-
-    for screenshot in screenshots:
-        filename = screenshot["filename"]
-        resolution = screenshot.get("resolution", [0, 0])
-
-        frame = tk.Frame(self.screenshot_list_frame, bg=PANEL_BG)
-        frame.pack(fill=tk.X, pady=2)
-
-        radio = tk.Radiobutton(
-            frame,
-            text=f"{filename}",
-            variable=selected_var,
-            value=filename,
-            bg=PANEL_BG,
-            fg=TEXT_COLOR,
-            selectcolor=BUTTON_BG,
-            command=lambda f=filename: on_select_callback(f)
-        )
-        radio.pack(side=tk.LEFT, anchor='w')
-
-        res_label = tk.Label(
-            frame,
-            text=f"{resolution[0]}×{resolution[1]}",
-            bg=PANEL_BG,
-            fg=SUBTLE_TEXT_COLOR,
-            font=('Segoe UI', 8)
-        )
-        res_label.pack(side=tk.RIGHT, anchor='e')
-
-    # Update scroll region
-    self.screenshot_list_frame.update_idletasks()
-    self.screenshot_list_canvas.configure(scrollregion=self.screenshot_list_canvas.bbox('all'))
+    if clone_from_path and clone_from_path.exists():
+        # Clone existing workspace config
+        with open(clone_from_path, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+        # Update workspace-specific fields
+        config['workspace_name'] = workspace_name
+        config['output']['category'] = workspace_name
+        config['output']['target_dir'] = f'output/{workspace_name}'
+        return config
+    else:
+        # Create from template
+        config = load_template()
+        # Replace placeholders
+        config['workspace_name'] = workspace_name
+        config['ocr_match'] = f"{workspace_name}_identifier"
+        config['output']['category'] = workspace_name
+        config['output']['target_dir'] = f'output/{workspace_name}'
+        return config
 ```
 
-### Step 3: Update ConfigEditorApp for Multi-Page Support
+### Step 2: Update WorkspaceManager for Config Creation
+
+Modify `tools/icon-cropper/editor/workspace_manager.py`:
+
+Add imports:
+```python
+import yaml
+from editor.config_template import create_workspace_config
+```
+
+Update `create_workspace()` method:
+```python
+def create_workspace(self, page_name: str, clone_from: str = None) -> Path:
+    """Create a new workspace for a page.
+
+    Args:
+        page_name: Name of the workspace (e.g., "character_select")
+        clone_from: Optional workspace name to clone config from
+
+    Returns:
+        Path to the created workspace directory
+    """
+    workspace_path = self.workspaces_root / page_name
+    workspace_path.mkdir(parents=True, exist_ok=True)
+
+    # Create subdirectories
+    (workspace_path / "screenshots").mkdir(exist_ok=True)
+    (workspace_path / "cropped").mkdir(exist_ok=True)
+
+    # Create config.yaml from template (if doesn't exist)
+    config_path = workspace_path / "config.yaml"
+    if not config_path.exists():
+        clone_from_path = None
+        if clone_from:
+            clone_from_path = self.workspaces_root / clone_from / "config.yaml"
+
+        config = create_workspace_config(page_name, clone_from_path)
+
+        with open(config_path, 'w', encoding='utf-8') as f:
+            yaml.dump(config, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+
+    # Create empty metadata if doesn't exist
+    metadata_path = workspace_path / "workspace.json"
+    if not metadata_path.exists():
+        metadata = {
+            "workspace_name": page_name,
+            "created_at": datetime.now().isoformat(),
+            "selected_screenshot": None,
+            "screenshots": []
+        }
+        self._save_metadata(workspace_path, metadata)
+
+    return workspace_path
+```
+
+Update `delete_screenshot()` to remove last screenshot protection:
+```python
+def delete_screenshot(self, page_name: str, filename: str) -> bool:
+    """Delete a screenshot.
+
+    Args:
+        page_name: Name of the page
+        filename: Screenshot filename to delete
+
+    Returns:
+        True if deleted, False if screenshot not found
+    """
+    workspace_path = self.get_workspace_path(page_name)
+    metadata = self._load_metadata(workspace_path)
+
+    # Find screenshot in metadata
+    screenshot_found = any(s["filename"] == filename for s in metadata["screenshots"])
+    if not screenshot_found:
+        return False
+
+    # Delete file
+    filepath = workspace_path / "screenshots" / filename
+    if filepath.exists():
+        filepath.unlink()
+
+    # Update metadata
+    metadata["screenshots"] = [s for s in metadata["screenshots"] if s["filename"] != filename]
+
+    # If we deleted the selected screenshot, select another (or None if list empty)
+    if metadata["selected_screenshot"] == filename:
+        metadata["selected_screenshot"] = metadata["screenshots"][-1]["filename"] if metadata["screenshots"] else None
+
+    self._save_metadata(workspace_path, metadata)
+    return True
+```
+
+### Step 3: Refactor ConfigSerializer for Per-Workspace Configs
+
+Modify `tools/icon-cropper/editor/config_serializer.py`:
+
+Change constructor to accept optional path:
+```python
+class ConfigSerializer:
+    """Handles loading and saving config.yaml with comment preservation."""
+
+    def __init__(self, config_path: Path = None):
+        """Initialize serializer.
+
+        Args:
+            config_path: Path to config file. If None, uses global config.yaml (for template)
+        """
+        if config_path is None:
+            # Default to global config (template)
+            config_path = Path(__file__).parent.parent / "config.yaml"
+        self.config_path = config_path
+```
+
+Update `load()` method:
+```python
+def load(self) -> Tuple[Dict[str, Any], Optional[str]]:
+    """Load configuration from YAML file.
+
+    Returns:
+        Tuple of (config dict, error message if failed)
+    """
+    try:
+        if not self.config_path.exists():
+            return {}, f"Config file not found: {self.config_path}"
+
+        with open(self.config_path, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+
+        if config is None:
+            return {}, "Config file is empty"
+
+        return config, None
+
+    except yaml.YAMLError as e:
+        return {}, f"YAML parse error: {e}"
+    except Exception as e:
+        return {}, f"Failed to load config: {e}"
+```
+
+Update `save()` method signature to be simpler (workspace config is flat, not nested):
+```python
+def save(self, config: Dict[str, Any], create_backup: bool = True) -> Tuple[bool, Optional[str]]:
+    """Save configuration to YAML file.
+
+    Args:
+        config: Configuration dictionary
+        create_backup: Whether to create timestamped backup
+
+    Returns:
+        Tuple of (success boolean, error message if failed)
+    """
+    try:
+        # Create backup if requested
+        if create_backup and self.config_path.exists():
+            self._create_backup()
+
+        # Save config
+        with open(self.config_path, 'w', encoding='utf-8') as f:
+            yaml.dump(config, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+
+        return True, None
+
+    except Exception as e:
+        return False, f"Failed to save config: {e}"
+```
+
+Simplify validation methods (no more page_name parameter):
+```python
+def validate_grid_config(self, grid_config: Dict[str, int], image_width: int, image_height: int) -> Tuple[bool, str]:
+    """Validate grid configuration against image dimensions.
+
+    Args:
+        grid_config: Grid configuration dict
+        image_width: Image width in pixels
+        image_height: Image height in pixels
+
+    Returns:
+        Tuple of (is_valid, error_message)
+    """
+    # Validation logic remains the same
+    # ... (keep existing validation)
+```
+
+### Step 4: Refactor ConfigEditorApp Initialization
 
 Modify `tools/icon-cropper/config_editor.py`:
 
-**Add workspace manager and state tracking:**
-
+Update imports:
 ```python
-# In __init__:
-from editor.workspace_manager import WorkspaceManager
-
-# Initialize workspace manager
-workspaces_root = Path(__file__).parent / "workspaces"
-self.workspace_manager = WorkspaceManager(workspaces_root)
-
-# Current page tracking
-self.current_page = "character_select"
-self.unsaved_changes = False
-
-# Load pages from config.yaml
-self.available_pages = list(self.config.get('pages', {}).keys())
+from editor.config_template import create_workspace_config
 ```
 
-**Update capture workflow:**
-
+Update `__init__` to load workspace config:
 ```python
-def capture_screenshot(self):
-    """Capture screenshot from game window and add to workspace."""
-    self.update_status("Capturing screenshot...")
+def __init__(self, root: tk.Tk):
+    """Initialize the Config Editor application."""
+    self.root = root
+    self.root.title("Icon Cropper - Configuration Editor")
+    self.root.geometry("1200x800")
 
-    try:
-        # Capture using subprocess
-        script_dir = Path(__file__).parent
-        result = subprocess.run(
-            [sys.executable, script_dir / "capture.py"],
-            capture_output=True,
-            text=True,
-            cwd=script_dir,
-            timeout=30
-        )
+    # Initialize workspace manager
+    workspaces_root = Path(__file__).parent / "workspaces"
+    self.workspace_manager = WorkspaceManager(workspaces_root)
 
-        if result.returncode != 0:
-            messagebox.showerror("Capture Failed", f"Screenshot capture failed:\n{result.stderr}")
-            self.update_status("Capture failed")
-            return
+    # Load preferences (last workspace)
+    prefs = self._load_preferences()
+    self.current_workspace = prefs.get("last_workspace", "character_select")
 
-        # Load the captured image
-        temp_path = script_dir / "test_capture.png"
-        if not temp_path.exists():
-            messagebox.showerror("Capture Failed", "Screenshot file not found")
-            self.update_status("Capture failed")
-            return
+    # Ensure current workspace exists
+    if not self.workspace_manager.workspace_exists(self.current_workspace):
+        self.current_workspace = "character_select"
+        self.workspace_manager.create_workspace(self.current_workspace)
 
-        image = Image.open(temp_path)
+    # Load config from current workspace
+    workspace_config_path = workspaces_root / self.current_workspace / "config.yaml"
+    self.config_serializer = ConfigSerializer(workspace_config_path)
+    self.config, load_error = self.config_serializer.load()
 
-        # Add to workspace
-        filename = self.workspace_manager.add_screenshot(self.current_page, image)
+    if load_error:
+        messagebox.showerror("Config Load Error", f"Failed to load workspace config:\n{load_error}")
+        # Create default config
+        self.config = create_workspace_config(self.current_workspace)
 
-        # Update UI
-        self._refresh_screenshot_list()
+    # Track unsaved changes
+    self.unsaved_changes = False
 
-        # Display on canvas (workspace manager auto-selected it)
-        self._load_selected_screenshot()
+    # Initialize grid configuration from workspace config
+    grid = self.config.get('grid', {})
+    self.grid_config = {
+        'start_x': grid.get('start_x', 0),
+        'start_y': grid.get('start_y', 0),
+        'cell_width': grid.get('cell_width', 100),
+        'cell_height': grid.get('cell_height', 100),
+        'spacing_x': grid.get('spacing_x', 0),
+        'spacing_y': grid.get('spacing_y', 0),
+        'columns': grid.get('columns', 3),
+        'rows': grid.get('rows', 4),
+        'crop_padding': grid.get('crop_padding', 0),
+    }
 
-        self.update_status(f"Screenshot captured: {filename}")
+    # Initialize OCR configuration from workspace config
+    ocr = self.config.get('ocr', {})
+    ocr_region = ocr.get('detection_region', [0, 0, 0, 0])
+    self.ocr_config = {
+        'x': ocr_region[0] if len(ocr_region) >= 1 else 0,
+        'y': ocr_region[1] if len(ocr_region) >= 2 else 0,
+        'width': ocr_region[2] if len(ocr_region) >= 3 else 0,
+        'height': ocr_region[3] if len(ocr_region) >= 4 else 0,
+    }
 
-    except subprocess.TimeoutExpired:
-        messagebox.showerror("Timeout", "Screenshot capture timed out")
-        self.update_status("Capture timeout")
-    except Exception as e:
-        messagebox.showerror("Error", f"Capture error: {e}")
-        self.update_status("Capture error")
+    # Track whether user has drawn grid/OCR
+    self.grid_drawn = bool(grid and any(grid.values()))
+    self.ocr_drawn = bool(ocr_region and any(ocr_region))
+
+    # Migrate legacy screenshots
+    self._migrate_legacy_screenshots()
+
+    # Build UI
+    self._build_ui()
+
+    # Initialize controllers (same as before)
+    # ... rest of initialization
 ```
 
-**Add screenshot selection and deletion:**
-
+Update `_build_ui()` to populate workspace dropdown from directories:
 ```python
-def _refresh_screenshot_list(self):
-    """Refresh the screenshot list widget."""
-    screenshots = self.workspace_manager.get_screenshots(self.current_page)
-    selected = self.workspace_manager.get_selected_screenshot(self.current_page)
+# After creating UI components:
 
-    self.ui_builder.update_screenshot_list(
-        screenshots,
-        selected,
-        self._on_screenshot_selected
-    )
+# Initialize workspace dropdown with available workspaces
+workspaces = self.workspace_manager.list_workspaces()
+if not workspaces:
+    # Create default workspaces
+    self.workspace_manager.create_workspace("character_select")
+    workspaces = ["character_select"]
 
-def _on_screenshot_selected(self, filename: str):
-    """Handle screenshot selection from list."""
-    self.workspace_manager.set_selected_screenshot(self.current_page, filename)
-    self._load_selected_screenshot()
+ui_builder.page_dropdown['values'] = workspaces
+ui_builder.page_var.set(self.current_workspace)
 
-def _load_selected_screenshot(self):
-    """Load the selected screenshot onto canvas."""
-    selected = self.workspace_manager.get_selected_screenshot(self.current_page)
-    if not selected:
-        return
-
-    screenshot_path = self.workspace_manager.get_screenshot_path(self.current_page, selected)
-    if screenshot_path.exists():
-        image = Image.open(screenshot_path)
-        self.canvas_controller.display_image(image)
-
-def delete_screenshot(self):
-    """Delete the selected screenshot."""
-    selected = self.workspace_manager.get_selected_screenshot(self.current_page)
-    if not selected:
-        messagebox.showinfo("No Selection", "No screenshot selected")
-        return
-
-    confirm = messagebox.askyesno(
-        "Delete Screenshot",
-        f"Delete {selected}?\n\nThis cannot be undone."
-    )
-
-    if confirm:
-        success = self.workspace_manager.delete_screenshot(self.current_page, selected)
-        if not success:
-            messagebox.showerror("Cannot Delete", "Cannot delete the last screenshot")
-        else:
-            self._refresh_screenshot_list()
-            self._load_selected_screenshot()
-            self.update_status(f"Deleted {selected}")
+# Initialize screenshot list for current workspace
+self._refresh_screenshot_list()
 ```
 
-**Add page switching:**
+### Step 5: Update Workspace Switching Logic
 
+Update `on_page_changed()` to reload config serializer:
 ```python
-def on_page_changed(self, new_page: str):
-    """Handle page selector dropdown change."""
-    if new_page == self.current_page:
+def on_page_changed(self, new_workspace: str):
+    """Handle workspace selector dropdown change."""
+    if new_workspace == self.current_workspace:
         return
 
     # Check for unsaved changes
     if self.unsaved_changes:
         choice = messagebox.askyesnocancel(
             "Unsaved Changes",
-            f"Save changes to '{self.current_page}' before switching?"
+            f"Save changes to '{self.current_workspace}' before switching?"
         )
         if choice is True:  # Yes
             self.save_config()
         elif choice is None:  # Cancel
             # Revert dropdown
-            self.ui_builder.page_var.set(self.current_page)
+            self.ui_builder.page_var.set(self.current_workspace)
             return
         # else: No, discard changes
 
-    # Switch page
-    self.current_page = new_page
+    # Switch workspace
+    self.current_workspace = new_workspace
     self.unsaved_changes = False
 
-    # Load page configuration from config.yaml
-    self._load_page_config(new_page)
+    # Reload config serializer for new workspace
+    workspace_config_path = Path(__file__).parent / "workspaces" / new_workspace / "config.yaml"
+    self.config_serializer = ConfigSerializer(workspace_config_path)
+    self.config, load_error = self.config_serializer.load()
+
+    if load_error:
+        messagebox.showerror("Config Load Error", f"Failed to load workspace config:\n{load_error}")
+        self.config = create_workspace_config(new_workspace)
+
+    # Load workspace configuration
+    self._load_workspace_config()
 
     # Load screenshots from workspace
     self._refresh_screenshot_list()
 
     # Load selected screenshot (or clear canvas if none)
-    screenshots = self.workspace_manager.get_screenshots(new_page)
+    screenshots = self.workspace_manager.get_screenshots(new_workspace)
     if screenshots:
         self._load_selected_screenshot()
     else:
-        # No screenshots yet, offer to capture
+        # No screenshots yet, clear canvas
+        self.canvas_controller.clear()
+        # Offer to capture
         choice = messagebox.askquestion(
             "No Screenshots",
-            f"No screenshots found for '{new_page}'.\n\nCapture now?",
+            f"No screenshots found for '{new_workspace}'.\n\nCapture now?",
             icon='question'
         )
         if choice == 'yes':
             self.capture_screenshot()
-        else:
-            self.canvas_controller.clear()
 
-    self.update_status(f"Switched to page: {new_page}")
+    self.update_status(f"Switched to workspace: {new_workspace}")
+```
 
-def _load_page_config(self, page_name: str):
-    """Load grid and OCR configuration for a page from config.yaml."""
-    page_config = self.config.get('pages', {}).get(page_name, {})
-
+Rename `_load_page_config()` to `_load_workspace_config()`:
+```python
+def _load_workspace_config(self):
+    """Load grid and OCR configuration from workspace config.yaml."""
     # Load grid config
-    grid = page_config.get('grid', {})
+    grid = self.config.get('grid', {})
     self.grid_config.update({
         'start_x': grid.get('start_x', 0),
         'start_y': grid.get('start_y', 0),
@@ -694,9 +985,9 @@ def _load_page_config(self, page_name: str):
         'crop_padding': grid.get('crop_padding', 0),
     })
 
-    # Load OCR config (from global ocr section)
-    # Note: OCR region is global, not per-page
-    ocr_region = self.config.get('ocr', {}).get('detection_region', [0, 0, 0, 0])
+    # Load OCR config
+    ocr = self.config.get('ocr', {})
+    ocr_region = ocr.get('detection_region', [0, 0, 0, 0])
     self.ocr_config.update({
         'x': ocr_region[0] if len(ocr_region) >= 1 else 0,
         'y': ocr_region[1] if len(ocr_region) >= 2 else 0,
@@ -714,260 +1005,293 @@ def _load_page_config(self, page_name: str):
             var.set(self.ocr_config[param])
 
     # Reset drawn flags
-    self.grid_drawn = bool(grid)  # True if page has grid config
+    self.grid_drawn = bool(grid and any(grid.values()))
     self.ocr_drawn = bool(ocr_region and any(ocr_region))
 
     # Redraw overlays if loaded
     if self.canvas_controller.current_image:
-        self.canvas_controller.redraw()
+        self.canvas_controller.display_image()
 ```
 
-**Add new page creation dialog:**
+### Step 6: Update save_config() and load_from_config()
 
+Update `save_config()` to save to workspace config:
 ```python
-def create_new_page(self):
-    """Show dialog to create a new page."""
+def save_config(self):
+    """Save configuration to workspace config.yaml."""
+    try:
+        # Validate current screenshot loaded
+        if self.canvas_controller.current_image is None:
+            messagebox.showwarning("No Image", "Please load a screenshot before saving configuration")
+            return
+
+        # Get image dimensions for validation
+        img_width = self.canvas_controller.current_image.width
+        img_height = self.canvas_controller.current_image.height
+
+        # Validate grid if drawn
+        if self.grid_drawn:
+            is_valid, error = self.config_serializer.validate_grid_config(
+                self.grid_config,
+                img_width,
+                img_height
+            )
+            if not is_valid:
+                messagebox.showerror("Invalid Grid Configuration", f"Grid validation failed:\n\n{error}")
+                return
+
+        # Validate OCR if drawn
+        if self.ocr_drawn:
+            ocr_region = [
+                self.ocr_config['x'],
+                self.ocr_config['y'],
+                self.ocr_config['width'],
+                self.ocr_config['height']
+            ]
+            is_valid, error = self.config_serializer.validate_ocr_region(
+                ocr_region,
+                img_width,
+                img_height
+            )
+            if not is_valid:
+                messagebox.showerror("Invalid OCR Region", f"OCR region validation failed:\n\n{error}")
+                return
+
+        # Update grid in config
+        if self.grid_drawn:
+            self.config['grid'] = {
+                'columns': self.grid_config['columns'],
+                'rows': self.grid_config['rows'],
+                'start_x': self.grid_config['start_x'],
+                'start_y': self.grid_config['start_y'],
+                'cell_width': self.grid_config['cell_width'],
+                'cell_height': self.grid_config['cell_height'],
+                'spacing_x': self.grid_config['spacing_x'],
+                'spacing_y': self.grid_config['spacing_y'],
+                'crop_padding': self.grid_config['crop_padding']
+            }
+
+        # Update OCR in config
+        if self.ocr_drawn:
+            if 'ocr' not in self.config:
+                self.config['ocr'] = {}
+            self.config['ocr']['detection_region'] = [
+                self.ocr_config['x'],
+                self.ocr_config['y'],
+                self.ocr_config['width'],
+                self.ocr_config['height']
+            ]
+
+        # Save to workspace config.yaml
+        success, save_error = self.config_serializer.save(self.config, create_backup=True)
+
+        if success:
+            self.unsaved_changes = False
+            messagebox.showinfo(
+                "Configuration Saved",
+                f"Configuration saved for workspace: {self.current_workspace}\n\n"
+                f"Grid: {'Yes' if self.grid_drawn else 'No'}\n"
+                f"OCR: {'Yes' if self.ocr_drawn else 'No'}"
+            )
+            self.update_status("Configuration saved")
+        else:
+            messagebox.showerror("Save Error", f"Failed to save config:\n{save_error}")
+            self.update_status("Configuration save failed")
+
+    except Exception as e:
+        messagebox.showerror("Error", f"An unexpected error occurred:\n{str(e)}")
+        self.update_status("Configuration save failed")
+```
+
+Update `load_from_config()`:
+```python
+def load_from_config(self):
+    """Load configuration from workspace config.yaml and display overlays."""
+    try:
+        # Check if image is loaded
+        if self.canvas_controller.current_image is None:
+            messagebox.showinfo(
+                "No Image Loaded",
+                "Please load or capture a screenshot first.\n\n"
+                "The configuration will be applied to the image."
+            )
+            return
+
+        # Reload config from disk (in case it was edited externally)
+        self.config, load_error = self.config_serializer.load()
+        if load_error:
+            messagebox.showerror("Load Error", f"Failed to reload config:\n{load_error}")
+            return
+
+        loaded_items = []
+
+        # Load grid configuration
+        grid = self.config.get('grid', {})
+        if grid and any(grid.values()):
+            # Update grid_config
+            self.grid_config.update({
+                'start_x': grid.get('start_x', 0),
+                'start_y': grid.get('start_y', 0),
+                'cell_width': grid.get('cell_width', 100),
+                'cell_height': grid.get('cell_height', 100),
+                'spacing_x': grid.get('spacing_x', 0),
+                'spacing_y': grid.get('spacing_y', 0),
+                'columns': grid.get('columns', 3),
+                'rows': grid.get('rows', 4),
+                'crop_padding': grid.get('crop_padding', 0),
+            })
+
+            # Update grid input widgets
+            for param, var in self.grid_inputs.items():
+                if param in self.grid_config:
+                    var.set(self.grid_config[param])
+
+            self.grid_drawn = True
+            self.grid_editor.grid_edit_step = GridEditStep.ADJUST
+            loaded_items.append("Grid layout")
+
+        # Load OCR configuration
+        ocr = self.config.get('ocr', {})
+        ocr_region = ocr.get('detection_region', [0, 0, 0, 0])
+        if ocr_region and any(ocr_region):
+            # Update ocr_config
+            self.ocr_config.update({
+                'x': ocr_region[0],
+                'y': ocr_region[1],
+                'width': ocr_region[2],
+                'height': ocr_region[3],
+            })
+
+            # Update OCR input widgets
+            for param, var in self.ocr_inputs.items():
+                if param in self.ocr_config:
+                    var.set(self.ocr_config[param])
+
+            self.ocr_drawn = True
+            self.ocr_editor.edit_step = OCREditStep.ADJUST
+            loaded_items.append("OCR region")
+
+        # Display the overlays
+        self.canvas_controller.display_image()
+
+        # Provide feedback
+        if loaded_items:
+            messagebox.showinfo(
+                "Configuration Loaded",
+                f"Successfully loaded from workspace '{self.current_workspace}':\n\n"
+                f"• {chr(10).join(loaded_items)}\n\n"
+                f"You can now adjust the overlays using handles or spinboxes."
+            )
+            self.update_status(f"Loaded: {', '.join(loaded_items)}")
+        else:
+            messagebox.showwarning(
+                "No Configuration Found",
+                f"No grid or OCR configuration found in workspace '{self.current_workspace}'.\n\n"
+                "Please draw the grid and OCR region manually."
+            )
+            self.update_status("No config to load")
+
+    except Exception as e:
+        messagebox.showerror("Load Error", f"Failed to load configuration:\n\n{str(e)}")
+        self.update_status("Load failed")
+```
+
+### Step 7: Update create_new_page() to create_new_workspace()
+
+Rename and update the dialog:
+```python
+def create_new_workspace(self):
+    """Show dialog to create a new workspace."""
     dialog = tk.Toplevel(self.root)
-    dialog.title("Create New Page")
+    dialog.title("Create New Workspace")
     dialog.geometry("450x250")
     dialog.transient(self.root)
     dialog.grab_set()
 
-    # Page name input
-    tk.Label(dialog, text="Page Name (lowercase with underscores):").pack(pady=5)
-    name_var = tk.StringVar(value=self._generate_new_page_name())
-    name_entry = tk.Entry(dialog, textvariable=name_var, width=40)
+    # Workspace name input
+    ttk.Label(dialog, text="Workspace Name (lowercase with underscores):").pack(pady=5)
+    name_var = tk.StringVar(value=self._generate_new_workspace_name())
+    name_entry = ttk.Entry(dialog, textvariable=name_var, width=40)
     name_entry.pack(pady=5)
     name_entry.focus()
 
     # Clone option
-    tk.Label(dialog, text="Clone configuration from (optional):").pack(pady=5)
+    ttk.Label(dialog, text="Clone configuration from (optional):").pack(pady=5)
     clone_var = tk.StringVar(value="None")
     clone_dropdown = ttk.Combobox(dialog, textvariable=clone_var, width=37, state='readonly')
-    clone_dropdown['values'] = ["None"] + self.available_pages
+    available_workspaces = self.workspace_manager.list_workspaces()
+    clone_dropdown['values'] = ["None"] + available_workspaces
     clone_dropdown.pack(pady=5)
 
     # Buttons
-    button_frame = tk.Frame(dialog)
+    button_frame = ttk.Frame(dialog)
     button_frame.pack(pady=20)
 
     def on_create():
-        import re
-        page_name = name_var.get().strip()
+        workspace_name = name_var.get().strip()
 
         # Validate
-        if not page_name:
-            messagebox.showerror("Invalid Name", "Page name cannot be empty", parent=dialog)
+        if not workspace_name:
+            messagebox.showerror("Invalid Name", "Workspace name cannot be empty", parent=dialog)
             return
 
-        if not re.match(r'^[a-z_][a-z0-9_]*$', page_name):
+        if not re.match(r'^[a-z_][a-z0-9_]*$', workspace_name):
             messagebox.showerror(
                 "Invalid Name",
-                "Page name must start with lowercase letter or underscore,\nand contain only lowercase letters, numbers, and underscores.",
+                "Workspace name must start with lowercase letter or underscore,\nand contain only lowercase letters, numbers, and underscores.",
                 parent=dialog
             )
             return
 
-        if page_name in self.available_pages:
-            messagebox.showerror("Duplicate Name", f"Page '{page_name}' already exists", parent=dialog)
+        if self.workspace_manager.workspace_exists(workspace_name):
+            messagebox.showerror("Duplicate Name", f"Workspace '{workspace_name}' already exists", parent=dialog)
             return
 
-        # Create workspace
-        self.workspace_manager.create_workspace(page_name)
+        # Create workspace (with optional cloning)
+        clone_from = clone_var.get() if clone_var.get() != "None" else None
+        self.workspace_manager.create_workspace(workspace_name, clone_from=clone_from)
 
-        # Create config entry
-        clone_from = clone_var.get()
-        if clone_from != "None":
-            # Clone grid config
-            source_config = self.config['pages'][clone_from].copy()
-            self.config['pages'][page_name] = source_config
-        else:
-            # Create empty config
-            self.config['pages'][page_name] = {
-                'ocr_match': f"{page_name}_identifier",
-                'grid': {
-                    'columns': 3,
-                    'rows': 4,
-                    'start_x': 0,
-                    'start_y': 0,
-                    'cell_width': 100,
-                    'cell_height': 100,
-                    'spacing_x': 0,
-                    'spacing_y': 0,
-                    'crop_padding': 0
-                },
-                'output': {
-                    'category': page_name,
-                    'target_dir': f'output/{page_name}'
-                }
-            }
+        # Update dropdown
+        workspaces = self.workspace_manager.list_workspaces()
+        self.ui_builder.page_dropdown['values'] = workspaces
 
-        # Update available pages
-        self.available_pages.append(page_name)
-        self.ui_builder.page_dropdown['values'] = self.available_pages
-
-        # Switch to new page
-        self.ui_builder.page_var.set(page_name)
-        self.on_page_changed(page_name)
+        # Switch to new workspace
+        self.ui_builder.page_var.set(workspace_name)
+        self.on_page_changed(workspace_name)
 
         dialog.destroy()
 
-    tk.Button(button_frame, text="Create", command=on_create, width=15).pack(side=tk.LEFT, padx=10)
-    tk.Button(button_frame, text="Cancel", command=dialog.destroy, width=15).pack(side=tk.LEFT, padx=10)
+    ttk.Button(button_frame, text="Create", command=on_create, width=15).pack(side=tk.LEFT, padx=10)
+    ttk.Button(button_frame, text="Cancel", command=dialog.destroy, width=15).pack(side=tk.LEFT, padx=10)
 
     # Enter key creates
     dialog.bind('<Return>', lambda e: on_create())
     dialog.bind('<Escape>', lambda e: dialog.destroy())
 
-def _generate_new_page_name(self) -> str:
-    """Generate a new page name like 'new_page_1'."""
-    base = "new_page"
+def _generate_new_workspace_name(self) -> str:
+    """Generate a new workspace name like 'new_workspace_1'."""
+    base = "new_workspace"
     counter = 1
-    while f"{base}_{counter}" in self.available_pages:
+    while self.workspace_manager.workspace_exists(f"{base}_{counter}"):
         counter += 1
     return f"{base}_{counter}"
 ```
 
-**Update save_config to use current_page:**
-
+Update callback in `_build_ui()`:
 ```python
-def save_config(self):
-    """Save configuration to config.yaml for the current page."""
-    # Validate current screenshot loaded
-    if self.canvas_controller.current_image is None:
-        messagebox.showwarning("No Image", "Please load a screenshot before saving configuration")
-        return
-
-    # Get image dimensions for validation
-    img_width = self.canvas_controller.current_image.width
-    img_height = self.canvas_controller.current_image.height
-
-    # Validate grid if drawn
-    if self.grid_drawn:
-        is_valid, error = self.config_serializer.validate_grid_config(
-            self.grid_config,
-            img_width,
-            img_height
-        )
-        if not is_valid:
-            messagebox.showerror("Invalid Grid Configuration", error)
-            return
-
-    # Validate OCR if drawn
-    if self.ocr_drawn:
-        ocr_region = [
-            self.ocr_config['x'],
-            self.ocr_config['y'],
-            self.ocr_config['width'],
-            self.ocr_config['height']
-        ]
-        is_valid, error = self.config_serializer.validate_ocr_region(
-            ocr_region,
-            img_width,
-            img_height
-        )
-        if not is_valid:
-            messagebox.showerror("Invalid OCR Region", error)
-            return
-
-    # Update config for current page
-    if self.current_page not in self.config['pages']:
-        self.config['pages'][self.current_page] = {}
-
-    page_config = self.config['pages'][self.current_page]
-
-    # Update grid
-    if self.grid_drawn:
-        page_config['grid'] = {
-            'columns': self.grid_config['columns'],
-            'rows': self.grid_config['rows'],
-            'start_x': self.grid_config['start_x'],
-            'start_y': self.grid_config['start_y'],
-            'cell_width': self.grid_config['cell_width'],
-            'cell_height': self.grid_config['cell_height'],
-            'spacing_x': self.grid_config['spacing_x'],
-            'spacing_y': self.grid_config['spacing_y'],
-            'crop_padding': self.grid_config['crop_padding']
-        }
-
-    # Update OCR (global, but still save)
-    if self.ocr_drawn:
-        self.config['ocr']['detection_region'] = [
-            self.ocr_config['x'],
-            self.ocr_config['y'],
-            self.ocr_config['width'],
-            self.ocr_config['height']
-        ]
-
-    # Save to config.yaml
-    success = self.config_serializer.save(self.config)
-
-    if success:
-        self.unsaved_changes = False
-        messagebox.showinfo(
-            "Configuration Saved",
-            f"Configuration saved for page: {self.current_page}\n\n"
-            f"Grid: {'Yes' if self.grid_drawn else 'No'}\n"
-            f"OCR: {'Yes' if self.ocr_drawn else 'No'}"
-        )
-        self.update_status("Configuration saved")
-    else:
-        messagebox.showerror("Save Failed", "Failed to save configuration")
+callbacks = {
+    # ...
+    'create_new_page': self.create_new_workspace,  # Updated
+    # ...
+}
 ```
 
-**Update load_from_config to use current_page:**
+### Step 8: Update preferences to use "last_workspace"
 
+Update `_load_preferences()` and `_save_preferences()`:
 ```python
-def load_from_config(self):
-    """Load configuration from config.yaml for the current page."""
-    page_config = self.config.get('pages', {}).get(self.current_page)
-
-    if not page_config:
-        messagebox.showinfo(
-            "No Configuration",
-            f"No configuration found for page: {self.current_page}"
-        )
-        return
-
-    loaded_items = []
-
-    # Load grid configuration
-    grid = page_config.get('grid', {})
-    if grid and any(grid.values()):
-        # (existing grid load logic)
-        loaded_items.append("Grid layout")
-        self.grid_drawn = True
-
-    # Load OCR configuration
-    ocr_region = self.config.get('ocr', {}).get('detection_region', [])
-    if ocr_region and any(ocr_region):
-        # (existing OCR load logic)
-        loaded_items.append("OCR region")
-        self.ocr_drawn = True
-
-    if loaded_items:
-        messagebox.showinfo(
-            "Configuration Loaded",
-            f"Loaded from page '{self.current_page}':\n\n" + "\n".join(f"• {item}" for item in loaded_items)
-        )
-        # Redraw overlays
-        if self.canvas_controller.current_image:
-            self.canvas_controller.redraw()
-    else:
-        messagebox.showinfo("No Configuration", f"No grid or OCR configuration found for: {self.current_page}")
-```
-
-### Step 4: Persistence and Migration
-
-**Add workspace state persistence:**
-
-Save the last-edited page to a preferences file:
-
-```python
-# In config_editor.py, add methods:
-
 def _load_preferences(self):
-    """Load user preferences (last page, etc.)."""
+    """Load user preferences (last workspace, etc.)."""
     prefs_path = Path(__file__).parent / "editor_preferences.json"
     if prefs_path.exists():
         try:
@@ -976,188 +1300,173 @@ def _load_preferences(self):
                 return prefs
         except:
             pass
-    return {"last_page": "character_select"}
+    return {"last_workspace": "character_select"}
 
 def _save_preferences(self):
     """Save user preferences."""
     prefs_path = Path(__file__).parent / "editor_preferences.json"
     prefs = {
-        "last_page": self.current_page
+        "last_workspace": self.current_workspace
     }
     with open(prefs_path, 'w') as f:
         json.dump(prefs, f, indent=2)
-
-# In __init__, after loading config:
-prefs = self._load_preferences()
-self.current_page = prefs.get("last_page", "character_select")
-
-# In quit_app:
-def quit_app(self):
-    """Quit the application."""
-    if self.unsaved_changes:
-        choice = messagebox.askyesnocancel(
-            "Unsaved Changes",
-            "Save changes before quitting?"
-        )
-        if choice is True:
-            self.save_config()
-        elif choice is None:
-            return  # Cancel quit
-
-    self._save_preferences()
-    self.root.quit()
 ```
 
-**Migrate existing test_capture.png workflow:**
+### Step 9: Fix Grid Handles Regression
 
-On first launch, check for existing test_capture.png and migrate to workspace:
+This is separate from workspace refactor. Investigate `grid_renderer.py` and restore handle drawing.
+
+Check if `draw_grid_overlay()` is calling handle drawing code. Verify that handles are being drawn and bound to events. This requires reading the grid_renderer code to diagnose.
+
+(This step will be done after workspace refactor is complete)
+
+### Step 10: Create Default Workspaces
+
+Create migration script `tools/icon-cropper/create_default_workspaces.py`:
 
 ```python
-# In __init__, after workspace_manager creation:
-self._migrate_legacy_screenshots()
+"""Create default workspaces for icon-cropper."""
 
-def _migrate_legacy_screenshots(self):
-    """Migrate test_capture.png to workspace if exists."""
-    legacy_path = Path(__file__).parent / "test_capture.png"
-    if legacy_path.exists():
-        try:
-            image = Image.open(legacy_path)
-            # Add to character_select workspace by default
-            self.workspace_manager.add_screenshot("character_select", image)
-            # Rename legacy file to avoid confusion
-            legacy_path.rename(legacy_path.parent / "test_capture.png.migrated")
-        except Exception as e:
-            print(f"Failed to migrate legacy screenshot: {e}")
+from pathlib import Path
+from editor.workspace_manager import WorkspaceManager
+
+def main():
+    """Create default workspaces with configs."""
+    workspaces_root = Path(__file__).parent / "workspaces"
+    manager = WorkspaceManager(workspaces_root)
+
+    # Create character_select workspace
+    print("Creating character_select workspace...")
+    manager.create_workspace("character_select")
+
+    # Create item_inventory workspace
+    print("Creating item_inventory workspace...")
+    manager.create_workspace("item_inventory")
+
+    print("Default workspaces created!")
+    print(f"Location: {workspaces_root.absolute()}")
+
+if __name__ == "__main__":
+    main()
 ```
 
-### Step 5: Update UI Builder Return Values
-
-Update `ui_builder.py` to return the page dropdown and screenshot list references:
-
-```python
-# In create_main_layout, return additional references:
-return (left_panel, canvas, instruction_label, status_bar, grid_tab, ocr_tab,
-        page_dropdown, self.page_var, self.screenshot_list_frame)
-
-# In config_editor.py __init__:
-(self.left_panel, self.canvas, self.instruction_label,
- self.status_bar, grid_tab, ocr_tab, self.page_dropdown,
- self.page_var, self.screenshot_list_frame) = ui_builder.create_main_layout()
-
-# Store ui_builder for later use
-self.ui_builder = ui_builder
+Run once:
+```bash
+cd tools/icon-cropper
+uv run python create_default_workspaces.py
 ```
 
 ## Validation and Acceptance
 
-After implementation, test the multi-page workflow:
+After implementation, test the workspace-centric workflow:
 
-**Test 1: Create New Page**
+**Test 1: Create New Workspace**
 ```bash
 cd tools/icon-cropper
 uv run python config_editor.py
 ```
 
-1. Click the [+] button next to page selector
-2. Enter "test_page_1" as name
+1. Click [+] button
+2. Enter "gacha_detail" as name
 3. Select "None" for clone option
 4. Click Create
-5. **Expected:** Dropdown switches to "test_page_1", screenshot list is empty, canvas is clear
-6. **Expected:** Directory `workspaces/test_page_1/` exists with `screenshots/` and `workspace.json`
+5. **Expected:** Dropdown switches to "gacha_detail", screenshot list empty, canvas clear
+6. **Expected:** Directory `workspaces/gacha_detail/` exists with:
+   - `config.yaml` (from template)
+   - `screenshots/` (empty)
+   - `cropped/` (empty)
+   - `workspace.json`
+7. **Expected:** Can draw grid, save config, and it saves to `workspaces/gacha_detail/config.yaml`
 
-**Test 2: Multi-Screenshot Workflow**
-```bash
-# With game running and on character select screen
-uv run python config_editor.py
-```
-
-1. Ensure "character_select" is selected in dropdown
-2. Click "📷 Capture" - screenshot 001.png appears in list and on canvas
-3. Scroll game UI to show different characters
-4. Click "📷 Capture" - screenshot 002.png appears in list
-5. Scroll again and capture 003.png
-6. **Expected:** List shows ☑ 003.png, ☐ 002.png, ☐ 001.png
-7. Click on 001.png in list
-8. **Expected:** Canvas shows 001.png, list shows ☑ 001.png
-9. Draw grid layout
-10. Click on 002.png
-11. **Expected:** Canvas shows 002.png, grid overlay remains visible
-12. Click on 003.png
-13. **Expected:** Canvas shows 003.png, grid overlay still visible
-14. Click "💾 Save Configuration"
-15. **Expected:** Success message, config.yaml updated for character_select page
-
-**Test 3: Page Switching**
-1. With character_select configured (grid drawn, 3 screenshots)
-2. Modify grid (change start_x)
-3. Select "test_page_1" from dropdown
-4. **Expected:** Dialog "Save changes to 'character_select' before switching?"
-5. Click "Yes"
-6. **Expected:** Config saved, switches to test_page_1 page
-7. **Expected:** Canvas clears, screenshot list is empty
-8. **Expected:** Dialog "No screenshots found for 'test_page_1'. Capture now?"
-9. Click "Yes" and capture a screenshot
-10. Draw a different grid layout
-11. Switch back to "character_select"
-12. **Expected:** Loads character_select screenshots, shows 001.png, grid overlay visible
-13. **Expected:** Grid parameters match saved values (not test_page_1 values)
-
-**Test 4: Delete Screenshot**
-1. With character_select page having 3 screenshots
-2. Select 002.png
-3. Click "🗑️ Delete"
-4. **Expected:** Confirmation dialog
-5. Click "Yes"
-6. **Expected:** 002.png removed from list, 003.png or 001.png auto-selected
-7. Try to delete last screenshot
-8. **Expected:** Error "Cannot delete the last screenshot"
-
-**Test 5: Clone Configuration**
-1. Click [+] to create new page
-2. Enter "test_page_2"
-3. Select "character_select" from clone dropdown
+**Test 2: Clone Workspace**
+1. Click [+] button
+2. Enter "gacha_detail_v2"
+3. Select "gacha_detail" from clone dropdown
 4. Click Create
-5. **Expected:** Switches to test_page_2
-6. Click "Load From Config"
-7. **Expected:** Grid layout loads with same values as character_select
-8. **Expected:** Can modify independently without affecting character_select
+5. **Expected:** New workspace has same grid settings as gacha_detail
+6. **Expected:** config.yaml exists with cloned grid values
+7. **Expected:** Can modify independently without affecting original
 
-**Test 6: Persistence**
-1. Configure multiple pages with screenshots
+**Test 3: Workspace Isolation**
+1. In character_select workspace: draw grid, capture 3 screenshots, save config
+2. Switch to item_inventory workspace
+3. **Expected:** Canvas clears, screenshot list empty, config loads from `workspaces/item_inventory/config.yaml`
+4. Draw different grid, capture 2 screenshots, save config
+5. Switch back to character_select
+6. **Expected:** Original 3 screenshots restored, original grid visible, config unchanged
+
+**Test 4: Empty Screenshot List**
+1. In a workspace with 1 screenshot
+2. Select it, click Delete
+3. **Expected:** Screenshot deleted, list shows "No screenshots"
+4. **Expected:** Canvas clears
+5. **Expected:** Can capture new screenshot
+
+**Test 5: Config Persistence**
+1. Configure multiple workspaces
 2. Close application
-3. Relaunch
-4. **Expected:** Last-edited page is selected in dropdown
-5. **Expected:** All screenshots and configurations preserved
-6. Switch between pages
-7. **Expected:** All workspaces intact
+3. Delete `editor_preferences.json`
+4. Relaunch
+5. **Expected:** Defaults to "character_select" workspace
+6. **Expected:** All workspace configs intact in their directories
 
-All tests should pass. The config.yaml file should contain all page configurations with correct grid settings. Workspace directories should contain properly numbered screenshots and valid workspace.json metadata files.
+**Test 6: Workspace Portability**
+1. Configure gacha_detail workspace (grid + screenshots)
+2. Zip the `workspaces/gacha_detail/` directory
+3. Delete the workspace directory
+4. Unzip to restore
+5. Relaunch config_editor
+6. **Expected:** gacha_detail appears in dropdown
+7. **Expected:** All screenshots, config, and metadata restored
+
+All tests should pass. Each workspace directory should contain its own `config.yaml` with workspace-specific settings (no `pages:` wrapper).
 
 ## Idempotence and Recovery
 
-The workspace system is designed to be safe and idempotent:
+The workspace-centric system is designed to be safe and idempotent:
 
-- **Multiple runs**: Can launch, capture, and configure repeatedly without data loss
+- **Multiple runs**: Can launch, capture, configure repeatedly without data loss
 - **Screenshot numbering**: Automatically finds next available number (001, 002, ...), no overwrites
 - **Metadata sync**: workspace.json always reflects current screenshot list
-- **Config backups**: config_serializer.py creates timestamped backups before each save
-- **Last screenshot protection**: Cannot delete the only screenshot in a workspace
-- **Unsaved changes**: Prompts before page switching or quitting
+- **Config backups**: ConfigSerializer creates timestamped backups before each save
+- **Empty workspaces**: Workspaces can have zero screenshots (no forced protection)
+- **Unsaved changes**: Prompts before workspace switching or quitting
+- **Self-contained**: Each workspace is independent - can be moved, zipped, shared
 
 **Recovery scenarios:**
 
-- **Corrupted workspace.json**: Will be recreated from directory contents on next load
+- **Corrupted workspace.json**: Will be recreated from directory on next access
+- **Missing config.yaml**: Will be created from template
 - **Missing screenshots directory**: Automatically created when adding first screenshot
-- **Deleted preference file**: Defaults to "character_select" page
-- **Config.yaml corruption**: Existing backup system handles recovery
+- **Deleted preference file**: Defaults to "character_select" workspace
+- **Corrupted workspace config.yaml**: Can be manually restored from backup or template
 
 ## Artifacts and Notes
+
+### Workspace Directory Structure
+
+```
+workspaces/
+├── character_select/
+│   ├── config.yaml              # Workspace-specific config
+│   ├── workspace.json           # Metadata
+│   ├── screenshots/
+│   │   ├── 001.png
+│   │   └── 002.png
+│   └── cropped/                 # Future use
+│       ├── 001/
+│       └── 002/
+└── item_inventory/
+    ├── config.yaml
+    ├── workspace.json
+    └── screenshots/
+```
 
 ### workspace.json Schema
 
 ```json
 {
-  "page_name": "character_select",
+  "workspace_name": "character_select",
   "created_at": "2025-11-15T10:00:00Z",
   "selected_screenshot": "002.png",
   "screenshots": [
@@ -1177,28 +1486,44 @@ The workspace system is designed to be safe and idempotent:
 }
 ```
 
-### UI Layout Before/After
+### config.yaml Schema (Per-Workspace)
 
-**Before:**
+```yaml
+workspace_name: "character_select"
+ocr_match: "ホーム画面設定"
+
+grid:
+  columns: 3
+  rows: 5
+  start_x: 963
+  start_y: 151
+  cell_width: 146
+  cell_height: 146
+  spacing_x: 4
+  spacing_y: 4
+  crop_padding: 8
+
+output:
+  category: "characters"
+  target_dir: "public/assets/characters"
+  filename_pattern: "{number:03d}.png"
+
+ocr:
+  detection_region: [10, 10, 500, 100]
+```
+
+### UI Layout (After Phase 2)
+
 ```
 ┌────────────────────────────────────┐
-│ Mode Buttons                       │
-│ Screenshot Buttons (Open/Capture)  │
-│ Grid/OCR Tabs                      │
-│ Preview/Save Buttons               │
-└────────────────────────────────────┘
-```
-
-**After:**
-```
-┌────────────────────────────────────┐
-│ Page: [character_select ▼] [+]    │ ← NEW
+│ Workspace: [character_select ▼] [+]│
 │ ───────────────────────────────    │
-│ Screenshots:                       │ ← NEW
+│ Screenshots:                       │
 │ ☑ 001.png  1920×1080              │
 │ ☐ 002.png  1920×1080              │
-│ ☐ 003.png  1920×1080              │
 │ [📷 Capture] [🗑️ Delete]          │
+│ ───────────────────────────────    │
+│ [📂 Open Screenshot]               │
 │ ───────────────────────────────    │
 │ Mode Buttons                       │
 │ Grid/OCR Tabs                      │
@@ -1208,14 +1533,14 @@ The workspace system is designed to be safe and idempotent:
 
 ## Interfaces and Dependencies
 
-### WorkspaceManager API
+### WorkspaceManager API (Updated)
 
 ```python
 class WorkspaceManager:
     def __init__(self, workspaces_root: Path)
 
     # Workspace operations
-    def create_workspace(self, page_name: str) -> Path
+    def create_workspace(self, page_name: str, clone_from: str = None) -> Path  # Updated
     def get_workspace_path(self, page_name: str) -> Path
     def workspace_exists(self, page_name: str) -> bool
     def list_workspaces(self) -> List[str]
@@ -1225,83 +1550,52 @@ class WorkspaceManager:
     def get_screenshots(self, page_name: str) -> List[Dict[str, Any]]
     def get_selected_screenshot(self, page_name: str) -> Optional[str]
     def set_selected_screenshot(self, page_name: str, filename: str)
-    def delete_screenshot(self, page_name: str, filename: str) -> bool
+    def delete_screenshot(self, page_name: str, filename: str) -> bool  # Updated (no protection)
     def get_screenshot_path(self, page_name: str, filename: str) -> Path
 ```
 
-### UIBuilder Additions
+### ConfigSerializer API (Updated)
 
 ```python
-class UIBuilder:
-    # New components
-    page_var: tk.StringVar
-    screenshot_list_frame: tk.Frame
-    screenshot_list_canvas: tk.Canvas
-    page_dropdown: ttk.Combobox
+class ConfigSerializer:
+    def __init__(self, config_path: Path = None)  # Updated: accepts path
 
-    # New method
-    def update_screenshot_list(
-        self,
-        screenshots: List[Dict[str, Any]],
-        selected: Optional[str],
-        on_select_callback: Callable[[str], None]
-    )
+    def load(self) -> Tuple[Dict[str, Any], Optional[str]]
+    def save(self, config: Dict[str, Any], create_backup: bool = True) -> Tuple[bool, Optional[str]]  # Simplified
+    def validate_grid_config(self, grid_config: Dict, image_width: int, image_height: int) -> Tuple[bool, str]
+    def validate_ocr_region(self, ocr_region: List[int], image_width: int, image_height: int) -> Tuple[bool, str]
 ```
 
-### ConfigEditorApp Additions
+### ConfigEditorApp Changes
 
 ```python
 class ConfigEditorApp:
-    # New attributes
+    # Updated attributes
     workspace_manager: WorkspaceManager
-    current_page: str
-    available_pages: List[str]
+    current_workspace: str  # Renamed from current_page
+    # Removed: available_pages (now from directories)
     unsaved_changes: bool
+    config_serializer: ConfigSerializer  # Now workspace-specific
 
-    # New methods
-    def on_page_changed(self, new_page: str)
-    def create_new_page(self)
+    # Updated methods
+    def on_page_changed(self, new_workspace: str)  # Renamed, reloads ConfigSerializer
+    def create_new_workspace(self)  # Renamed from create_new_page
+    def _load_workspace_config(self)  # Renamed from _load_page_config
+    def _generate_new_workspace_name(self) -> str
+
+    # Unchanged methods (still work with new architecture)
     def delete_screenshot(self)
-    def _load_page_config(self, page_name: str)
     def _refresh_screenshot_list(self)
     def _on_screenshot_selected(self, filename: str)
     def _load_selected_screenshot(self)
-    def _generate_new_page_name(self) -> str
     def _load_preferences(self) -> dict
     def _save_preferences(self)
     def _migrate_legacy_screenshots(self)
 ```
 
-## Future Integration: Batch Cropping
-
-The workspace structure prepares for batch cropping:
-
-```python
-# Future method in ConfigEditorApp:
-def crop_all_screenshots(self):
-    """Apply current grid to all screenshots and extract icons."""
-    screenshots = self.workspace_manager.get_screenshots(self.current_page)
-
-    for screenshot in screenshots:
-        filename = screenshot["filename"]
-        screenshot_path = self.workspace_manager.get_screenshot_path(self.current_page, filename)
-        output_dir = self.workspace_manager.get_workspace_path(self.current_page) / "cropped" / filename.replace(".png", "")
-
-        # Use existing gridcrop.py logic
-        from gridcrop import extract_icons_from_grid
-        extract_icons_from_grid(
-            screenshot_path,
-            self.grid_config,
-            output_dir
-        )
-
-    messagebox.showinfo("Batch Crop Complete", f"Cropped {len(screenshots)} screenshots")
-```
-
-This will populate `workspaces/{page}/cropped/{001,002,003}/` directories with extracted icons.
-
 ---
 
-**ExecPlan Created:** 2025-11-15
-**Status:** Ready for implementation
-**Estimated Effort:** 1-2 days
+**Revision Note (2025-11-15):** This ExecPlan was completely rewritten to reflect workspace-centric architecture after discovering the config-centric design was wrong. Phase 1 implemented a working but architecturally flawed system. Phase 2 refactors to the correct design where each workspace is self-contained with its own config.yaml.
+
+**ExecPlan Status:** Ready for Phase 2 implementation
+**Estimated Effort:** 1 day for refactor + testing

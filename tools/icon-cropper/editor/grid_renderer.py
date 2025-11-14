@@ -274,8 +274,10 @@ class GridRenderer:
                 width=3,
                 tags="ocr_overlay"
             )
-        # Draw the configured OCR region (but not during initial DEFINE step)
-        elif not is_defining and ocr_config.get('width', 0) > 0 and ocr_config.get('height', 0) > 0:
+
+        # Draw the configured OCR region (if it exists)
+        # Show existing region even when entering edit mode (consistent with grid behavior)
+        if ocr_config.get('width', 0) > 0 and ocr_config.get('height', 0) > 0:
             x1, y1 = image_to_canvas_coords(
                 ocr_config['x'], ocr_config['y'], zoom_level, pan_offset
             )

@@ -20,6 +20,8 @@ from PIL import Image
 import threading
 import subprocess
 import time
+import json
+import re
 
 # Import capture functionality
 from capture import WindowNotFoundError
@@ -36,6 +38,8 @@ from editor.ui_builder import UIBuilder
 from editor.config_serializer import ConfigSerializer
 from editor.preview_controller import PreviewController
 from editor.preview_window import PreviewWindow
+from editor.workspace_manager import WorkspaceManager
+from editor.config_template import create_workspace_config
 
 
 class ConfigEditorApp:
@@ -51,39 +55,59 @@ class ConfigEditorApp:
         self.root.title("Icon Cropper - Configuration Editor")
         self.root.geometry("1200x800")
 
-        # Load configuration
-        self.config = load_config()
+        # Initialize workspace manager
+        workspaces_root = Path(__file__).parent / "workspaces"
+        self.workspace_manager = WorkspaceManager(workspaces_root)
 
-        # Initialize configuration serializer
-        config_path = Path(__file__).parent / "config.yaml"
-        self.config_serializer = ConfigSerializer(config_path)
+        # Load preferences (last workspace)
+        prefs = self._load_preferences()
+        self.current_workspace = prefs.get("last_workspace", "character_select")
 
-        # Initialize grid configuration (from config.yaml character_select page)
-        default_grid = self.config.get('pages', {}).get('character_select', {}).get('grid', {})
+        # Ensure current workspace exists (creates config.yaml if needed)
+        if not self.workspace_manager.workspace_exists(self.current_workspace):
+            self.current_workspace = "character_select"
+
+        # Create workspace (this will create config.yaml from template if it doesn't exist)
+        self.workspace_manager.create_workspace(self.current_workspace)
+
+        # Load config from current workspace
+        workspace_config_path = workspaces_root / self.current_workspace / "config.yaml"
+        self.config_serializer = ConfigSerializer(workspace_config_path)
+        self.config, load_error = self.config_serializer.load()
+
+        if load_error:
+            # This should not happen since create_workspace creates config, but handle it anyway
+            raise RuntimeError(f"Failed to load workspace config after creation: {load_error}")
+
+        # Track unsaved changes
+        self.unsaved_changes = False
+
+        # Flag to prevent callbacks during workspace loading
+        self._loading_workspace = False
+
+        # Initialize grid configuration from workspace config
+        grid = self.config.get('grid', {})
         self.grid_config = {
-            'start_x': default_grid.get('start_x', 0),
-            'start_y': default_grid.get('start_y', 0),
-            'cell_width': default_grid.get('cell_width', 100),
-            'cell_height': default_grid.get('cell_height', 100),
-            'spacing_x': default_grid.get('spacing_x', 0),
-            'spacing_y': default_grid.get('spacing_y', 0),
-            'columns': default_grid.get('columns', 3),
-            'rows': default_grid.get('rows', 4),
-            'crop_padding': default_grid.get('crop_padding', 0),
+            'start_x': grid.get('start_x', 0),
+            'start_y': grid.get('start_y', 0),
+            'cell_width': grid.get('cell_width', 100),
+            'cell_height': grid.get('cell_height', 100),
+            'spacing_x': grid.get('spacing_x', 0),
+            'spacing_y': grid.get('spacing_y', 0),
+            'columns': grid.get('columns', 3),
+            'rows': grid.get('rows', 4),
+            'crop_padding': grid.get('crop_padding', 0),
         }
 
-        # Initialize OCR configuration (from config.yaml ocr section)
-        default_ocr = self.config.get('ocr', {}).get('detection_region', [0, 0, 0, 0])
+        # Initialize OCR configuration from workspace config
+        ocr = self.config.get('ocr', {})
+        ocr_region = ocr.get('detection_region', [0, 0, 0, 0])
         self.ocr_config = {
-            'x': default_ocr[0] if len(default_ocr) >= 1 else 0,
-            'y': default_ocr[1] if len(default_ocr) >= 2 else 0,
-            'width': default_ocr[2] if len(default_ocr) >= 3 else 0,
-            'height': default_ocr[3] if len(default_ocr) >= 4 else 0,
+            'x': ocr_region[0] if len(ocr_region) >= 1 else 0,
+            'y': ocr_region[1] if len(ocr_region) >= 2 else 0,
+            'width': ocr_region[2] if len(ocr_region) >= 3 else 0,
+            'height': ocr_region[3] if len(ocr_region) >= 4 else 0,
         }
-
-        # Track whether user has drawn grid/OCR (don't show default config unless drawn)
-        self.grid_drawn = False
-        self.ocr_drawn = False
 
         # Build UI first (need canvas and widgets before initializing controllers)
         self._build_ui()
@@ -122,6 +146,19 @@ class ConfigEditorApp:
 
         self.preview_controller = PreviewController()
 
+        # Set initial overlays based on loaded config
+        grid = self.config.get('grid', {})
+        ocr = self.config.get('ocr', {})
+        ocr_region = ocr.get('detection_region', [0, 0, 0, 0])
+
+        if grid and any(grid.values()):
+            self.canvas_controller.set_overlay('grid', self.grid_config)
+            self.grid_editor.grid_edit_step = GridEditStep.ADJUST
+
+        if ocr_region and any(ocr_region):
+            self.canvas_controller.set_overlay('ocr', self.ocr_config)
+            self.ocr_editor.edit_step = OCREditStep.ADJUST
+
         # Bind events
         self._bind_events()
 
@@ -131,6 +168,7 @@ class ConfigEditorApp:
         callbacks = {
             'open_screenshot': self.open_screenshot,
             'capture_screenshot': self.capture_screenshot,
+            'delete_screenshot': self.delete_screenshot,
             'load_from_config': self.load_from_config,
             'preview_icons': self.preview_icons,
             'save_config': self.save_config,
@@ -141,10 +179,13 @@ class ConfigEditorApp:
             'show_about': self.show_about,
             'enter_grid_edit_mode': self.enter_grid_edit_mode,
             'enter_ocr_edit_mode': self.enter_ocr_edit_mode,
-            'enter_pan_mode': self.enter_pan_mode
+            'enter_pan_mode': self.enter_pan_mode,
+            'on_page_changed': self.on_page_changed,
+            'create_new_page': self.create_new_workspace
         }
 
         ui_builder = UIBuilder(self.root, callbacks)
+        self.ui_builder = ui_builder  # Store reference for later use
 
         # Create menu bar
         ui_builder.create_menu_bar()
@@ -166,6 +207,19 @@ class ConfigEditorApp:
             self.ocr_config,
             on_change_callback=self._on_ocr_param_changed
         )
+
+        # Initialize workspace dropdown with available workspaces
+        workspaces = self.workspace_manager.list_workspaces()
+        if not workspaces:
+            # Create default workspace
+            self.workspace_manager.create_workspace("character_select")
+            workspaces = ["character_select"]
+
+        ui_builder.page_dropdown['values'] = workspaces
+        ui_builder.page_var.set(self.current_workspace)
+
+        # Initialize screenshot list for current workspace
+        self._refresh_screenshot_list()
 
     def _bind_events(self):
         """Bind mouse and keyboard events."""
@@ -193,28 +247,36 @@ class ConfigEditorApp:
 
         Shows overlays if:
         - Currently in drawing mode (to show crosshair/drag preview), OR
-        - Already drawn (to show persistent overlay)
+        - Overlay is active (stored in canvas controller)
         """
-        # Show grid overlay if actively drawing OR if it has been drawn
-        if self.grid_editor.is_in_grid_edit_mode() or self.grid_drawn:
+        # Show grid overlay if actively drawing OR if overlay is active
+        if self.grid_editor.is_in_grid_edit_mode() or self.canvas_controller.has_overlay('grid'):
             self.draw_grid_overlay()
 
-        # Show OCR overlay if actively drawing OR if it has been drawn
-        if self.ocr_editor.is_in_ocr_edit_mode() or self.ocr_drawn:
+        # Show OCR overlay if actively drawing OR if overlay is active
+        if self.ocr_editor.is_in_ocr_edit_mode() or self.canvas_controller.has_overlay('ocr'):
             self.draw_ocr_overlay()
 
     def _on_grid_param_changed(self):
         """Handle changes to grid parameters from input fields."""
+        # Skip if we're loading a workspace (prevents premature redraws)
+        if self._loading_workspace:
+            return
+
         self.grid_editor.on_grid_param_changed(self.grid_inputs)
-        # Always update display if grid has been drawn
-        if self.grid_drawn:
+        # Always update display if grid overlay is active
+        if self.canvas_controller.has_overlay('grid'):
             self.canvas_controller.display_image()
 
     def _on_ocr_param_changed(self):
         """Handle changes to OCR region parameters from input fields."""
+        # Skip if we're loading a workspace (prevents premature redraws)
+        if self._loading_workspace:
+            return
+
         self.ocr_editor.on_ocr_param_changed(self.ocr_inputs)
-        # Always update display if OCR has been drawn
-        if self.ocr_drawn:
+        # Always update display if OCR overlay is active
+        if self.canvas_controller.has_overlay('ocr'):
             self.canvas_controller.display_image()
 
     def _update_instruction_label(self, text: str, color: str):
@@ -317,10 +379,16 @@ class ConfigEditorApp:
         Args:
             image: The captured image
         """
-        self.canvas_controller.load_image(image)
-        self.canvas_controller.center_image()
-        self.canvas_controller.display_image()
-        self.update_status(f"Captured: {self.canvas_controller.current_image.size[0]}x{self.canvas_controller.current_image.size[1]}")
+        # Add to workspace
+        filename = self.workspace_manager.add_screenshot(self.current_workspace, image)
+
+        # Update UI
+        self._refresh_screenshot_list()
+
+        # Display on canvas (workspace manager auto-selected it)
+        self._load_selected_screenshot()
+
+        self.update_status(f"Screenshot captured: {filename}")
 
     def _on_capture_error(self, title: str, message: str):
         """Handle capture error (called in main thread).
@@ -333,11 +401,8 @@ class ConfigEditorApp:
         self.update_status("Capture failed")
 
     def load_from_config(self):
-        """Load grid and OCR configuration from config.yaml and display overlays."""
+        """Load configuration from workspace config.yaml and display overlays."""
         try:
-            # Reload config to get latest values
-            self.config = load_config()
-
             # Check if image is loaded
             if self.canvas_controller.current_image is None:
                 messagebox.showinfo(
@@ -347,89 +412,84 @@ class ConfigEditorApp:
                 )
                 return
 
-            # Load grid configuration from config.yaml
-            default_grid = self.config.get('pages', {}).get('character_select', {}).get('grid', {})
+            # Reload config from disk (in case it was edited externally)
+            self.config, load_error = self.config_serializer.load()
+            if load_error:
+                messagebox.showerror("Load Error", f"Failed to reload config:\n{load_error}")
+                return
 
-            # Check if grid config exists and has valid values
-            has_grid = (
-                default_grid.get('cell_width', 0) > 0 and
-                default_grid.get('cell_height', 0) > 0
-            )
+            loaded_items = []
 
-            if has_grid:
+            # Load grid configuration
+            grid = self.config.get('grid', {})
+            if grid and any(grid.values()):
                 # Update grid_config
-                self.grid_config['start_x'] = default_grid.get('start_x', 0)
-                self.grid_config['start_y'] = default_grid.get('start_y', 0)
-                self.grid_config['cell_width'] = default_grid.get('cell_width', 100)
-                self.grid_config['cell_height'] = default_grid.get('cell_height', 100)
-                self.grid_config['spacing_x'] = default_grid.get('spacing_x', 0)
-                self.grid_config['spacing_y'] = default_grid.get('spacing_y', 0)
-                self.grid_config['columns'] = default_grid.get('columns', 3)
-                self.grid_config['rows'] = default_grid.get('rows', 4)
-                self.grid_config['crop_padding'] = default_grid.get('crop_padding', 0)
+                self.grid_config.update({
+                    'start_x': grid.get('start_x', 0),
+                    'start_y': grid.get('start_y', 0),
+                    'cell_width': grid.get('cell_width', 100),
+                    'cell_height': grid.get('cell_height', 100),
+                    'spacing_x': grid.get('spacing_x', 0),
+                    'spacing_y': grid.get('spacing_y', 0),
+                    'columns': grid.get('columns', 3),
+                    'rows': grid.get('rows', 4),
+                    'crop_padding': grid.get('crop_padding', 0),
+                })
 
                 # Update grid input widgets
                 for param, var in self.grid_inputs.items():
                     if param in self.grid_config:
                         var.set(self.grid_config[param])
 
-                # Mark grid as drawn
-                self.grid_drawn = True
+                # Set grid overlay as active
+                self.canvas_controller.set_overlay('grid', self.grid_config)
                 self.grid_editor.grid_edit_step = GridEditStep.ADJUST
+                loaded_items.append("Grid layout")
 
-            # Load OCR configuration from config.yaml
-            default_ocr = self.config.get('ocr', {}).get('detection_region', [0, 0, 0, 0])
-
-            # Check if OCR config exists and has valid values
-            has_ocr = len(default_ocr) >= 4 and default_ocr[2] > 0 and default_ocr[3] > 0
-
-            if has_ocr:
+            # Load OCR configuration
+            ocr = self.config.get('ocr', {})
+            ocr_region = ocr.get('detection_region', [0, 0, 0, 0])
+            if ocr_region and any(ocr_region):
                 # Update ocr_config
-                self.ocr_config['x'] = default_ocr[0]
-                self.ocr_config['y'] = default_ocr[1]
-                self.ocr_config['width'] = default_ocr[2]
-                self.ocr_config['height'] = default_ocr[3]
+                self.ocr_config.update({
+                    'x': ocr_region[0],
+                    'y': ocr_region[1],
+                    'width': ocr_region[2],
+                    'height': ocr_region[3],
+                })
 
                 # Update OCR input widgets
                 for param, var in self.ocr_inputs.items():
                     if param in self.ocr_config:
                         var.set(self.ocr_config[param])
 
-                # Mark OCR as drawn and set to ADJUST step
-                self.ocr_drawn = True
+                # Set OCR overlay as active
+                self.canvas_controller.set_overlay('ocr', self.ocr_config)
                 self.ocr_editor.edit_step = OCREditStep.ADJUST
+                loaded_items.append("OCR region")
 
             # Display the overlays
             self.canvas_controller.display_image()
 
             # Provide feedback
-            loaded = []
-            if has_grid:
-                loaded.append("Grid layout")
-            if has_ocr:
-                loaded.append("OCR region")
-
-            if loaded:
+            if loaded_items:
                 messagebox.showinfo(
                     "Configuration Loaded",
-                    f"Successfully loaded from config.yaml:\n\n"
-                    f"• {chr(10).join(loaded)}\n\n"
+                    f"Successfully loaded from workspace '{self.current_workspace}':\n\n"
+                    f"• {chr(10).join(loaded_items)}\n\n"
                     f"You can now adjust the overlays using handles or spinboxes."
                 )
-                self.update_status(f"Loaded: {', '.join(loaded)}")
+                self.update_status(f"Loaded: {', '.join(loaded_items)}")
             else:
                 messagebox.showwarning(
                     "No Configuration Found",
-                    "No valid grid or OCR configuration found in config.yaml.\n\n"
+                    f"No grid or OCR configuration found in workspace '{self.current_workspace}'.\n\n"
                     "Please draw the grid and OCR region manually."
                 )
                 self.update_status("No config to load")
 
         except Exception as e:
-            messagebox.showerror(
-                "Load Error",
-                f"Failed to load configuration:\n\n{str(e)}"
-            )
+            messagebox.showerror("Load Error", f"Failed to load configuration:\n\n{str(e)}")
             self.update_status("Load failed")
 
     # ========== Mode Management ==========
@@ -636,8 +696,8 @@ class ConfigEditorApp:
                 self.canvas_controller.pan_offset,
                 self.grid_inputs
             )
-            # Mark grid as drawn
-            self.grid_drawn = True
+            # Mark grid overlay as active
+            self.canvas_controller.set_overlay('grid', self.grid_config)
             self.canvas_controller.display_image()
             return
 
@@ -649,8 +709,8 @@ class ConfigEditorApp:
                 self.canvas_controller.pan_offset,
                 self.ocr_inputs
             )
-            # Mark OCR as drawn
-            self.ocr_drawn = True
+            # Mark OCR overlay as active
+            self.canvas_controller.set_overlay('ocr', self.ocr_config)
             self.canvas_controller.display_image()
             return
 
@@ -784,8 +844,8 @@ class ConfigEditorApp:
                 )
                 return
 
-            # Check if grid has been drawn
-            if not self.grid_drawn:
+            # Check if grid overlay is active
+            if not self.canvas_controller.has_overlay('grid'):
                 messagebox.showinfo(
                     "Grid Not Drawn",
                     "Please draw a grid layout first before previewing icons.\n\n"
@@ -839,8 +899,8 @@ class ConfigEditorApp:
             image_width = self.canvas_controller.current_image.width
             image_height = self.canvas_controller.current_image.height
 
-            # Validate grid configuration if grid has been drawn
-            if self.grid_drawn:
+            # Validate grid configuration if grid overlay is active
+            if self.canvas_controller.has_overlay('grid'):
                 is_valid, error_msg = self.config_serializer.validate_grid_config(
                     self.grid_config,
                     image_width,
@@ -854,9 +914,9 @@ class ConfigEditorApp:
                     )
                     return
 
-            # Validate OCR region if it has been drawn
+            # Validate OCR region if OCR overlay is active
             ocr_region = None
-            if self.ocr_drawn:
+            if self.canvas_controller.has_overlay('ocr'):
                 ocr_region = [
                     self.ocr_config['x'],
                     self.ocr_config['y'],
@@ -876,49 +936,341 @@ class ConfigEditorApp:
                     )
                     return
 
-            # Load current config for updating
-            config, load_error = self.config_serializer.load()
-            if load_error:
-                messagebox.showerror("Load Error", f"Failed to load config:\n{load_error}")
-                return
+            # Update grid in config if overlay is active
+            if self.canvas_controller.has_overlay('grid'):
+                self.config['grid'] = {
+                    'columns': self.grid_config['columns'],
+                    'rows': self.grid_config['rows'],
+                    'start_x': self.grid_config['start_x'],
+                    'start_y': self.grid_config['start_y'],
+                    'cell_width': self.grid_config['cell_width'],
+                    'cell_height': self.grid_config['cell_height'],
+                    'spacing_x': self.grid_config['spacing_x'],
+                    'spacing_y': self.grid_config['spacing_y'],
+                    'crop_padding': self.grid_config['crop_padding']
+                }
 
-            # Save configuration (always save grid if drawn, optionally save OCR)
-            if self.grid_drawn:
-                success, save_error = self.config_serializer.save(
-                    config,
-                    'character_select',  # Currently hardcoded to character_select page
-                    self.grid_config,
-                    ocr_region=ocr_region if self.ocr_drawn else None,
-                    create_backup=True
+            # Update OCR in config if overlay is active
+            if self.canvas_controller.has_overlay('ocr'):
+                if 'ocr' not in self.config:
+                    self.config['ocr'] = {}
+                self.config['ocr']['detection_region'] = [
+                    self.ocr_config['x'],
+                    self.ocr_config['y'],
+                    self.ocr_config['width'],
+                    self.ocr_config['height']
+                ]
+
+            # Save to workspace config.yaml
+            success, save_error = self.config_serializer.save(self.config, create_backup=True)
+
+            if success:
+                self.unsaved_changes = False
+                messagebox.showinfo(
+                    "Configuration Saved",
+                    f"Configuration saved for workspace: {self.current_workspace}\n\n"
+                    f"Grid: {'Yes' if self.canvas_controller.has_overlay('grid') else 'No'}\n"
+                    f"OCR: {'Yes' if self.canvas_controller.has_overlay('ocr') else 'No'}"
                 )
-
-                if success:
-                    messagebox.showinfo(
-                        "Configuration Saved",
-                        "Configuration has been saved successfully!\n\n"
-                        f"Grid settings updated for 'character_select' page.\n"
-                        + ("OCR region updated.\n" if self.ocr_drawn else "")
-                        + "\nA backup of the previous config has been created."
-                    )
-                    self.update_status("Configuration saved successfully")
-                else:
-                    messagebox.showerror("Save Error", f"Failed to save config:\n{save_error}")
-                    self.update_status("Configuration save failed")
+                self.update_status("Configuration saved")
             else:
-                messagebox.showwarning(
-                    "Nothing to Save",
-                    "Please draw a grid layout before saving.\n\n"
-                    "Use the '🔲 Draw Grid Layout' button to define the grid."
-                )
+                messagebox.showerror("Save Error", f"Failed to save config:\n{save_error}")
+                self.update_status("Configuration save failed")
 
         except Exception as e:
             messagebox.showerror("Error", f"An unexpected error occurred:\n{str(e)}")
             self.update_status("Configuration save failed")
 
+    # ========== Workspace Management ==========
+
+    def _load_preferences(self):
+        """Load user preferences (last workspace, etc.)."""
+        prefs_path = Path(__file__).parent / "editor_preferences.json"
+        if prefs_path.exists():
+            try:
+                with open(prefs_path, 'r') as f:
+                    prefs = json.load(f)
+                    return prefs
+            except:
+                pass
+        return {"last_workspace": "character_select"}
+
+    def _save_preferences(self):
+        """Save user preferences."""
+        prefs_path = Path(__file__).parent / "editor_preferences.json"
+        prefs = {
+            "last_workspace": self.current_workspace
+        }
+        with open(prefs_path, 'w') as f:
+            json.dump(prefs, f, indent=2)
+
+    def _refresh_screenshot_list(self):
+        """Refresh the screenshot list widget."""
+        screenshots = self.workspace_manager.get_screenshots(self.current_workspace)
+        selected = self.workspace_manager.get_selected_screenshot(self.current_workspace)
+
+        self.ui_builder.update_screenshot_list(
+            screenshots,
+            selected,
+            self._on_screenshot_selected
+        )
+
+    def _on_screenshot_selected(self, filename: str):
+        """Handle screenshot selection from list."""
+        self.workspace_manager.set_selected_screenshot(self.current_workspace, filename)
+        self._load_selected_screenshot()
+
+    def _load_selected_screenshot(self):
+        """Load the selected screenshot onto canvas."""
+        selected = self.workspace_manager.get_selected_screenshot(self.current_workspace)
+        if not selected:
+            return
+
+        screenshot_path = self.workspace_manager.get_screenshot_path(self.current_workspace, selected)
+        if screenshot_path.exists():
+            image = Image.open(screenshot_path)
+            self.canvas_controller.load_image(image)
+            self.canvas_controller.center_image()
+            self.canvas_controller.display_image()
+
+    def delete_screenshot(self):
+        """Delete the selected screenshot."""
+        selected = self.workspace_manager.get_selected_screenshot(self.current_workspace)
+        if not selected:
+            messagebox.showinfo("No Selection", "No screenshot selected")
+            return
+
+        confirm = messagebox.askyesno(
+            "Delete Screenshot",
+            f"Delete {selected}?\n\nThis cannot be undone."
+        )
+
+        if confirm:
+            success = self.workspace_manager.delete_screenshot(self.current_workspace, selected)
+            if success:
+                self._refresh_screenshot_list()
+                # Check if there are any screenshots left
+                screenshots = self.workspace_manager.get_screenshots(self.current_workspace)
+                if screenshots:
+                    self._load_selected_screenshot()
+                else:
+                    # No screenshots left, clear canvas
+                    self.canvas_controller.clear()
+                self.update_status(f"Deleted {selected}")
+
+    def on_page_changed(self, new_workspace: str):
+        """Handle workspace selector dropdown change."""
+        if new_workspace == self.current_workspace:
+            return
+
+        # Check for unsaved changes
+        if self.unsaved_changes:
+            choice = messagebox.askyesnocancel(
+                "Unsaved Changes",
+                f"Save changes to '{self.current_workspace}' before switching?"
+            )
+            if choice is True:  # Yes
+                self.save_config()
+            elif choice is None:  # Cancel
+                # Revert dropdown
+                self.ui_builder.page_var.set(self.current_workspace)
+                return
+            # else: No, discard changes
+
+        # Switch workspace
+        self.current_workspace = new_workspace
+        self.unsaved_changes = False
+
+        # Clear canvas and reset ALL state (image, zoom, pan, overlays)
+        self.canvas_controller.clear()
+
+        # Ensure workspace exists (creates config.yaml if needed)
+        self.workspace_manager.create_workspace(new_workspace)
+
+        # Reload config serializer for new workspace
+        workspaces_root = Path(__file__).parent / "workspaces"
+        workspace_config_path = workspaces_root / new_workspace / "config.yaml"
+        self.config_serializer = ConfigSerializer(workspace_config_path)
+        self.config, load_error = self.config_serializer.load()
+
+        if load_error:
+            # This should not happen since create_workspace creates config, but handle it anyway
+            raise RuntimeError(f"Failed to load workspace config after creation: {load_error}")
+
+        # Load workspace configuration (will set overlays if config has grid/OCR)
+        self._load_workspace_config()
+
+        # Load screenshots from workspace
+        self._refresh_screenshot_list()
+
+        # Load selected screenshot (if any)
+        screenshots = self.workspace_manager.get_screenshots(new_workspace)
+        if screenshots:
+            self._load_selected_screenshot()
+        else:
+            # No screenshots yet, offer to capture
+            choice = messagebox.askquestion(
+                "No Screenshots",
+                f"No screenshots found for '{new_workspace}'.\n\nCapture now?",
+                icon='question'
+            )
+            if choice == 'yes':
+                self.capture_screenshot()
+
+        self.update_status(f"Switched to workspace: {new_workspace}")
+
+    def _load_workspace_config(self):
+        """Load grid and OCR configuration from workspace config.yaml."""
+        # Set flag to prevent callbacks during loading
+        self._loading_workspace = True
+
+        try:
+            # Load grid config
+            grid = self.config.get('grid', {})
+            self.grid_config.update({
+                'start_x': grid.get('start_x', 0),
+                'start_y': grid.get('start_y', 0),
+                'cell_width': grid.get('cell_width', 100),
+                'cell_height': grid.get('cell_height', 100),
+                'spacing_x': grid.get('spacing_x', 0),
+                'spacing_y': grid.get('spacing_y', 0),
+                'columns': grid.get('columns', 3),
+                'rows': grid.get('rows', 4),
+                'crop_padding': grid.get('crop_padding', 0),
+            })
+
+            # Load OCR config
+            ocr = self.config.get('ocr', {})
+            ocr_region = ocr.get('detection_region', [0, 0, 0, 0])
+            self.ocr_config.update({
+                'x': ocr_region[0] if len(ocr_region) >= 1 else 0,
+                'y': ocr_region[1] if len(ocr_region) >= 2 else 0,
+                'width': ocr_region[2] if len(ocr_region) >= 3 else 0,
+                'height': ocr_region[3] if len(ocr_region) >= 4 else 0,
+            })
+
+            # Update UI inputs (callbacks will be skipped due to _loading_workspace flag)
+            for param, var in self.grid_inputs.items():
+                if param in self.grid_config:
+                    var.set(self.grid_config[param])
+
+            for param, var in self.ocr_inputs.items():
+                if param in self.ocr_config:
+                    var.set(self.ocr_config[param])
+
+            # Clear all overlays first (defensive - should already be clear from workspace switch)
+            self.canvas_controller.clear_overlay()
+
+            # Set overlays ONLY if config has non-zero data
+            if grid and any(grid.values()):
+                self.canvas_controller.set_overlay('grid', self.grid_config)
+                self.grid_editor.grid_edit_step = GridEditStep.ADJUST
+            else:
+                self.grid_editor.grid_edit_step = GridEditStep.SET_START
+
+            if ocr_region and any(ocr_region):
+                self.canvas_controller.set_overlay('ocr', self.ocr_config)
+                self.ocr_editor.edit_step = OCREditStep.ADJUST
+            else:
+                self.ocr_editor.edit_step = OCREditStep.DEFINE
+
+            # Redraw overlays if image is loaded
+            if self.canvas_controller.current_image:
+                self.canvas_controller.display_image()
+        finally:
+            # Always clear the flag
+            self._loading_workspace = False
+
+    def create_new_workspace(self):
+        """Show dialog to create a new workspace."""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Create New Workspace")
+        dialog.geometry("450x250")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        # Workspace name input
+        ttk.Label(dialog, text="Workspace Name (lowercase with underscores):").pack(pady=5)
+        name_var = tk.StringVar(value=self._generate_new_workspace_name())
+        name_entry = ttk.Entry(dialog, textvariable=name_var, width=40)
+        name_entry.pack(pady=5)
+        name_entry.focus()
+
+        # Clone option
+        ttk.Label(dialog, text="Clone configuration from (optional):").pack(pady=5)
+        clone_var = tk.StringVar(value="None")
+        clone_dropdown = ttk.Combobox(dialog, textvariable=clone_var, width=37, state='readonly')
+        available_workspaces = self.workspace_manager.list_workspaces()
+        clone_dropdown['values'] = ["None"] + available_workspaces
+        clone_dropdown.pack(pady=5)
+
+        # Buttons
+        button_frame = ttk.Frame(dialog)
+        button_frame.pack(pady=20)
+
+        def on_create():
+            workspace_name = name_var.get().strip()
+
+            # Validate
+            if not workspace_name:
+                messagebox.showerror("Invalid Name", "Workspace name cannot be empty", parent=dialog)
+                return
+
+            if not re.match(r'^[a-z_][a-z0-9_]*$', workspace_name):
+                messagebox.showerror(
+                    "Invalid Name",
+                    "Workspace name must start with lowercase letter or underscore,\nand contain only lowercase letters, numbers, and underscores.",
+                    parent=dialog
+                )
+                return
+
+            if self.workspace_manager.workspace_exists(workspace_name):
+                messagebox.showerror("Duplicate Name", f"Workspace '{workspace_name}' already exists", parent=dialog)
+                return
+
+            # Create workspace (with optional cloning)
+            clone_from = clone_var.get() if clone_var.get() != "None" else None
+            self.workspace_manager.create_workspace(workspace_name, clone_from=clone_from)
+
+            # Update dropdown
+            workspaces = self.workspace_manager.list_workspaces()
+            self.ui_builder.page_dropdown['values'] = workspaces
+
+            # Switch to new workspace
+            self.ui_builder.page_var.set(workspace_name)
+            self.on_page_changed(workspace_name)
+
+            dialog.destroy()
+
+        ttk.Button(button_frame, text="Create", command=on_create, width=15).pack(side=tk.LEFT, padx=10)
+        ttk.Button(button_frame, text="Cancel", command=dialog.destroy, width=15).pack(side=tk.LEFT, padx=10)
+
+        # Enter key creates
+        dialog.bind('<Return>', lambda e: on_create())
+        dialog.bind('<Escape>', lambda e: dialog.destroy())
+
+    def _generate_new_workspace_name(self) -> str:
+        """Generate a new workspace name like 'new_workspace_1'."""
+        base = "new_workspace"
+        counter = 1
+        while self.workspace_manager.workspace_exists(f"{base}_{counter}"):
+            counter += 1
+        return f"{base}_{counter}"
+
     def quit_app(self):
         """Quit the application."""
-        if messagebox.askokcancel("Quit", "Do you want to quit?"):
-            self.root.quit()
+        if self.unsaved_changes:
+            choice = messagebox.askyesnocancel(
+                "Unsaved Changes",
+                "Save changes before quitting?"
+            )
+            if choice is True:
+                self.save_config()
+            elif choice is None:
+                return  # Cancel quit
+
+        self._save_preferences()
+        self.root.quit()
 
 
 def main():

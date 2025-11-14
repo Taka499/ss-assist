@@ -45,77 +45,31 @@ class ConfigSerializer:
         except Exception as e:
             return None, f"Failed to load config: {str(e)}"
 
-    def save(
-        self,
-        config: Any,
-        page_name: str,
-        grid_config: Dict[str, Any],
-        ocr_region: Optional[list[int]] = None,
-        create_backup: bool = True
-    ) -> Tuple[bool, Optional[str]]:
-        """Save updated configuration to config.yaml.
+    def save(self, config: Dict[str, Any], create_backup: bool = True) -> Tuple[bool, Optional[str]]:
+        """Save configuration to YAML file.
 
         Args:
-            config: The loaded config dictionary (from load())
-            page_name: Name of the page being edited (e.g., 'character_select')
-            grid_config: Grid configuration dict with keys:
-                - start_x, start_y, cell_width, cell_height,
-                - spacing_x, spacing_y, columns, rows, crop_padding
-            ocr_region: Optional OCR region [x, y, width, height]
-            create_backup: Whether to create a timestamped backup before saving
+            config: Configuration dictionary
+            create_backup: Whether to create timestamped backup
 
         Returns:
-            Tuple of (success, error_message)
+            Tuple of (success boolean, error message if failed)
         """
         try:
             # Create backup if requested
-            if create_backup:
+            if create_backup and self.config_path.exists():
                 backup_success, backup_error = self._create_backup()
                 if not backup_success:
                     return False, f"Backup failed: {backup_error}"
 
-            # Update grid configuration for the specified page
-            if 'pages' not in config:
-                return False, "Config missing 'pages' section"
-
-            if page_name not in config['pages']:
-                return False, f"Page '{page_name}' not found in config"
-
-            # Update grid settings
-            page = config['pages'][page_name]
-            if 'grid' not in page:
-                page['grid'] = {}
-
-            grid = page['grid']
-            grid['start_x'] = int(grid_config['start_x'])
-            grid['start_y'] = int(grid_config['start_y'])
-            grid['cell_width'] = int(grid_config['cell_width'])
-            grid['cell_height'] = int(grid_config['cell_height'])
-            grid['spacing_x'] = int(grid_config['spacing_x'])
-            grid['spacing_y'] = int(grid_config['spacing_y'])
-            grid['columns'] = int(grid_config['columns'])
-            grid['rows'] = int(grid_config['rows'])
-            grid['crop_padding'] = int(grid_config['crop_padding'])
-
-            # Update OCR region if provided
-            if ocr_region is not None:
-                if 'ocr' not in config:
-                    config['ocr'] = {}
-                config['ocr']['detection_region'] = [
-                    int(ocr_region[0]),
-                    int(ocr_region[1]),
-                    int(ocr_region[2]),
-                    int(ocr_region[3])
-                ]
-
-            # Write config back to file
+            # Save config
             with open(self.config_path, 'w', encoding='utf-8') as f:
                 self.yaml.dump(config, f)
 
             return True, None
 
         except Exception as e:
-            return False, f"Failed to save config: {str(e)}"
+            return False, f"Failed to save config: {e}"
 
     def _create_backup(self) -> Tuple[bool, Optional[str]]:
         """Create a timestamped backup of config.yaml.

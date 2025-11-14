@@ -4,7 +4,7 @@ This module handles all UI component creation, separating UI construction
 from application logic.
 """
 
-from typing import Dict, Tuple, Callable
+from typing import Dict, Tuple, Callable, List, Optional, Any
 import tkinter as tk
 from tkinter import ttk
 
@@ -160,20 +160,76 @@ class UIBuilder:
 
         ttk.Label(left_panel, text="Tools", font=("Arial", 12, "bold")).pack(pady=5)
 
-        # Screenshot buttons
-        screenshot_frame = ttk.LabelFrame(left_panel, text="Screenshot", padding=10)
-        screenshot_frame.pack(fill=tk.X, pady=5)
+        # Page selector frame (at top of left panel)
+        page_frame = ttk.Frame(left_panel)
+        page_frame.pack(fill=tk.X, padx=5, pady=(5, 5))
+
+        ttk.Label(page_frame, text="Page:").pack(side=tk.LEFT, padx=(0, 5))
+
+        # Dropdown showing current page
+        self.page_var = tk.StringVar(value="character_select")
+        self.page_dropdown = ttk.Combobox(page_frame, textvariable=self.page_var, width=18, state='readonly')
+        self.page_dropdown.pack(side=tk.LEFT, padx=5)
+        self.page_dropdown.bind('<<ComboboxSelected>>', lambda e: self.callbacks['on_page_changed'](self.page_var.get()))
+
+        # [+] button to create new page
+        add_page_btn = ttk.Button(
+            page_frame,
+            text="+",
+            command=self.callbacks['create_new_page'],
+            width=3
+        )
+        add_page_btn.pack(side=tk.LEFT, padx=2)
+
+        # Separator
+        ttk.Separator(left_panel, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=5, pady=5)
+
+        # Screenshot list frame
+        screenshot_list_frame = ttk.LabelFrame(left_panel, text="Screenshots", padding=5)
+        screenshot_list_frame.pack(fill=tk.BOTH, expand=False, padx=5, pady=5)
+
+        # Scrollable screenshot list
+        list_canvas = tk.Canvas(screenshot_list_frame, height=120, highlightthickness=0)
+        list_scrollbar = ttk.Scrollbar(screenshot_list_frame, orient=tk.VERTICAL, command=list_canvas.yview)
+        list_canvas.configure(yscrollcommand=list_scrollbar.set)
+
+        list_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        list_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        screenshot_list_inner = ttk.Frame(list_canvas)
+        list_canvas.create_window((0, 0), window=screenshot_list_inner, anchor='nw')
+
+        # Store reference for updating
+        self.screenshot_list_frame = screenshot_list_inner
+        self.screenshot_list_canvas = list_canvas
+
+        # Screenshot action buttons
+        screenshot_btn_frame = ttk.Frame(left_panel)
+        screenshot_btn_frame.pack(fill=tk.X, padx=5, pady=5)
 
         ttk.Button(
-            screenshot_frame,
+            screenshot_btn_frame,
+            text="📷 Capture",
+            command=self.callbacks['capture_screenshot']
+        ).pack(side=tk.LEFT, padx=2, fill=tk.X, expand=True)
+
+        ttk.Button(
+            screenshot_btn_frame,
+            text="🗑️ Delete",
+            command=self.callbacks['delete_screenshot']
+        ).pack(side=tk.LEFT, padx=2, fill=tk.X, expand=True)
+
+        # Separator
+        ttk.Separator(left_panel, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=5, pady=5)
+
+        # Open screenshot button (for loading from file)
+        open_frame = ttk.Frame(left_panel)
+        open_frame.pack(fill=tk.X, padx=5, pady=5)
+
+        ttk.Button(
+            open_frame,
             text="📂 Open Screenshot",
             command=self.callbacks['open_screenshot']
-        ).pack(fill=tk.X, pady=2)
-
-        ttk.Button(
-            screenshot_frame,
-            text="📷 Capture Screenshot",
-            command=self.callbacks['capture_screenshot']
         ).pack(fill=tk.X, pady=2)
 
         # Mode selection buttons
@@ -472,3 +528,46 @@ class UIBuilder:
             row += 1
 
         return ocr_inputs
+
+    def update_screenshot_list(self, screenshots: List[Dict[str, Any]], selected: Optional[str], on_select_callback: Callable):
+        """Update the screenshot list widget.
+
+        Args:
+            screenshots: List of screenshot metadata dicts
+            selected: Currently selected screenshot filename
+            on_select_callback: Function to call when a screenshot is selected
+        """
+        # Clear existing widgets
+        for widget in self.screenshot_list_frame.winfo_children():
+            widget.destroy()
+
+        # Create radio buttons for each screenshot
+        selected_var = tk.StringVar(value=selected or "")
+
+        for screenshot in screenshots:
+            filename = screenshot["filename"]
+            resolution = screenshot.get("resolution", [0, 0])
+
+            frame = ttk.Frame(self.screenshot_list_frame)
+            frame.pack(fill=tk.X, pady=2)
+
+            radio = ttk.Radiobutton(
+                frame,
+                text=f"{filename}",
+                variable=selected_var,
+                value=filename,
+                command=lambda f=filename: on_select_callback(f)
+            )
+            radio.pack(side=tk.LEFT, anchor='w')
+
+            res_label = ttk.Label(
+                frame,
+                text=f"{resolution[0]}×{resolution[1]}",
+                font=('Segoe UI', 8),
+                foreground='gray'
+            )
+            res_label.pack(side=tk.RIGHT, anchor='e')
+
+        # Update scroll region
+        self.screenshot_list_frame.update_idletasks()
+        self.screenshot_list_canvas.configure(scrollregion=self.screenshot_list_canvas.bbox('all'))
