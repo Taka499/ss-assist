@@ -25,7 +25,8 @@ This GUI makes the icon-cropper tool resilient to game UI changes (such as patch
 - [x] Add comprehensive validation for grid configurations *(2025-11-14)*
 - [x] Update main cropper.py to integrate with new config workflow *(2025-11-14)*
 - [x] Create REMAINING_WORK.md to track future enhancements *(2025-11-14)*
-- [ ] Write comprehensive tests (Milestone 6 - deferred)
+- [x] Write comprehensive unit tests (83 tests covering core business logic) *(2025-11-14)*
+- [ ] Optional: Integration and UI state machine tests (lower priority)
 - [ ] Clean up remaining technical debt (pagination, multi-page support, corrupted YAML recovery)
 
 ### Milestone 1: Basic GUI Framework ✅ COMPLETE (2025-11-12)
@@ -257,18 +258,39 @@ Implemented comprehensive validation, main cropper integration, and cleaned up t
 - ✅ Verified debug code removal from `preview_controller.py` (already clean)
 - ✅ Updated all command examples to use `uv run` prefix for consistency
 
-**Testing**: ⏳ DEFERRED
-- Unit tests for coordinate system, editors, serializer (deferred to future iteration)
-- Integration tests for full workflow (deferred to future iteration)
-- Validation logic tested manually with various edge cases
+**Testing**: ✅ COMPLETE (2025-11-14 - Updated later same day)
+- ✅ Test infrastructure setup with pytest and pytest-mock
+- ✅ Unit tests for `coordinate_system.py` (25 tests)
+  - Canvas ↔ image coordinate transformations
+  - Zoom, pan, and scroll handling
+  - Round-trip conversion verification
+- ✅ Unit tests for `config_serializer.py` (34 tests)
+  - YAML load/save with comment preservation
+  - Backup creation
+  - Grid validation (all edge cases)
+  - OCR region validation (all edge cases)
+- ✅ Unit tests for `preview_controller.py` (24 tests)
+  - Icon extraction with various grid configurations
+  - Boundary clipping and padding
+  - Grid validation for preview
+- ✅ Test documentation (`tests/README.md`)
+- ✅ Pytest configuration (`pytest.ini`)
+- **Total: 83 tests, all passing**
+
+**Testing Strategy**:
+- Focused on pure functions and business logic (coordinate system, serialization, validation, extraction)
+- Used pytest-mock to handle Tkinter dependencies (Canvas mocking)
+- Created comprehensive fixtures (test images, config files)
+- Deferred UI state machine tests (grid_editor, ocr_editor, resize_controller) - too complex to mock, already well-tested manually
 
 **Remaining Work**:
-- Write comprehensive test suite (see `_docs/REMAINING_WORK.md` for details)
 - Additional technical debt items (pagination, multi-page support, corrupted YAML recovery)
+- Optional: Integration tests for full workflows (lower priority)
+- Optional: UI state machine tests (lower priority, would require extensive mocking)
 
 **Overall Assessment**:
 
-Milestone 6 is 75% complete. Core validation and integration features are done and working well. The tool is production-ready with excellent error messages that guide users toward fixes. Testing is deferred but not blocking since the tool has been thoroughly tested manually during development.
+Milestone 6 is now **95% complete**. Core validation, integration, documentation, and comprehensive unit testing are all done. The tool is production-ready with excellent test coverage for all critical business logic (coordinate transformations, validation, serialization, icon extraction). UI state machine tests are deferred as they would require extensive Tkinter mocking infrastructure and provide limited value given the thorough manual testing during development.
 
 ## Surprises & Discoveries
 
