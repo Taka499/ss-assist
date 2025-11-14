@@ -79,8 +79,11 @@ class CropperDaemon:
             print("\n" + "=" * 50)
             print("Capture complete!")
             print(f"Session directory: {session_dir}")
-            print("Run the annotator to assign character IDs:")
-            print(f"  python annotator.py {session_dir}")
+            print("\nNext steps:")
+            print("1. Run the annotator to assign character IDs:")
+            print(f"     uv run python annotator.py {session_dir}")
+            print("\n💡 Tip: To adjust grid layout or OCR regions:")
+            print("     uv run python config_editor.py")
             print("=" * 50)
 
         except WindowNotFoundError as e:
@@ -93,6 +96,8 @@ class CropperDaemon:
 
         except UnknownPageError as e:
             print(f"\n❌ Error: {e}")
+            print("\n💡 Hint: If OCR detection is failing, try adjusting the OCR region:")
+            print("     uv run python config_editor.py")
             show_notification(
                 "Screenshot Cropper - Error",
                 "Unknown page type detected",

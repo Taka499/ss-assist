@@ -247,9 +247,47 @@ Loads and displays character data from CSV.
 
 ## Configuration Guide
 
-### Adjusting Grid Positions
+### Visual Configuration Editor (Recommended)
 
-If the cropped icons are misaligned:
+The easiest way to configure grid layouts and OCR regions is using the **visual configuration editor**:
+
+```bash
+uv run python config_editor.py
+```
+
+**Features:**
+- **Visual Grid Editor**: Click and drag to define icon grid layout
+- **OCR Region Editor**: Draw rectangles around page-identifying text
+- **Live Preview**: See extracted icons before saving
+- **Load From Config**: Load existing configuration for adjustments
+- **Interactive Resize**: PowerPoint-like handles with modifier keys (Shift: aspect ratio, Ctrl: center-fixed)
+- **Real-time Updates**: Changes reflect immediately on the canvas
+- **Automatic Backup**: Creates timestamped backups before saving
+
+**Workflow:**
+1. **Load Screenshot**: Click "📂 Open Screenshot" or "📷 Capture Screenshot"
+2. **Draw Grid**: Click "🔲 Draw Grid Layout" and follow the on-screen instructions
+3. **Draw OCR Region**: Click "📄 Draw OCR Region" and draw around the page title
+4. **Preview Icons**: Click "👁️ Preview Icons" to verify grid alignment
+5. **Save**: Click "💾 Save Configuration" to update config.yaml
+
+**Keyboard Shortcuts:**
+- `Ctrl+O`: Open screenshot from file
+- `Ctrl+G`: Capture screenshot from game window
+- `Ctrl+L`: Load saved configuration
+- `Ctrl+P`: Preview extracted icons
+- `Ctrl+S`: Save configuration
+- `Ctrl+Scroll`: Zoom in/out
+
+**Tips:**
+- Use Pan/Zoom mode to verify precise alignment
+- Adjust spinbox values for fine-tuning (works in any mode)
+- Load From Config to quickly resume editing
+- Preview before saving to catch misalignments
+
+### Adjusting Grid Positions Manually
+
+If you prefer to edit config.yaml manually or the cropped icons are misaligned:
 
 1. Take a test screenshot:
    ```bash

@@ -166,15 +166,15 @@ class ConfigSerializer:
                     return False, f"Missing required field: {field}"
 
             # Extract values
-            start_x = grid_config['start_x']
-            start_y = grid_config['start_y']
-            cell_width = grid_config['cell_width']
-            cell_height = grid_config['cell_height']
-            spacing_x = grid_config['spacing_x']
-            spacing_y = grid_config['spacing_y']
-            columns = grid_config['columns']
-            rows = grid_config['rows']
-            crop_padding = grid_config['crop_padding']
+            start_x = int(grid_config['start_x'])
+            start_y = int(grid_config['start_y'])
+            cell_width = int(grid_config['cell_width'])
+            cell_height = int(grid_config['cell_height'])
+            spacing_x = int(grid_config['spacing_x'])
+            spacing_y = int(grid_config['spacing_y'])
+            columns = int(grid_config['columns'])
+            rows = int(grid_config['rows'])
+            crop_padding = int(grid_config['crop_padding'])
 
             # Validate types and ranges
             if not all(isinstance(v, (int, float)) for v in [
@@ -184,38 +184,98 @@ class ConfigSerializer:
                 return False, "All grid values must be numbers"
 
             # Check positive dimensions
-            if cell_width <= 0 or cell_height <= 0:
-                return False, "Cell dimensions must be positive"
+            if cell_width <= 0:
+                return False, f"Cell width must be positive (got {cell_width})"
 
-            if columns <= 0 or rows <= 0:
-                return False, "Grid size (columns/rows) must be positive"
+            if cell_height <= 0:
+                return False, f"Cell height must be positive (got {cell_height})"
+
+            if columns <= 0:
+                return False, f"Number of columns must be positive (got {columns})"
+
+            if rows <= 0:
+                return False, f"Number of rows must be positive (got {rows})"
+
+            # Check reasonable limits
+            if columns > 50:
+                return False, f"Number of columns is too large ({columns}). Maximum recommended: 50"
+
+            if rows > 50:
+                return False, f"Number of rows is too large ({rows}). Maximum recommended: 50"
 
             # Check non-negative values
-            if spacing_x < 0 or spacing_y < 0:
-                return False, "Spacing values cannot be negative"
+            if spacing_x < 0:
+                return False, f"Horizontal spacing cannot be negative (got {spacing_x})"
+
+            if spacing_y < 0:
+                return False, f"Vertical spacing cannot be negative (got {spacing_y})"
+
+            # Check for excessively large spacing
+            if spacing_x > cell_width * 2:
+                return False, f"Horizontal spacing ({spacing_x}px) is too large (more than 2× cell width). Check your configuration."
+
+            if spacing_y > cell_height * 2:
+                return False, f"Vertical spacing ({spacing_y}px) is too large (more than 2× cell height). Check your configuration."
 
             if crop_padding < 0:
-                return False, "Crop padding cannot be negative"
+                return False, f"Crop padding cannot be negative (got {crop_padding})"
 
             # Check padding doesn't exceed cell dimensions
-            if crop_padding * 2 >= cell_width or crop_padding * 2 >= cell_height:
-                return False, "Crop padding is too large for cell dimensions"
+            if crop_padding * 2 >= cell_width:
+                return False, f"Crop padding ({crop_padding}px × 2 = {crop_padding * 2}px) exceeds cell width ({cell_width}px)"
 
-            # Check grid fits within image bounds
+            if crop_padding * 2 >= cell_height:
+                return False, f"Crop padding ({crop_padding}px × 2 = {crop_padding * 2}px) exceeds cell height ({cell_height}px)"
+
+            # Check grid start position
+            if start_x < 0 or start_y < 0:
+                return False, f"Grid start position cannot be negative (got x={start_x}, y={start_y})"
+
+            # Check first cell fits within image
+            first_cell_right = start_x + cell_width
+            first_cell_bottom = start_y + cell_height
+
+            if first_cell_right > image_width:
+                return False, f"First cell extends beyond image width (cell right edge at {first_cell_right}px > image width {image_width}px)"
+
+            if first_cell_bottom > image_height:
+                return False, f"First cell extends beyond image height (cell bottom edge at {first_cell_bottom}px > image height {image_height}px)"
+
+            # Check entire grid fits within image bounds
             grid_right = start_x + columns * cell_width + (columns - 1) * spacing_x
             grid_bottom = start_y + rows * cell_height + (rows - 1) * spacing_y
 
-            if start_x < 0 or start_y < 0:
-                return False, "Grid start position cannot be negative"
-
             if grid_right > image_width:
-                return False, f"Grid extends beyond image width ({grid_right} > {image_width})"
+                overflow = grid_right - image_width
+                return False, (
+                    f"Grid extends {overflow}px beyond image width.\n"
+                    f"Grid right edge: {grid_right}px, Image width: {image_width}px\n"
+                    f"Reduce columns, cell width, or horizontal spacing."
+                )
 
             if grid_bottom > image_height:
-                return False, f"Grid extends beyond image height ({grid_bottom} > {image_height})"
+                overflow = grid_bottom - image_height
+                return False, (
+                    f"Grid extends {overflow}px beyond image height.\n"
+                    f"Grid bottom edge: {grid_bottom}px, Image height: {image_height}px\n"
+                    f"Reduce rows, cell height, or vertical spacing."
+                )
+
+            # Check for cells that would crop to zero or negative size after padding
+            cropped_width = cell_width - (2 * crop_padding)
+            cropped_height = cell_height - (2 * crop_padding)
+
+            if cropped_width < 10 or cropped_height < 10:
+                return False, (
+                    f"Cropped cell size too small ({cropped_width}×{cropped_height}px).\n"
+                    f"After padding, cells should be at least 10×10px.\n"
+                    f"Reduce crop padding or increase cell size."
+                )
 
             return True, None
 
+        except (ValueError, TypeError) as e:
+            return False, f"Invalid grid configuration: {str(e)}"
         except Exception as e:
             return False, f"Validation error: {str(e)}"
 
@@ -239,28 +299,66 @@ class ConfigSerializer:
             if len(ocr_region) != 4:
                 return False, "OCR region must have 4 values: [x, y, width, height]"
 
-            x, y, width, height = ocr_region
+            x = int(ocr_region[0])
+            y = int(ocr_region[1])
+            width = int(ocr_region[2])
+            height = int(ocr_region[3])
 
             # Check types
             if not all(isinstance(v, (int, float)) for v in [x, y, width, height]):
                 return False, "All OCR region values must be numbers"
 
             # Check positive dimensions
-            if width <= 0 or height <= 0:
-                return False, "OCR region dimensions must be positive"
+            if width <= 0:
+                return False, f"OCR region width must be positive (got {width})"
+
+            if height <= 0:
+                return False, f"OCR region height must be positive (got {height})"
+
+            # Check reasonable minimum size for OCR
+            if width < 20:
+                return False, f"OCR region width too small ({width}px). Minimum recommended: 20px"
+
+            if height < 10:
+                return False, f"OCR region height too small ({height}px). Minimum recommended: 10px"
+
+            # Check reasonable maximum size (OCR region shouldn't be huge)
+            if width > image_width * 0.8:
+                return False, f"OCR region width too large ({width}px, {width/image_width*100:.1f}% of image). Maximum recommended: 80% of image width"
+
+            if height > image_height * 0.5:
+                return False, f"OCR region height too large ({height}px, {height/image_height*100:.1f}% of image). Maximum recommended: 50% of image height"
 
             # Check non-negative position
-            if x < 0 or y < 0:
-                return False, "OCR region position cannot be negative"
+            if x < 0:
+                return False, f"OCR region X position cannot be negative (got {x})"
+
+            if y < 0:
+                return False, f"OCR region Y position cannot be negative (got {y})"
 
             # Check region fits within image bounds
-            if x + width > image_width:
-                return False, f"OCR region extends beyond image width ({x + width} > {image_width})"
+            region_right = x + width
+            region_bottom = y + height
 
-            if y + height > image_height:
-                return False, f"OCR region extends beyond image height ({y + height} > {image_height})"
+            if region_right > image_width:
+                overflow = region_right - image_width
+                return False, (
+                    f"OCR region extends {overflow}px beyond image width.\n"
+                    f"Region right edge: {region_right}px, Image width: {image_width}px\n"
+                    f"Reduce width or move region left."
+                )
+
+            if region_bottom > image_height:
+                overflow = region_bottom - image_height
+                return False, (
+                    f"OCR region extends {overflow}px beyond image height.\n"
+                    f"Region bottom edge: {region_bottom}px, Image height: {image_height}px\n"
+                    f"Reduce height or move region up."
+                )
 
             return True, None
 
+        except (ValueError, TypeError) as e:
+            return False, f"Invalid OCR region: {str(e)}"
         except Exception as e:
             return False, f"Validation error: {str(e)}"
