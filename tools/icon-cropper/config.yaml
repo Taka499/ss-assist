@@ -16,8 +16,11 @@ ocr:
   languages: ["ja"]
   # Region to extract for OCR (relative to window)
   # Format: [x, y, width, height] in pixels
-  detection_region: [140, 50, 300, 50]
-  # Confidence threshold for OCR matches
+  detection_region:
+  - 177
+  - 67
+  - 332
+  - 62
   confidence_threshold: 0.7
 
 # Page definitions
@@ -28,8 +31,8 @@ pages:
     ocr_match: "ホーム画面設定"
     # Alternative matches (if text is slightly different)
     ocr_alternatives:
-      - "ホーム画面"
-      - "画面設定"
+    - "ホーム画面"
+    - "画面設定"
 
     # Grid layout for icon cropping
     grid:
@@ -38,16 +41,16 @@ pages:
       # Number of visible rows (may vary)
       rows: 4
       # Top-left corner of the first icon (x, y)
-      start_x: 963
-      start_y: 151
+      start_x: 1267
+      start_y: 199
       # Size of each icon cell
-      cell_width: 146
-      cell_height: 146
+      cell_width: 160
+      cell_height: 160
       # Spacing between cells
-      spacing_x: 4
-      spacing_y: 4
+      spacing_x: 34
+      spacing_y: 37
       # Inner padding to crop (to remove borders)
-      crop_padding: 8
+      crop_padding: 3
 
     # Output settings
     output:

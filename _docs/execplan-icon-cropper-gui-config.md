@@ -416,6 +416,76 @@ if has_ocr:
 
 **Lesson Learned**: State consistency is critical in state machine architectures. When loading saved state, ensure ALL related state flags are set correctly, not just data values. The rendering logic relies on both the data (`ocr_config`) AND the state flags (`ocr_drawn`, `edit_step`) to determine what to display.
 
+### Spinbox Updates Blocked When Not In Active Edit Mode (2025-11-14)
+
+**Problem**: After drawing grid or OCR overlays and switching to Pan/Zoom mode, adjusting spinbox values had no effect on the displayed overlays. Additionally, saving configuration would write stale values from before the spinbox adjustments, ignoring user changes.
+
+**Root Cause**: Both `grid_editor.py::on_grid_param_changed()` and `ocr_editor.py::on_ocr_param_changed()` had mode checks that blocked spinbox updates when not actively in drawing mode:
+```python
+# grid_editor.py line 234-235 (BEFORE FIX)
+def on_grid_param_changed(self, grid_inputs: Dict[str, tk.IntVar]):
+    if self.edit_mode != EditMode.GRID_EDIT:  # ❌ BLOCKS updates in Pan/Zoom mode
+        return
+    # ... update grid_config from spinboxes
+
+# ocr_editor.py line 213-214 (BEFORE FIX)
+def on_ocr_param_changed(self, ocr_inputs: Dict[str, tk.IntVar]):
+    if not self.is_active:  # ❌ BLOCKS updates when OCR mode not active
+        return
+    # ... update ocr_config from spinboxes
+```
+
+**Evidence**:
+- User reported: "Spinbox adjustment is not reflected to the grid on canvas"
+- User reported: "The saved configuration is not referencing the values in spinbox"
+- Testing confirmed: After drawing grid and entering Pan/Zoom mode, changing spinbox values did nothing
+- Internal config dictionaries (`self.grid_config`, `self.ocr_config`) remained unchanged when spinboxes updated
+
+**Solution**: Removed the mode checks that were blocking spinbox updates. Spinboxes now update the internal config dictionaries regardless of current mode, while the `updating_inputs_programmatically` flag still prevents circular updates during resize operations.
+
+**Fix Applied**:
+- `editor/grid_editor.py`: Removed `if self.edit_mode != EditMode.GRID_EDIT: return` check (lines 234-235)
+- `editor/ocr_editor.py`: Removed `if not self.is_active: return` check (lines 213-214)
+
+**Impact**: Spinboxes now work correctly in all modes, matching the Photoshop-like persistent overlay paradigm documented in Milestone 3. Users can:
+1. Draw grid/OCR overlays
+2. Switch to Pan/Zoom mode (or any mode)
+3. Adjust spinbox values and see immediate updates to overlays
+4. Save configuration with correct current values
+
+**Lesson Learned**: Mode guards should only protect mode-specific operations (like drawing interactions), not shared data synchronization. When implementing persistent overlays that remain visible across modes, ensure all adjustment mechanisms (resize handles, spinboxes) work regardless of current mode state.
+
+### Preview Window Scroll Blocked By Child Widgets (2025-11-14)
+
+**Problem**: In the icon preview window, mousewheel scrolling only worked when hovering directly over the canvas background, not when hovering over icon images, labels, or frames. This made scrolling difficult since most of the window area was covered by child widgets.
+
+**Root Cause**: The mousewheel event was only bound to the canvas widget (line 100 in `preview_window.py`). Tkinter events don't automatically bubble up from child widgets to parents, so scroll events over icon labels/frames were not reaching the canvas.
+
+**Evidence**:
+- User reported: "The page scroll does not work when the cursor is hovering over the cropped pictures"
+- Testing confirmed scroll worked on canvas background but not on any child widget
+
+**Solution Options Considered**:
+1. **Recursive binding**: Bind mousewheel to every child widget recursively - REJECTED due to performance concerns with potentially hundreds of widgets
+2. **Transparent overlay layer**: Place invisible widget over content - unnecessarily complex
+3. **Parent container binding**: Bind to parent frame containing canvas - TESTED but failed (events don't propagate up)
+4. **Window-level binding**: Bind to the Toplevel window itself - ✅ **CHOSEN**
+
+**Fix Applied**: Changed binding from `canvas.bind()` to `self.window.bind()` at line 102 in `editor/preview_window.py`:
+```python
+# Enable mousewheel scrolling on the entire window
+# Binding to the window ensures scrolling works regardless of which widget
+# the mouse is hovering over (canvas, labels, frames, etc.)
+def on_mousewheel(event):
+    canvas.yview_scroll(-1 * (event.delta // 120), "units")
+
+self.window.bind("<MouseWheel>", on_mousewheel)
+```
+
+**Impact**: Preview window now scrolls smoothly regardless of cursor position. Users can scroll while hovering over any part of the window (icons, labels, frames, canvas background, empty space).
+
+**Lesson Learned**: For popup windows/dialogs with scrollable content, bind scroll events at the window level (Toplevel) rather than individual widgets. This provides the best user experience without performance overhead of recursive binding. The same pattern is used in professional tkinter applications.
+
 ## Decision Log
 
 ### D1: Use Subprocess Isolation for Screenshot Capture (2025-11-12)

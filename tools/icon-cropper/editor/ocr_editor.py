@@ -210,9 +210,6 @@ class OCREditor:
         Args:
             ocr_inputs: Dictionary of Spinbox IntVars
         """
-        if not self.is_active:
-            return
-
         # Skip if we're updating inputs programmatically
         if self.updating_inputs_programmatically:
             return

@@ -93,11 +93,13 @@ class PreviewWindow:
         grid_frame.update_idletasks()
         canvas.config(scrollregion=canvas.bbox("all"))
 
-        # Enable mousewheel scrolling
+        # Enable mousewheel scrolling on the entire window
+        # Binding to the window ensures scrolling works regardless of which widget
+        # the mouse is hovering over (canvas, labels, frames, etc.)
         def on_mousewheel(event):
             canvas.yview_scroll(-1 * (event.delta // 120), "units")
 
-        canvas.bind("<MouseWheel>", on_mousewheel)
+        self.window.bind("<MouseWheel>", on_mousewheel)
 
         # Center the window on parent
         self.window.transient(self.parent)

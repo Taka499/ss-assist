@@ -231,9 +231,6 @@ class GridEditor:
         Args:
             grid_inputs: Dictionary of Spinbox IntVars
         """
-        if self.edit_mode != EditMode.GRID_EDIT:
-            return
-
         # Skip if we're updating inputs programmatically (e.g., during resize)
         if self.updating_inputs_programmatically:
             return
