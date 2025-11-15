@@ -39,8 +39,17 @@ workspaces/
 - Each workspace = one complete cropping task
 - Portable (can be zipped and shared)
 - Multiple screenshots per workspace (for scrolling/pagination)
-- Independent configurations
+- Independent configurations with runtime validation
 - No global config.yaml conflicts
+
+**Workspace Validation:**
+All workspace.json files are validated using Pydantic models on every load and save:
+- **Type safety**: Ensures all fields have correct types (int, str, list, etc.)
+- **Constraint validation**: Enforces positive dimensions, reasonable limits
+- **Cross-field validation**: Prevents dangling overlay references
+- **User-friendly errors**: Shows exactly which field is invalid and why
+
+See `editor/schema/__init__.py` for the full Pydantic model hierarchy.
 
 ### Tool-Based UX (Photoshop-like)
 
@@ -82,15 +91,32 @@ canvas_controller.set_overlay('ocr', ocr_config, index=0)    # First OCR region
 
 ### Workspace Management Layer
 
+**`editor/schema/`**
+- Pydantic models for workspace.json validation
+- **Models:**
+  - `WorkspaceMetadata` - Root model (schema v2)
+  - `OverlayData` - Overlay definition (id, type, name, config, locked, visible)
+  - `GridConfig` - Grid overlay configuration with constraints
+  - `OCRConfig` - OCR region configuration
+  - `ScreenshotMetadata` - Screenshot metadata with bindings
+- **Validators:**
+  - Field-level: Positive dimensions, valid formats, ID patterns
+  - Cross-field: Overlay references, selected screenshot existence
+- **Functions:**
+  - `validate_workspace_file(path)` - Load and validate workspace.json
+  - `generate_json_schema()` - Generate JSON Schema for IDE autocomplete
+
 **`editor/workspace_manager.py`**
 - Creates/lists workspace directories
 - Manages screenshots (add, delete, get, select)
-- Handles workspace.json metadata
+- Handles workspace.json metadata **with Pydantic validation**
 - **Key Methods:**
-  - `create_workspace(name, clone_from=None)` - Creates workspace with config.yaml from template
-  - `add_screenshot(workspace, image)` - Auto-numbered (001.png, 002.png, ...)
+  - `create_workspace(name, clone_from=None)` - Creates workspace with validated metadata
+  - `add_screenshot(workspace, image)` - Auto-numbered (001.png, 002.png, ...), validates on save
   - `delete_screenshot(workspace, filename)` - No last-screenshot protection
-  - `get_screenshots(workspace)` - Returns list with metadata
+  - `get_screenshots(workspace)` - Returns list with validated metadata
+  - `_load_metadata(path)` - Loads and validates workspace.json with Pydantic
+  - `_save_metadata(path, data)` - Validates before saving to prevent corrupt data
 
 ### Canvas & Visual Layer
 
@@ -191,16 +217,75 @@ cd tools/icon-cropper
 uv run python config_editor.py
 ```
 
+### Testing
+
+```bash
+# Run all tests
+uv run pytest
+
+# Run schema validation tests specifically
+uv run pytest tests/test_workspace_schema.py -v
+
+# Run with coverage
+uv run pytest --cov=editor --cov-report=term-missing
+```
+
+The test suite includes:
+- **26+ schema validation tests** covering valid/invalid cases, edge cases, cross-field validation
+- Coordinate system tests
+- Preview controller tests
+- Config serializer tests (legacy)
+
 ### Testing Changes
 
 1. Make code changes
-2. Run `uv run python config_editor.py`
-3. Test workflow:
+2. If modifying Pydantic models, run tests first:
+   ```bash
+   uv run pytest tests/test_workspace_schema.py -v
+   ```
+3. Run `uv run python config_editor.py`
+4. Test workflow:
    - Create workspace
    - Capture/load screenshots
    - Draw grid/OCR
    - Switch workspaces
    - Verify overlays clear/load correctly
+   - Try invalid data to test validation errors
+
+### Updating Pydantic Models
+
+When modifying `editor/schema/__init__.py`:
+
+1. **Update the model** - Add/modify fields, validators
+2. **Update tests** - Add test cases for new validation
+3. **Run tests** - Ensure all tests pass:
+   ```bash
+   uv run pytest tests/test_workspace_schema.py -v
+   ```
+4. **Regenerate JSON Schema** - Update IDE autocomplete:
+   ```bash
+   uv run python scripts/generate_json_schema.py
+   ```
+5. **Test integration** - Verify validation works in GUI
+6. **Update documentation** - Update CLAUDE.md and README.md if needed
+
+### Adding New Validation Rules
+
+Example: Add max limit to crop_padding:
+
+```python
+# In editor/schema/__init__.py
+class GridConfig(BaseModel):
+    crop_padding: int = Field(ge=0, le=50, description="...")  # Add le=50
+```
+
+Then add test:
+```python
+# In tests/test_workspace_schema.py
+def test_excessive_crop_padding_rejected():
+    with pytest.raises(ValidationError):
+        GridConfig(..., crop_padding=51)  # Should fail
+```
 
 ### Adding a New Tool
 
@@ -253,18 +338,29 @@ Update `grid_renderer.py` to render new overlay type in `draw_overlays()`.
 
 ## Common Patterns
 
-### Workspace Switching
+### Workspace Switching (with Error Handling)
 
 ```python
 # Always clear before loading new workspace
 self.canvas_controller.clear()  # Resets image + overlays + zoom + pan
 
-# Ensure workspace exists (creates workspace.json if needed)
-self.workspace_manager.create_workspace(workspace_name)
+try:
+    # Ensure workspace exists (creates workspace.json if needed)
+    self.workspace_manager.create_workspace(workspace_name)
 
-# Load screenshots and overlays from workspace.json
-self._refresh_screenshot_list()
-self._load_selected_screenshot()  # This loads overlays from workspace.json
+    # Load screenshots and overlays from workspace.json
+    self._refresh_screenshot_list()
+    self._load_selected_screenshot()  # This loads overlays (validated by Pydantic)
+
+except ValueError as e:
+    # Workspace validation failed
+    messagebox.showerror(
+        "Workspace Validation Error",
+        f"Error loading workspace '{workspace_name}':\n\n{e}\n\n"
+        "Please fix the workspace.json file or delete it to reset."
+    )
+    # Clear UI to prevent showing invalid data
+    self.ui_builder.update_screenshot_list([], None, self._on_screenshot_selected)
 ```
 
 ### Creating Overlays (Avoid Shared State!)

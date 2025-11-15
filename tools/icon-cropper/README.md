@@ -277,7 +277,17 @@ uv run python config_editor.py
 6. **Adjust**: Tool auto-switches to Select mode - resize/adjust overlays with handles
 7. **Preview Icons**: Click "👁️ Preview Icons" to verify grid alignment
 
-**Note:** All overlay configurations are automatically saved to workspace.json in real-time. There is no need for manual save/load operations.
+**Note:** All overlay configurations are automatically saved to workspace.json in real-time with validation. There is no need for manual save/load operations.
+
+**Schema Validation:**
+The tool uses Pydantic models to validate workspace.json on every load and save, ensuring data integrity:
+- **Grid configurations**: Validates positive dimensions, reasonable row/column limits (≤100)
+- **OCR regions**: Ensures width/height consistency
+- **Overlay references**: Prevents dangling references in screenshot bindings
+- **Timestamps**: Validates ISO 8601 format
+- **Schema version**: Enforces schema v2 structure
+
+If validation fails, you'll see a user-friendly error message indicating exactly which field is invalid and why. This prevents corrupt configurations from breaking the cropping workflow.
 
 **Tool System:**
 - **Select Tool** (default): Pan, zoom, and resize existing overlays via handles
@@ -366,7 +376,88 @@ pages:
       csv_source: "data-sources/stellasora - items.csv"
 ```
 
+## Development Tools
+
+### JSON Schema for IDE Autocomplete
+
+The tool includes a JSON Schema file (`workspace-schema.json`) generated from the Pydantic models. To enable IDE autocomplete and validation in VSCode:
+
+**Option 1: Workspace settings**
+Add to `.vscode/settings.json`:
+```json
+{
+  "json.schemas": [
+    {
+      "fileMatch": ["**/workspaces/**/workspace.json"],
+      "url": "./tools/icon-cropper/workspace-schema.json"
+    }
+  ]
+}
+```
+
+**Option 2: Inline schema reference**
+Add to the top of any `workspace.json`:
+```json
+{
+  "$schema": "../../workspace-schema.json",
+  "workspace_name": "character_select",
+  ...
+}
+```
+
+This provides autocomplete, validation, and inline documentation while editing workspace.json files.
+
+### Regenerating JSON Schema
+
+After updating Pydantic models in `editor/schema/`:
+
+```bash
+cd tools/icon-cropper
+uv run python scripts/generate_json_schema.py
+```
+
+This regenerates `workspace-schema.json` with the latest model definitions.
+
+### Running Tests
+
+The tool includes comprehensive tests for workspace validation:
+
+```bash
+# Run all tests
+uv run pytest
+
+# Run schema validation tests only
+uv run pytest tests/test_workspace_schema.py -v
+
+# Run with coverage
+uv run pytest --cov=editor --cov-report=term-missing
+```
+
+The test suite includes 26+ tests covering:
+- Valid configuration acceptance
+- Invalid data rejection with proper error messages
+- Edge cases (zero dimensions, empty workspaces)
+- Cross-field validation (overlay references)
+- Round-trip serialization
+
 ## Troubleshooting
+
+### Workspace Validation Errors
+
+**Error:** `Workspace validation failed: overlays → grid_1 → config → cell_width: Input should be greater than 0`
+
+**Solution:**
+- The error message indicates exactly which field is invalid
+- Open the workspace.json file and fix the invalid value
+- Or delete the workspace and recreate it in the GUI
+- Check `workspace-schema.json` for valid value ranges
+
+**Error:** `Screenshot 'foo.png' references non-existent overlay 'grid_99'`
+
+**Solution:**
+- The screenshot's `overlay_bindings` array references an overlay that doesn't exist
+- Remove the invalid overlay ID from the bindings array
+- Or create the missing overlay in the GUI
 
 ### Window Not Found
 
@@ -509,8 +600,10 @@ icon-cropper/
 │
 ├── editor/              # Configuration editor modules
 │   ├── __init__.py      # Package initialization
+│   ├── schema/          # Pydantic models for workspace.json validation
+│   │   └── __init__.py  # WorkspaceMetadata, GridConfig, OCRConfig, OverlayData, ScreenshotMetadata
 │   ├── config_template.py    # Workspace config template utilities
-│   ├── workspace_manager.py  # Workspace directory and metadata management
+│   ├── workspace_manager.py  # Workspace directory and metadata management (with validation)
 │   ├── config_serializer.py  # YAML load/save with comment preservation
 │   ├── coordinate_system.py  # Pure coordinate transformation functions
 │   ├── canvas_controller.py  # Image display, zoom, pan, overlay management
@@ -527,8 +620,7 @@ icon-cropper/
 │
 ├── workspaces/          # Workspace-based projects (self-contained)
 │   ├── character_select/
-│   │   ├── config.yaml       # Workspace-specific configuration
-│   │   ├── workspace.json    # Metadata (selected screenshot, timestamps)
+│   │   ├── workspace.json    # Validated metadata (overlays, screenshots, schema v2)
 │   │   ├── screenshots/      # Multiple screenshots for scrolling UIs
 │   │   │   ├── 001.png
 │   │   │   ├── 002.png
@@ -541,6 +633,15 @@ icon-cropper/
 │   │   ├── workspace.json
 │   │   └── screenshots/
 │   └── [user_workspaces]/ # User-created workspaces
+│
+├── scripts/             # Utility scripts
+│   └── generate_json_schema.py  # Generate JSON Schema from Pydantic models
+│
+├── tests/               # Test suite
+│   ├── test_workspace_schema.py  # Pydantic validation tests (26 tests)
+│   └── ...              # Other test modules
+│
+├── workspace-schema.json  # JSON Schema for IDE autocomplete
 │
 ├── _docs/               # Design documents and ExecPlans
 │   ├── PLANS.md        # ExecPlan methodology
@@ -573,7 +674,8 @@ icon-cropper/
 The `config_editor.py` GUI tool has been refactored into a workspace-centric, tool-based architecture for better maintainability and extensibility. The `editor/` package contains focused modules:
 
 **Workspace Management:**
-- **workspace_manager.py**: Manages workspace directories, screenshots, and metadata (workspace.json)
+- **workspace_manager.py**: Manages workspace directories, screenshots, and metadata (workspace.json) with Pydantic validation
+- **schema/**: Pydantic models for workspace.json validation (GridConfig, OCRConfig, OverlayData, ScreenshotMetadata, WorkspaceMetadata)
 - **config_template.py**: Template utilities for creating new workspace configs
 - **config_serializer.py**: YAML load/save with comment preservation and validation
 
