@@ -1,0 +1,375 @@
+{
+  "$defs": {
+    "GridConfig": {
+      "description": "Grid overlay configuration.\n\nDefines a grid layout for icon cropping with cells arranged in rows and columns.",
+      "examples": [
+        {
+          "cell_height": 80,
+          "cell_width": 80,
+          "columns": 5,
+          "crop_padding": 2,
+          "rows": 4,
+          "spacing_x": 10,
+          "spacing_y": 10,
+          "start_x": 100,
+          "start_y": 200
+        }
+      ],
+      "properties": {
+        "start_x": {
+          "description": "X coordinate of grid start position (pixels)",
+          "minimum": 0,
+          "title": "Start X",
+          "type": "integer"
+        },
+        "start_y": {
+          "description": "Y coordinate of grid start position (pixels)",
+          "minimum": 0,
+          "title": "Start Y",
+          "type": "integer"
+        },
+        "cell_width": {
+          "description": "Width of each grid cell (pixels)",
+          "exclusiveMinimum": 0,
+          "title": "Cell Width",
+          "type": "integer"
+        },
+        "cell_height": {
+          "description": "Height of each grid cell (pixels)",
+          "exclusiveMinimum": 0,
+          "title": "Cell Height",
+          "type": "integer"
+        },
+        "spacing_x": {
+          "description": "Horizontal spacing between cells (pixels)",
+          "minimum": 0,
+          "title": "Spacing X",
+          "type": "integer"
+        },
+        "spacing_y": {
+          "description": "Vertical spacing between cells (pixels)",
+          "minimum": 0,
+          "title": "Spacing Y",
+          "type": "integer"
+        },
+        "columns": {
+          "description": "Number of columns in grid",
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "title": "Columns",
+          "type": "integer"
+        },
+        "rows": {
+          "description": "Number of rows in grid",
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "title": "Rows",
+          "type": "integer"
+        },
+        "crop_padding": {
+          "description": "Padding to remove from cell edges (pixels)",
+          "minimum": 0,
+          "title": "Crop Padding",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start_x",
+        "start_y",
+        "cell_width",
+        "cell_height",
+        "spacing_x",
+        "spacing_y",
+        "columns",
+        "rows",
+        "crop_padding"
+      ],
+      "title": "GridConfig",
+      "type": "object"
+    },
+    "OCRConfig": {
+      "description": "OCR region overlay configuration.\n\nDefines a rectangular region for OCR text detection.",
+      "examples": [
+        {
+          "height": 100,
+          "width": 200,
+          "x": 50,
+          "y": 50
+        }
+      ],
+      "properties": {
+        "x": {
+          "description": "X coordinate of region top-left corner (pixels)",
+          "minimum": 0,
+          "title": "X",
+          "type": "integer"
+        },
+        "y": {
+          "description": "Y coordinate of region top-left corner (pixels)",
+          "minimum": 0,
+          "title": "Y",
+          "type": "integer"
+        },
+        "width": {
+          "description": "Width of OCR region (pixels)",
+          "minimum": 0,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "description": "Height of OCR region (pixels)",
+          "minimum": 0,
+          "title": "Height",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "title": "OCRConfig",
+      "type": "object"
+    },
+    "OverlayData": {
+      "description": "Overlay data model (workspace-level overlay definition).\n\nEach overlay has:\n- id: Unique identifier (e.g., \"grid_1\", \"ocr_1\")\n- type: \"grid\" or \"ocr\"\n- name: Display name for UI\n- config: Type-specific configuration (GridConfig or OCRConfig)\n- locked: If true, prevents deletion/modification\n- visible: If true, renders on canvas",
+      "examples": [
+        {
+          "config": {
+            "cell_height": 80,
+            "cell_width": 80,
+            "columns": 5,
+            "crop_padding": 2,
+            "rows": 4,
+            "spacing_x": 10,
+            "spacing_y": 10,
+            "start_x": 100,
+            "start_y": 200
+          },
+          "id": "grid_1",
+          "locked": false,
+          "name": "Grid 1",
+          "type": "grid",
+          "visible": true
+        }
+      ],
+      "properties": {
+        "id": {
+          "description": "Unique overlay identifier",
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "type": {
+          "description": "Overlay type",
+          "enum": [
+            "grid",
+            "ocr"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "description": "Display name for UI",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "config": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GridConfig"
+            },
+            {
+              "$ref": "#/$defs/OCRConfig"
+            }
+          ],
+          "description": "Overlay configuration",
+          "title": "Config"
+        },
+        "locked": {
+          "default": false,
+          "description": "Prevents deletion/modification",
+          "title": "Locked",
+          "type": "boolean"
+        },
+        "visible": {
+          "default": true,
+          "description": "Controls rendering visibility",
+          "title": "Visible",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "name",
+        "config"
+      ],
+      "title": "OverlayData",
+      "type": "object"
+    },
+    "ScreenshotMetadata": {
+      "description": "Metadata for a single screenshot in a workspace.\n\nEach screenshot can be bound to zero or more workspace-level overlays.",
+      "examples": [
+        {
+          "captured_at": "2025-11-16T10:30:00",
+          "filename": "001.png",
+          "notes": "First screenshot",
+          "overlay_bindings": [
+            "grid_1",
+            "ocr_1"
+          ],
+          "resolution": [
+            1920,
+            1080
+          ]
+        }
+      ],
+      "properties": {
+        "filename": {
+          "description": "Screenshot filename (e.g., '001.png')",
+          "minLength": 1,
+          "title": "Filename",
+          "type": "string"
+        },
+        "captured_at": {
+          "description": "ISO 8601 timestamp of capture",
+          "title": "Captured At",
+          "type": "string"
+        },
+        "resolution": {
+          "description": "[width, height] in pixels",
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Resolution",
+          "type": "array"
+        },
+        "notes": {
+          "default": "",
+          "description": "Optional user notes",
+          "title": "Notes",
+          "type": "string"
+        },
+        "overlay_bindings": {
+          "description": "List of overlay IDs bound to this screenshot",
+          "items": {
+            "type": "string"
+          },
+          "title": "Overlay Bindings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "filename",
+        "captured_at",
+        "resolution"
+      ],
+      "title": "ScreenshotMetadata",
+      "type": "object"
+    }
+  },
+  "description": "Schema for workspace.json files in the icon-cropper tool. Defines workspace-level overlays (grid layouts and OCR regions) and screenshot metadata with overlay bindings.",
+  "examples": [
+    {
+      "created_at": "2025-11-16T10:00:00",
+      "overlays": {
+        "grid_1": {
+          "config": {
+            "cell_height": 80,
+            "cell_width": 80,
+            "columns": 5,
+            "crop_padding": 2,
+            "rows": 4,
+            "spacing_x": 10,
+            "spacing_y": 10,
+            "start_x": 100,
+            "start_y": 200
+          },
+          "id": "grid_1",
+          "locked": false,
+          "name": "Grid 1",
+          "type": "grid",
+          "visible": true
+        }
+      },
+      "schema_version": 2,
+      "screenshots": [
+        {
+          "captured_at": "2025-11-16T10:30:00",
+          "filename": "001.png",
+          "notes": "",
+          "overlay_bindings": [
+            "grid_1"
+          ],
+          "resolution": [
+            1920,
+            1080
+          ]
+        }
+      ],
+      "selected_screenshot": "001.png",
+      "workspace_name": "character_select"
+    }
+  ],
+  "properties": {
+    "workspace_name": {
+      "description": "Workspace name (must match directory name)",
+      "minLength": 1,
+      "title": "Workspace Name",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 2,
+      "description": "Schema version (must be 2)",
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "created_at": {
+      "description": "ISO 8601 timestamp of workspace creation",
+      "title": "Created At",
+      "type": "string"
+    },
+    "selected_screenshot": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Currently selected screenshot filename",
+      "title": "Selected Screenshot"
+    },
+    "overlays": {
+      "additionalProperties": {
+        "$ref": "#/$defs/OverlayData"
+      },
+      "description": "Workspace-level overlay definitions",
+      "title": "Overlays",
+      "type": "object"
+    },
+    "screenshots": {
+      "description": "List of screenshots with bindings",
+      "items": {
+        "$ref": "#/$defs/ScreenshotMetadata"
+      },
+      "title": "Screenshots",
+      "type": "array"
+    }
+  },
+  "required": [
+    "workspace_name",
+    "schema_version",
+    "created_at"
+  ],
+  "title": "Icon Cropper Workspace Metadata",
+  "type": "object",
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

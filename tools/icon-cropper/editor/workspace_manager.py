@@ -11,7 +11,9 @@ from typing import List, Optional, Dict, Any
 import json
 from datetime import datetime
 from PIL import Image
+from pydantic import ValidationError
 from editor.overlay_model import Overlay
+from editor.schema import WorkspaceMetadata
 
 class WorkspaceManager:
     """Manages workspace directories and metadata for page configurations."""
@@ -172,9 +174,17 @@ class WorkspaceManager:
         return self.workspaces_root / page_name / "screenshots" / filename
 
     def _load_metadata(self, workspace_path: Path) -> Dict[str, Any]:
-        """Load workspace metadata from JSON file."""
+        """Load workspace metadata from JSON file with Pydantic validation.
+
+        Returns:
+            Dictionary representation of validated WorkspaceMetadata
+
+        Raises:
+            ValueError: If validation fails (with detailed error message)
+        """
         metadata_path = workspace_path / "workspace.json"
         if not metadata_path.exists():
+            # Return default metadata (will be validated on save)
             return {
                 "workspace_name": workspace_path.name,
                 "created_at": datetime.now().isoformat(),
@@ -184,14 +194,51 @@ class WorkspaceManager:
                 "screenshots": []
             }
 
-        with open(metadata_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        try:
+            with open(metadata_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+
+            # Validate with Pydantic
+            validated = WorkspaceMetadata.model_validate(data)
+            return validated.model_dump()
+
+        except ValidationError as e:
+            # Format validation errors into user-friendly message
+            error_msg = f"Workspace validation failed for '{workspace_path.name}':\n"
+            for error in e.errors():
+                location = " -> ".join(str(loc) for loc in error['loc'])
+                error_msg += f"  • {location}: {error['msg']}\n"
+            raise ValueError(error_msg) from e
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON in workspace file '{metadata_path}': {e}") from e
 
     def _save_metadata(self, workspace_path: Path, metadata: Dict[str, Any]):
-        """Save workspace metadata to JSON file."""
-        metadata_path = workspace_path / "workspace.json"
-        with open(metadata_path, 'w', encoding='utf-8') as f:
-            json.dump(metadata, f, indent=2, ensure_ascii=False)
+        """Save workspace metadata to JSON file with Pydantic validation.
+
+        Args:
+            workspace_path: Path to workspace directory
+            metadata: Metadata dictionary to save
+
+        Raises:
+            ValueError: If metadata validation fails
+        """
+        try:
+            # Validate before saving
+            validated = WorkspaceMetadata.model_validate(metadata)
+
+            # Save validated data
+            metadata_path = workspace_path / "workspace.json"
+            with open(metadata_path, 'w', encoding='utf-8') as f:
+                # Use Pydantic's JSON serialization for proper type handling
+                f.write(validated.model_dump_json(indent=2, exclude_none=False))
+
+        except ValidationError as e:
+            # Format validation errors into user-friendly message
+            error_msg = f"Cannot save workspace '{workspace_path.name}' - validation failed:\n"
+            for error in e.errors():
+                location = " -> ".join(str(loc) for loc in error['loc'])
+                error_msg += f"  • {location}: {error['msg']}\n"
+            raise ValueError(error_msg) from e
 
     # ========== Overlay Persistence Methods (Phase 1.5: Workspace-Level Overlays) ==========
 

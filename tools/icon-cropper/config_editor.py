@@ -374,21 +374,31 @@ class ConfigEditorApp:
             self.root.after(0, self._on_capture_error, "Error", f"Failed to capture screenshot:\n{e}")
 
     def _on_capture_success(self, image: Image.Image):
-        """Handle successful capture (called in main thread).
+        """Handle successful capture (called in main thread) with error handling.
 
         Args:
             image: The captured image
         """
-        # Add to workspace
-        filename = self.workspace_manager.add_screenshot(self.current_workspace, image)
+        try:
+            # Add to workspace
+            filename = self.workspace_manager.add_screenshot(self.current_workspace, image)
 
-        # Update UI
-        self._refresh_screenshot_list()
+            # Update UI
+            self._refresh_screenshot_list()
 
-        # Display on canvas (workspace manager auto-selected it)
-        self._load_selected_screenshot()
+            # Display on canvas (workspace manager auto-selected it)
+            self._load_selected_screenshot()
 
-        self.update_status(f"Screenshot captured: {filename}")
+            self.update_status(f"Screenshot captured: {filename}")
+
+        except ValueError as e:
+            # Workspace validation failed
+            messagebox.showerror(
+                "Workspace Validation Error",
+                f"Error saving screenshot to workspace '{self.current_workspace}':\n\n{e}\n\n"
+                "Screenshot was captured but could not be saved."
+            )
+            self.update_status("Error saving screenshot")
 
     def _on_capture_error(self, title: str, message: str):
         """Handle capture error (called in main thread).
@@ -897,15 +907,25 @@ class ConfigEditorApp:
             json.dump(prefs, f, indent=2)
 
     def _refresh_screenshot_list(self):
-        """Refresh the screenshot list widget."""
-        screenshots = self.workspace_manager.get_screenshots(self.current_workspace)
-        selected = self.workspace_manager.get_selected_screenshot(self.current_workspace)
+        """Refresh the screenshot list widget with error handling."""
+        try:
+            screenshots = self.workspace_manager.get_screenshots(self.current_workspace)
+            selected = self.workspace_manager.get_selected_screenshot(self.current_workspace)
 
-        self.ui_builder.update_screenshot_list(
-            screenshots,
-            selected,
-            self._on_screenshot_selected
-        )
+            self.ui_builder.update_screenshot_list(
+                screenshots,
+                selected,
+                self._on_screenshot_selected
+            )
+        except ValueError as e:
+            # Workspace validation failed
+            messagebox.showerror(
+                "Workspace Validation Error",
+                f"Error loading workspace '{self.current_workspace}':\n\n{e}\n\n"
+                "Please fix the workspace.json file or delete it to reset."
+            )
+            # Clear UI to prevent showing invalid data
+            self.ui_builder.update_screenshot_list([], None, self._on_screenshot_selected)
 
     def _on_screenshot_selected(self, filename: str):
         """Handle screenshot selection from list."""
@@ -913,57 +933,76 @@ class ConfigEditorApp:
         self._load_selected_screenshot()
 
     def _load_selected_screenshot(self):
-        """Load the selected screenshot onto canvas and restore its overlays."""
-        selected = self.workspace_manager.get_selected_screenshot(self.current_workspace)
-        if not selected:
+        """Load the selected screenshot onto canvas and restore its overlays with error handling."""
+        try:
+            selected = self.workspace_manager.get_selected_screenshot(self.current_workspace)
+            if not selected:
+                return
+
+            screenshot_path = self.workspace_manager.get_screenshot_path(self.current_workspace, selected)
+            if screenshot_path.exists():
+                # Load image
+                image = Image.open(screenshot_path)
+                self.canvas_controller.load_image(image)
+                self.canvas_controller.center_image()
+
+                # Load overlays bound to this screenshot (Phase 1.5: workspace-level overlays)
+                overlays = self.workspace_manager.get_screenshot_overlays(self.current_workspace, selected)
+
+                # Clear existing overlays and load saved ones
+                self.canvas_controller.overlay_manager.clear()
+                self.selected_overlay_id = None  # Clear selection when switching screenshots
+                for overlay_id, overlay in overlays.items():
+                    self.canvas_controller.overlay_manager.add_overlay(overlay)
+
+                self.canvas_controller.display_image()
+
+                # Refresh overlay list UI
+                self._refresh_overlay_list()
+
+                # Refresh binding list UI (Phase 1.5)
+                self._refresh_binding_list()
+
+        except ValueError as e:
+            # Workspace validation failed
+            messagebox.showerror(
+                "Workspace Validation Error",
+                f"Error loading screenshot from workspace '{self.current_workspace}':\n\n{e}\n\n"
+                "Please fix the workspace.json file or delete it to reset."
+            )
             return
-
-        screenshot_path = self.workspace_manager.get_screenshot_path(self.current_workspace, selected)
-        if screenshot_path.exists():
-            # Load image
-            image = Image.open(screenshot_path)
-            self.canvas_controller.load_image(image)
-            self.canvas_controller.center_image()
-
-            # Load overlays bound to this screenshot (Phase 1.5: workspace-level overlays)
-            overlays = self.workspace_manager.get_screenshot_overlays(self.current_workspace, selected)
-
-            # Clear existing overlays and load saved ones
-            self.canvas_controller.overlay_manager.clear()
-            self.selected_overlay_id = None  # Clear selection when switching screenshots
-            for overlay_id, overlay in overlays.items():
-                self.canvas_controller.overlay_manager.add_overlay(overlay)
-
-            self.canvas_controller.display_image()
-
-            # Refresh overlay list UI
-            self._refresh_overlay_list()
-
-            # Refresh binding list UI (Phase 1.5)
-            self._refresh_binding_list()
 
     def _save_current_overlays(self):
-        """Save current canvas overlays to the workspace (Phase 1.5: workspace-level overlays)."""
+        """Save current canvas overlays to the workspace with error handling (Phase 1.5: workspace-level overlays)."""
         selected = self.workspace_manager.get_selected_screenshot(self.current_workspace)
         if not selected:
             return
 
-        # Get current overlays from canvas
-        canvas_overlays = self.canvas_controller.overlay_manager.to_dict()
-        canvas_overlay_ids = list(canvas_overlays.keys())
+        try:
+            # Get current overlays from canvas
+            canvas_overlays = self.canvas_controller.overlay_manager.to_dict()
+            canvas_overlay_ids = list(canvas_overlays.keys())
 
-        # Load existing workspace overlays
-        workspace_overlays = self.workspace_manager.load_workspace_overlays(self.current_workspace)
-        workspace_overlays_dict = {oid: overlay.to_dict() for oid, overlay in workspace_overlays.items()}
+            # Load existing workspace overlays
+            workspace_overlays = self.workspace_manager.load_workspace_overlays(self.current_workspace)
+            workspace_overlays_dict = {oid: overlay.to_dict() for oid, overlay in workspace_overlays.items()}
 
-        # Merge canvas overlays into workspace overlays (canvas overlays take precedence)
-        workspace_overlays_dict.update(canvas_overlays)
+            # Merge canvas overlays into workspace overlays (canvas overlays take precedence)
+            workspace_overlays_dict.update(canvas_overlays)
 
-        # Save workspace overlays
-        self.workspace_manager.save_workspace_overlays(self.current_workspace, workspace_overlays_dict)
+            # Save workspace overlays
+            self.workspace_manager.save_workspace_overlays(self.current_workspace, workspace_overlays_dict)
 
-        # Save screenshot bindings (overlay IDs visible on this screenshot)
-        self.workspace_manager.save_screenshot_bindings(self.current_workspace, selected, canvas_overlay_ids)
+            # Save screenshot bindings (overlay IDs visible on this screenshot)
+            self.workspace_manager.save_screenshot_bindings(self.current_workspace, selected, canvas_overlay_ids)
+
+        except ValueError as e:
+            # Workspace validation failed during save
+            messagebox.showerror(
+                "Workspace Validation Error",
+                f"Error saving overlays to workspace '{self.current_workspace}':\n\n{e}\n\n"
+                "Your overlays could not be saved. Please check the workspace.json file."
+            )
 
     def _refresh_overlay_list(self):
         """Refresh the overlay list widget."""
