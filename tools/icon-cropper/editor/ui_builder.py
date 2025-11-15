@@ -370,6 +370,33 @@ class UIBuilder:
         )
         self.lock_overlay_btn.pack(side=tk.LEFT, padx=2, fill=tk.X, expand=True)
 
+        # === Overlay Binding Panel (Phase 1.5) ===
+        ttk.Separator(overlay_panel, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=5, pady=10)
+
+        ttk.Label(
+            overlay_panel,
+            text="Apply to Screenshot:",
+            font=("Arial", 10, "bold")
+        ).pack(pady=(5, 5))
+
+        # Scrollable binding list
+        binding_list_frame = ttk.Frame(overlay_panel)
+        binding_list_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        binding_canvas = tk.Canvas(binding_list_frame, highlightthickness=0, height=150)
+        binding_scrollbar = ttk.Scrollbar(binding_list_frame, orient=tk.VERTICAL, command=binding_canvas.yview)
+        binding_canvas.configure(yscrollcommand=binding_scrollbar.set)
+
+        binding_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        binding_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        binding_list_inner = ttk.Frame(binding_canvas)
+        binding_canvas.create_window((0, 0), window=binding_list_inner, anchor='nw')
+
+        # Store references for updating
+        self.binding_list_frame = binding_list_inner
+        self.binding_list_canvas = binding_canvas
+
         # Status bar
         status_bar = ttk.Label(
             self.root,
@@ -676,3 +703,48 @@ class UIBuilder:
         else:
             self.delete_overlay_btn.config(state='disabled')
             self.lock_overlay_btn.config(state='disabled')
+
+    def update_binding_list(self, all_overlays: List[Any], bound_ids: List[str],
+                           on_toggle_callback: Callable):
+        """Update the overlay binding list (Phase 1.5: workspace-level overlays).
+
+        Args:
+            all_overlays: List of all workspace Overlay objects
+            bound_ids: List of overlay IDs bound to current screenshot
+            on_toggle_callback: Function to call when checkbox is toggled (overlay_id, is_bound)
+        """
+        # Clear existing widgets
+        for widget in self.binding_list_frame.winfo_children():
+            widget.destroy()
+
+        if not all_overlays:
+            ttk.Label(
+                self.binding_list_frame,
+                text="No overlays in workspace",
+                foreground="gray"
+            ).pack(pady=5)
+            return
+
+        # Create checkboxes for each overlay
+        for overlay in all_overlays:
+            frame = ttk.Frame(self.binding_list_frame)
+            frame.pack(fill=tk.X, pady=2)
+
+            # Icon based on type
+            icon = "🔲" if overlay.type == "grid" else "📄"
+
+            # Checkbox variable
+            var = tk.BooleanVar(value=(overlay.id in bound_ids))
+
+            # Checkbox with icon and name
+            checkbox = ttk.Checkbutton(
+                frame,
+                text=f"{icon} {overlay.name}",
+                variable=var,
+                command=lambda oid=overlay.id, v=var: on_toggle_callback(oid, v.get())
+            )
+            checkbox.pack(side=tk.LEFT, anchor='w', fill=tk.X, expand=True)
+
+        # Update scroll region
+        self.binding_list_frame.update_idletasks()
+        self.binding_list_canvas.configure(scrollregion=self.binding_list_canvas.bbox('all'))

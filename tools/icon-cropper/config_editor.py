@@ -447,6 +447,7 @@ class ConfigEditorApp:
             'status_callback': self.update_status,
             'save_overlays_callback': self._save_current_overlays,
             'refresh_overlay_list_callback': self._refresh_overlay_list,
+            'refresh_binding_list_callback': self._refresh_binding_list,  # Phase 1.5
             'set_selected_overlay_callback': self._set_selected_overlay
         }
 
@@ -924,8 +925,8 @@ class ConfigEditorApp:
             self.canvas_controller.load_image(image)
             self.canvas_controller.center_image()
 
-            # Load overlays for this screenshot
-            overlays = self.workspace_manager.load_overlays(self.current_workspace, selected)
+            # Load overlays bound to this screenshot (Phase 1.5: workspace-level overlays)
+            overlays = self.workspace_manager.get_screenshot_overlays(self.current_workspace, selected)
 
             # Clear existing overlays and load saved ones
             self.canvas_controller.overlay_manager.clear()
@@ -938,17 +939,31 @@ class ConfigEditorApp:
             # Refresh overlay list UI
             self._refresh_overlay_list()
 
+            # Refresh binding list UI (Phase 1.5)
+            self._refresh_binding_list()
+
     def _save_current_overlays(self):
-        """Save current canvas overlays to the workspace for the selected screenshot."""
+        """Save current canvas overlays to the workspace (Phase 1.5: workspace-level overlays)."""
         selected = self.workspace_manager.get_selected_screenshot(self.current_workspace)
         if not selected:
             return
 
-        # Convert overlay objects to serializable dicts
-        overlays_dict = self.canvas_controller.overlay_manager.to_dict()
+        # Get current overlays from canvas
+        canvas_overlays = self.canvas_controller.overlay_manager.to_dict()
+        canvas_overlay_ids = list(canvas_overlays.keys())
 
-        # Save to workspace
-        self.workspace_manager.save_overlays(self.current_workspace, selected, overlays_dict)
+        # Load existing workspace overlays
+        workspace_overlays = self.workspace_manager.load_workspace_overlays(self.current_workspace)
+        workspace_overlays_dict = {oid: overlay.to_dict() for oid, overlay in workspace_overlays.items()}
+
+        # Merge canvas overlays into workspace overlays (canvas overlays take precedence)
+        workspace_overlays_dict.update(canvas_overlays)
+
+        # Save workspace overlays
+        self.workspace_manager.save_workspace_overlays(self.current_workspace, workspace_overlays_dict)
+
+        # Save screenshot bindings (overlay IDs visible on this screenshot)
+        self.workspace_manager.save_screenshot_bindings(self.current_workspace, selected, canvas_overlay_ids)
 
     def _refresh_overlay_list(self):
         """Refresh the overlay list widget."""
@@ -961,6 +976,60 @@ class ConfigEditorApp:
             self._on_delete_overlay,
             self._on_lock_overlay
         )
+
+    def _refresh_binding_list(self):
+        """Refresh the overlay binding list (Phase 1.5: workspace-level overlays)."""
+        if not self.current_workspace:
+            return
+
+        # Get selected screenshot
+        selected = self.workspace_manager.get_selected_screenshot(self.current_workspace)
+        if not selected:
+            return
+
+        # Load all workspace overlays
+        all_overlays = self.workspace_manager.load_workspace_overlays(self.current_workspace)
+
+        # Load bindings for current screenshot
+        bound_ids = self.workspace_manager.load_screenshot_bindings(self.current_workspace, selected)
+
+        # Update UI
+        self.ui_builder.update_binding_list(
+            list(all_overlays.values()),
+            bound_ids,
+            self._on_binding_toggle
+        )
+
+    def _on_binding_toggle(self, overlay_id: str, is_bound: bool):
+        """Handle overlay binding checkbox toggle (Phase 1.5).
+
+        Args:
+            overlay_id: ID of overlay to bind/unbind
+            is_bound: True if checkbox is checked, False if unchecked
+        """
+        selected = self.workspace_manager.get_selected_screenshot(self.current_workspace)
+        if not selected:
+            return
+
+        # Load workspace overlays
+        all_overlays = self.workspace_manager.load_workspace_overlays(self.current_workspace)
+
+        if is_bound:
+            # Add overlay to canvas
+            overlay = all_overlays.get(overlay_id)
+            if overlay:
+                self.canvas_controller.overlay_manager.add_overlay(overlay)
+        else:
+            # Remove overlay from canvas
+            self.canvas_controller.remove_overlay_by_id(overlay_id)
+
+        # Save changes
+        self._save_current_overlays()
+
+        # Refresh UI
+        self._refresh_overlay_list()
+        self._refresh_binding_list()
+        self.canvas_controller.display_image()
 
     def _on_overlay_selected(self, overlay_id: str):
         """Handle overlay selection from list."""
@@ -986,6 +1055,7 @@ class ConfigEditorApp:
             self.selected_overlay_id = None
             self._save_current_overlays()
             self._refresh_overlay_list()
+            self._refresh_binding_list()  # Update bindings (Phase 1.5)
             self.canvas_controller.display_image()
             self.update_status(f"Deleted overlay '{overlay.name}'")
 

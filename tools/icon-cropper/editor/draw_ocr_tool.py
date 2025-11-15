@@ -123,6 +123,10 @@ class DrawOCRTool(BaseTool):
             if 'refresh_overlay_list_callback' in context and context['refresh_overlay_list_callback']:
                 context['refresh_overlay_list_callback']()
 
+            # Refresh binding list UI (Phase 1.5)
+            if 'refresh_binding_list_callback' in context and context['refresh_binding_list_callback']:
+                context['refresh_binding_list_callback']()
+
             # AUTO-SWITCH back to select tool after drawing completes
             # This makes handles immediately visible and allows user to adjust
             if 'auto_switch_tool' in context and context['auto_switch_tool']:

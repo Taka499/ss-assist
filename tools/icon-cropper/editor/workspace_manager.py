@@ -49,7 +49,8 @@ class WorkspaceManager:
                 "workspace_name": page_name,
                 "created_at": datetime.now().isoformat(),
                 "selected_screenshot": None,
-                "overlays": {},  # Top-level overlays dict (Phase 1.5 preparation)
+                "schema_version": 2,
+                "overlays": {},  # Workspace-level overlays (Phase 1.5)
                 "screenshots": []
             }
             self._save_metadata(workspace_path, metadata)
@@ -103,7 +104,7 @@ class WorkspaceManager:
             "captured_at": datetime.now().isoformat(),
             "resolution": [image.width, image.height],
             "notes": "",
-            "overlays": {}  # Empty overlay dict for new screenshots
+            "overlay_bindings": []  # Empty binding list for new screenshots (Phase 1.5)
         })
         metadata["selected_screenshot"] = filename
         self._save_metadata(workspace_path, metadata)
@@ -178,6 +179,7 @@ class WorkspaceManager:
                 "workspace_name": workspace_path.name,
                 "created_at": datetime.now().isoformat(),
                 "selected_screenshot": None,
+                "schema_version": 2,
                 "overlays": {},
                 "screenshots": []
             }
@@ -191,15 +193,46 @@ class WorkspaceManager:
         with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, indent=2, ensure_ascii=False)
 
-    # ========== Overlay Persistence Methods ==========
+    # ========== Overlay Persistence Methods (Phase 1.5: Workspace-Level Overlays) ==========
 
-    def save_overlays(self, page_name: str, screenshot_filename: str, overlays: Dict[str, Dict[str, Any]]):
-        """Save overlays for a specific screenshot.
+    def save_workspace_overlays(self, page_name: str, overlays: Dict[str, Dict[str, Any]]):
+        """Save workspace-level overlays.
+
+        Args:
+            page_name: Name of the workspace
+            overlays: Dictionary mapping overlay IDs to overlay data dicts
+        """
+        workspace_path = self.get_workspace_path(page_name)
+        metadata = self._load_metadata(workspace_path)
+        metadata["overlays"] = overlays
+        self._save_metadata(workspace_path, metadata)
+
+    def load_workspace_overlays(self, page_name: str) -> Dict[str, Overlay]:
+        """Load workspace-level overlays.
+
+        Args:
+            page_name: Name of the workspace
+
+        Returns:
+            Dictionary mapping overlay IDs to Overlay objects
+        """
+        workspace_path = self.get_workspace_path(page_name)
+        metadata = self._load_metadata(workspace_path)
+        overlays_data = metadata.get("overlays", {})
+
+        # Convert dict data to Overlay objects
+        return {
+            overlay_id: Overlay.from_dict(overlay_data)
+            for overlay_id, overlay_data in overlays_data.items()
+        }
+
+    def save_screenshot_bindings(self, page_name: str, screenshot_filename: str, overlay_ids: List[str]):
+        """Save overlay bindings for a screenshot.
 
         Args:
             page_name: Name of the workspace
             screenshot_filename: Screenshot filename (e.g., "001.png")
-            overlays: Dictionary mapping overlay IDs to overlay data dicts
+            overlay_ids: List of overlay IDs bound to this screenshot
         """
         workspace_path = self.get_workspace_path(page_name)
         metadata = self._load_metadata(workspace_path)
@@ -207,7 +240,7 @@ class WorkspaceManager:
         # Find the screenshot entry
         for screenshot in metadata["screenshots"]:
             if screenshot["filename"] == screenshot_filename:
-                screenshot["overlays"] = overlays
+                screenshot["overlay_bindings"] = overlay_ids
                 break
         else:
             # Screenshot not found - this shouldn't happen but handle gracefully
@@ -215,15 +248,15 @@ class WorkspaceManager:
 
         self._save_metadata(workspace_path, metadata)
 
-    def load_overlays(self, page_name: str, screenshot_filename: str) -> Dict[str, Overlay]:
-        """Load overlays for a specific screenshot.
+    def load_screenshot_bindings(self, page_name: str, screenshot_filename: str) -> List[str]:
+        """Load overlay bindings for a screenshot.
 
         Args:
             page_name: Name of the workspace
             screenshot_filename: Screenshot filename (e.g., "001.png")
 
         Returns:
-            Dictionary mapping overlay IDs to Overlay objects
+            List of overlay IDs bound to this screenshot
         """
         workspace_path = self.get_workspace_path(page_name)
         metadata = self._load_metadata(workspace_path)
@@ -231,21 +264,30 @@ class WorkspaceManager:
         # Find the screenshot entry
         for screenshot in metadata["screenshots"]:
             if screenshot["filename"] == screenshot_filename:
-                overlays_data = screenshot.get("overlays", {})
-                # Convert dict data to Overlay objects
-                return {
-                    overlay_id: Overlay.from_dict(overlay_data)
-                    for overlay_id, overlay_data in overlays_data.items()
-                }
+                return screenshot.get("overlay_bindings", [])
 
-        # Screenshot not found or no overlays
-        return {}
+        # Screenshot not found
+        return []
 
-    def clear_overlays(self, page_name: str, screenshot_filename: str):
-        """Clear all overlays for a specific screenshot.
+    def get_screenshot_overlays(self, page_name: str, screenshot_filename: str) -> Dict[str, Overlay]:
+        """Get overlays bound to a specific screenshot (convenience method).
 
         Args:
             page_name: Name of the workspace
             screenshot_filename: Screenshot filename (e.g., "001.png")
+
+        Returns:
+            Dictionary mapping overlay IDs to Overlay objects for bound overlays only
         """
-        self.save_overlays(page_name, screenshot_filename, {})
+        # Load workspace-level overlays
+        all_overlays = self.load_workspace_overlays(page_name)
+
+        # Load screenshot bindings
+        bound_ids = self.load_screenshot_bindings(page_name, screenshot_filename)
+
+        # Filter overlays to only those bound to this screenshot
+        return {
+            overlay_id: overlay
+            for overlay_id, overlay in all_overlays.items()
+            if overlay_id in bound_ids
+        }
