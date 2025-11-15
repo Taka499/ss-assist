@@ -92,17 +92,6 @@ canvas_controller.set_overlay('ocr', ocr_config, index=0)    # First OCR region
   - `delete_screenshot(workspace, filename)` - No last-screenshot protection
   - `get_screenshots(workspace)` - Returns list with metadata
 
-**`editor/config_template.py`**
-- Loads config_template.yaml
-- Creates workspace configs (from template or clone)
-- Replaces placeholders (workspace_name, output paths)
-
-**`editor/config_serializer.py`**
-- YAML load/save with comment preservation
-- Accepts workspace-specific config path
-- Validates grid/OCR configurations
-- Creates timestamped backups
-
 ### Canvas & Visual Layer
 
 **`editor/canvas_controller.py`**
@@ -270,16 +259,12 @@ Update `grid_renderer.py` to render new overlay type in `draw_overlays()`.
 # Always clear before loading new workspace
 self.canvas_controller.clear()  # Resets image + overlays + zoom + pan
 
-# Reload config serializer for new workspace
-workspace_config_path = workspaces_root / workspace_name / "config.yaml"
-self.config_serializer = ConfigSerializer(workspace_config_path)
+# Ensure workspace exists (creates workspace.json if needed)
+self.workspace_manager.create_workspace(workspace_name)
 
-# Load workspace config
-self.config, error = self.config_serializer.load()
-
-# Load screenshots
+# Load screenshots and overlays from workspace.json
 self._refresh_screenshot_list()
-self._load_selected_screenshot()
+self._load_selected_screenshot()  # This loads overlays from workspace.json
 ```
 
 ### Creating Overlays (Avoid Shared State!)

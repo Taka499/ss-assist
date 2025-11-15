@@ -11,8 +11,6 @@ from typing import List, Optional, Dict, Any
 import json
 from datetime import datetime
 from PIL import Image
-from ruamel.yaml import YAML
-from editor.config_template import create_workspace_config
 from editor.overlay_model import Overlay
 
 class WorkspaceManager:
@@ -44,20 +42,6 @@ class WorkspaceManager:
         (workspace_path / "screenshots").mkdir(exist_ok=True)
         (workspace_path / "cropped").mkdir(exist_ok=True)
 
-        # Create config.yaml from template (if doesn't exist)
-        config_path = workspace_path / "config.yaml"
-        if not config_path.exists():
-            clone_from_path = None
-            if clone_from:
-                clone_from_path = self.workspaces_root / clone_from / "config.yaml"
-
-            config = create_workspace_config(page_name, clone_from_path)
-
-            yaml = YAML()
-            yaml.default_flow_style = False
-            with open(config_path, 'w', encoding='utf-8') as f:
-                yaml.dump(config, f)
-
         # Create empty metadata if doesn't exist
         metadata_path = workspace_path / "workspace.json"
         if not metadata_path.exists():
@@ -65,6 +49,7 @@ class WorkspaceManager:
                 "workspace_name": page_name,
                 "created_at": datetime.now().isoformat(),
                 "selected_screenshot": None,
+                "overlays": {},  # Top-level overlays dict (Phase 1.5 preparation)
                 "screenshots": []
             }
             self._save_metadata(workspace_path, metadata)
@@ -193,6 +178,7 @@ class WorkspaceManager:
                 "workspace_name": workspace_path.name,
                 "created_at": datetime.now().isoformat(),
                 "selected_screenshot": None,
+                "overlays": {},
                 "screenshots": []
             }
 

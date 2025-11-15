@@ -17,12 +17,12 @@ Users can verify this works by: creating a workspace, defining one grid overlay,
 
 ## Progress
 
-- [ ] Phase 1: Remove config.yaml dependencies
-  - [ ] Remove Save/Load Configuration buttons from UI
-  - [ ] Delete ConfigSerializer class and config_serializer.py
-  - [ ] Update workspace creation to skip config.yaml generation
-  - [ ] Update documentation to reflect workspace.json as sole config
-  - [ ] Test workspace creation and verify no config.yaml created
+- [x] Phase 1: Remove config.yaml dependencies (Completed 2025-11-16)
+  - [x] Remove Save/Load Configuration buttons from UI
+  - [x] Delete ConfigSerializer class and config_serializer.py
+  - [x] Update workspace creation to skip config.yaml generation
+  - [x] Update documentation to reflect workspace.json as sole config
+  - [x] Test workspace creation and verify no config.yaml created
 
 - [ ] Phase 1.5: Refactor to overlay-based design
   - [ ] Design new workspace.json schema (overlay-based)
@@ -44,7 +44,15 @@ Users can verify this works by: creating a workspace, defining one grid overlay,
 
 ## Surprises & Discoveries
 
-(To be filled as work proceeds)
+### Phase 1 Implementation (2025-11-16)
+
+- **ConfigSerializer was completely unused for overlay management**: The existing overlay persistence system already used workspace.json directly via WorkspaceManager. ConfigSerializer only existed for the legacy config.yaml workflow. Removing it was cleaner than expected - no overlay-related code needed updating.
+
+- **"Unsaved changes" tracking was unnecessary**: The flag existed because of manual save/load workflow from config.yaml. With auto-save to workspace.json, the concept of "unsaved changes" no longer applies. Removing this simplified workspace switching logic significantly.
+
+- **config_template.py could be deleted entirely**: Originally planned to "repurpose" it to workspace_template.py, but workspace.json creation is simple enough (just a dict with default values) that a separate template module wasn't needed. The workspace metadata structure is now directly in WorkspaceManager.create_workspace().
+
+- **No breaking changes for existing workspaces**: Even though we removed config.yaml generation, existing workspaces with config.yaml files are unaffected. They'll continue to have the legacy file, but it's no longer read or written. workspace.json is already the active system.
 
 ## Decision Log
 
@@ -54,6 +62,15 @@ Users can verify this works by: creating a workspace, defining one grid overlay,
 
 - Decision: Use overlay bindings (array of overlay IDs) instead of moving overlays to screenshots
   Rationale: Bindings enable many-to-many relationships (one overlay → many screenshots, one screenshot → many overlays). This supports both shared overlays (batch crop use case) and screenshot-specific overlays (edge cases).
+  Date: 2025-11-16
+
+- Decision: Delete config_template.py instead of repurposing to workspace_template.py
+  Rationale: The workspace.json structure is simple enough (5 keys with default values) that creating a separate template module adds unnecessary abstraction. The metadata dict is now created inline in WorkspaceManager.create_workspace(). This follows YAGNI principle - don't add infrastructure until it's actually needed.
+  Date: 2025-11-16
+  Evidence: workspace.json only needs 5 keys (workspace_name, created_at, selected_screenshot, overlays, screenshots), all with obvious defaults. No complex placeholder replacement or cloning logic needed.
+
+- Decision: Add empty "overlays": {} to workspace.json in Phase 1
+  Rationale: Prepares the schema for Phase 1.5 without breaking current functionality. New workspaces will have the key pre-populated, making migration easier. Existing workspaces can add it during migration.
   Date: 2025-11-16
 
 ## Outcomes & Retrospective

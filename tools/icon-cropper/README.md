@@ -276,7 +276,8 @@ uv run python config_editor.py
 5. **Draw OCR Region(s)**: Click "📄 Draw OCR Region" - can draw multiple regions
 6. **Adjust**: Tool auto-switches to Select mode - resize/adjust overlays with handles
 7. **Preview Icons**: Click "👁️ Preview Icons" to verify grid alignment
-8. **Save**: Click "💾 Save Configuration" to save to workspace's config.yaml
+
+**Note:** All overlay configurations are automatically saved to workspace.json in real-time. There is no need for manual save/load operations.
 
 **Tool System:**
 - **Select Tool** (default): Pan, zoom, and resize existing overlays via handles
@@ -286,9 +287,7 @@ uv run python config_editor.py
 **Keyboard Shortcuts:**
 - `Ctrl+O`: Open screenshot from file
 - `Ctrl+G`: Capture screenshot from game window
-- `Ctrl+L`: Load saved configuration
 - `Ctrl+P`: Preview extracted icons
-- `Ctrl+S`: Save configuration
 - `Ctrl+Scroll`: Zoom in/out
 
 **Tips:**
@@ -296,7 +295,7 @@ uv run python config_editor.py
 - Use multiple screenshots in one workspace for scrolling UIs
 - Select tool is always active after drawing - handles appear automatically
 - Adjust spinbox values for fine-tuning (works in any mode)
-- Preview before saving to catch misalignments
+- Preview extracted icons to verify grid alignment
 - Workspaces are stored in `workspaces/` - can be zipped and shared
 
 ### Adjusting Grid Positions Manually
