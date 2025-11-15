@@ -12,6 +12,7 @@ from typing import Optional, Tuple, Callable, Dict, List, Any
 from PIL import Image, ImageTk
 import tkinter as tk
 from .coordinate_system import canvas_to_image_coords, image_to_canvas_coords
+from .overlay_model import Overlay, OverlayManager
 
 
 class CanvasController:
@@ -43,9 +44,8 @@ class CanvasController:
         self.is_panning: bool = False
         self.pan_start: Tuple[int, int] = [0, 0]
 
-        # Overlay state - unified system for all overlay types
-        # Structure: {'grid': [config1, config2], 'ocr': [config1], 'annotation': [...]}
-        self.overlays: Dict[str, List[Optional[Dict[str, Any]]]] = {}
+        # Overlay state - unified system using OverlayManager
+        self.overlay_manager = OverlayManager()
 
     def load_image(self, image: Image.Image):
         """Load an image and prepare for display.
@@ -178,22 +178,40 @@ class CanvasController:
     def set_overlay(self, overlay_type: str, config: Dict[str, Any], overlay_id: int = 0):
         """Set or update an overlay of a specific type.
 
+        DEPRECATED: This method maintains backward compatibility.
+        For new code, use add_overlay() or update_overlay_config().
+
         Args:
             overlay_type: Type of overlay ('grid', 'ocr', 'annotation', etc.)
             config: Configuration dict for the overlay
             overlay_id: Index for multiple overlays of same type (default: 0)
         """
-        if overlay_type not in self.overlays:
-            self.overlays[overlay_type] = []
+        # Get existing overlays of this type
+        existing = self.overlay_manager.get_overlays_by_type(overlay_type)
 
-        # Extend list if needed
-        while len(self.overlays[overlay_type]) <= overlay_id:
-            self.overlays[overlay_type].append(None)
-
-        self.overlays[overlay_type][overlay_id] = config
+        if overlay_id < len(existing):
+            # Update existing overlay
+            overlay = existing[overlay_id]
+            overlay.config = config
+        else:
+            # Create new overlay
+            new_id = self.overlay_manager.generate_overlay_id(overlay_type)
+            name = self.overlay_manager.generate_overlay_name(overlay_type)
+            overlay = Overlay(
+                id=new_id,
+                type=overlay_type,
+                name=name,
+                config=config,
+                locked=False,
+                visible=True
+            )
+            self.overlay_manager.add_overlay(overlay)
 
     def get_overlay(self, overlay_type: str, overlay_id: int = 0) -> Optional[Dict[str, Any]]:
         """Get overlay config by type and ID.
+
+        DEPRECATED: For backward compatibility only.
+        For new code, use get_overlay_by_id() or get_overlays_by_type().
 
         Args:
             overlay_type: Type of overlay ('grid', 'ocr', etc.)
@@ -202,8 +220,9 @@ class CanvasController:
         Returns:
             Overlay config dict, or None if not found
         """
-        if overlay_type in self.overlays and overlay_id < len(self.overlays[overlay_type]):
-            return self.overlays[overlay_type][overlay_id]
+        existing = self.overlay_manager.get_overlays_by_type(overlay_type)
+        if overlay_id < len(existing):
+            return existing[overlay_id].config
         return None
 
     def has_overlay(self, overlay_type: str) -> bool:
@@ -215,7 +234,7 @@ class CanvasController:
         Returns:
             True if at least one overlay of this type exists
         """
-        return overlay_type in self.overlays and any(self.overlays[overlay_type])
+        return len(self.overlay_manager.get_overlays_by_type(overlay_type)) > 0
 
     def clear_overlay(self, overlay_type: Optional[str] = None):
         """Clear overlays.
@@ -224,9 +243,12 @@ class CanvasController:
             overlay_type: If specified, clear only this type. If None, clear all.
         """
         if overlay_type:
-            self.overlays.pop(overlay_type, None)
+            # Remove all overlays of this type
+            overlays_to_remove = self.overlay_manager.get_overlays_by_type(overlay_type)
+            for overlay in overlays_to_remove:
+                self.overlay_manager.remove_overlay(overlay.id)
         else:
-            self.overlays.clear()
+            self.overlay_manager.clear()
 
     def clear(self):
         """Clear the canvas and reset all state (image, zoom, pan, overlays)."""
@@ -234,7 +256,101 @@ class CanvasController:
         self.current_image = None
         self.zoom_level = 1.0
         self.pan_offset = [0, 0]
-        self.overlays.clear()  # Automatically resets all overlays
+        self.overlay_manager.clear()  # Automatically resets all overlays
+
+    # New overlay management methods (for use by overlay management UI)
+
+    def add_overlay(self, overlay_type: str, config: Dict[str, Any]) -> str:
+        """Add a new overlay and return its ID.
+
+        Args:
+            overlay_type: Type of overlay ('grid', 'ocr', etc.)
+            config: Configuration dict for the overlay
+
+        Returns:
+            Unique overlay ID (e.g., "grid_1", "ocr_1")
+        """
+        overlay_id = self.overlay_manager.generate_overlay_id(overlay_type)
+        name = self.overlay_manager.generate_overlay_name(overlay_type)
+        overlay = Overlay(
+            id=overlay_id,
+            type=overlay_type,
+            name=name,
+            config=config,
+            locked=False,
+            visible=True
+        )
+        self.overlay_manager.add_overlay(overlay)
+        return overlay_id
+
+    def remove_overlay_by_id(self, overlay_id: str) -> Optional[Overlay]:
+        """Remove an overlay by ID.
+
+        Args:
+            overlay_id: ID of overlay to remove
+
+        Returns:
+            Removed overlay, or None if not found
+        """
+        return self.overlay_manager.remove_overlay(overlay_id)
+
+    def get_overlay_by_id(self, overlay_id: str) -> Optional[Overlay]:
+        """Get an overlay object by ID.
+
+        Args:
+            overlay_id: ID of overlay to retrieve
+
+        Returns:
+            Overlay object, or None if not found
+        """
+        return self.overlay_manager.get_overlay(overlay_id)
+
+    def get_all_overlays(self) -> List[Overlay]:
+        """Get all overlays.
+
+        Returns:
+            List of all overlay objects
+        """
+        return self.overlay_manager.get_all_overlays()
+
+    def get_visible_overlays(self) -> List[Overlay]:
+        """Get only visible overlays.
+
+        Returns:
+            List of visible overlay objects
+        """
+        return self.overlay_manager.get_visible_overlays()
+
+    def toggle_overlay_lock(self, overlay_id: str):
+        """Toggle the lock state of an overlay.
+
+        Args:
+            overlay_id: ID of overlay to toggle
+        """
+        overlay = self.overlay_manager.get_overlay(overlay_id)
+        if overlay:
+            overlay.toggle_lock()
+
+    def toggle_overlay_visibility(self, overlay_id: str):
+        """Toggle the visibility state of an overlay.
+
+        Args:
+            overlay_id: ID of overlay to toggle
+        """
+        overlay = self.overlay_manager.get_overlay(overlay_id)
+        if overlay:
+            overlay.toggle_visibility()
+
+    def update_overlay_config(self, overlay_id: str, config: Dict[str, Any]):
+        """Update the configuration of an existing overlay.
+
+        Args:
+            overlay_id: ID of overlay to update
+            config: New configuration dict
+        """
+        overlay = self.overlay_manager.get_overlay(overlay_id)
+        if overlay:
+            overlay.config = config
 
     def _adjust_pan_for_zoom(
         self,

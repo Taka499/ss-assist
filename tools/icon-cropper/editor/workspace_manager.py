@@ -13,6 +13,7 @@ from datetime import datetime
 from PIL import Image
 from ruamel.yaml import YAML
 from editor.config_template import create_workspace_config
+from editor.overlay_model import Overlay
 
 class WorkspaceManager:
     """Manages workspace directories and metadata for page configurations."""
@@ -116,7 +117,8 @@ class WorkspaceManager:
             "filename": filename,
             "captured_at": datetime.now().isoformat(),
             "resolution": [image.width, image.height],
-            "notes": ""
+            "notes": "",
+            "overlays": {}  # Empty overlay dict for new screenshots
         })
         metadata["selected_screenshot"] = filename
         self._save_metadata(workspace_path, metadata)
@@ -202,3 +204,62 @@ class WorkspaceManager:
         metadata_path = workspace_path / "workspace.json"
         with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, indent=2, ensure_ascii=False)
+
+    # ========== Overlay Persistence Methods ==========
+
+    def save_overlays(self, page_name: str, screenshot_filename: str, overlays: Dict[str, Dict[str, Any]]):
+        """Save overlays for a specific screenshot.
+
+        Args:
+            page_name: Name of the workspace
+            screenshot_filename: Screenshot filename (e.g., "001.png")
+            overlays: Dictionary mapping overlay IDs to overlay data dicts
+        """
+        workspace_path = self.get_workspace_path(page_name)
+        metadata = self._load_metadata(workspace_path)
+
+        # Find the screenshot entry
+        for screenshot in metadata["screenshots"]:
+            if screenshot["filename"] == screenshot_filename:
+                screenshot["overlays"] = overlays
+                break
+        else:
+            # Screenshot not found - this shouldn't happen but handle gracefully
+            return
+
+        self._save_metadata(workspace_path, metadata)
+
+    def load_overlays(self, page_name: str, screenshot_filename: str) -> Dict[str, Overlay]:
+        """Load overlays for a specific screenshot.
+
+        Args:
+            page_name: Name of the workspace
+            screenshot_filename: Screenshot filename (e.g., "001.png")
+
+        Returns:
+            Dictionary mapping overlay IDs to Overlay objects
+        """
+        workspace_path = self.get_workspace_path(page_name)
+        metadata = self._load_metadata(workspace_path)
+
+        # Find the screenshot entry
+        for screenshot in metadata["screenshots"]:
+            if screenshot["filename"] == screenshot_filename:
+                overlays_data = screenshot.get("overlays", {})
+                # Convert dict data to Overlay objects
+                return {
+                    overlay_id: Overlay.from_dict(overlay_data)
+                    for overlay_id, overlay_data in overlays_data.items()
+                }
+
+        # Screenshot not found or no overlays
+        return {}
+
+    def clear_overlays(self, page_name: str, screenshot_filename: str):
+        """Clear all overlays for a specific screenshot.
+
+        Args:
+            page_name: Name of the workspace
+            screenshot_filename: Screenshot filename (e.g., "001.png")
+        """
+        self.save_overlays(page_name, screenshot_filename, {})

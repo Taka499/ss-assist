@@ -60,19 +60,12 @@ class GridEditor:
         # Flag to prevent circular updates
         self.updating_inputs_programmatically = False
 
-    def enter_grid_edit_mode(self, canvas: tk.Canvas, current_image) -> bool:
+    def enter_grid_edit_mode(self, canvas: tk.Canvas):
         """Enter grid editing mode.
 
         Args:
             canvas: Canvas widget
-            current_image: Current image loaded (or None)
-
-        Returns:
-            True if mode entered successfully, False if no image loaded
         """
-        if current_image is None:
-            return False
-
         self.edit_mode = EditMode.GRID_EDIT
         self.grid_edit_step = GridEditStep.SET_START
         self.grid_temp_start = None
@@ -87,8 +80,6 @@ class GridEditor:
             "green"
         )
         self.on_status_update("Grid Draw Mode: Click to set grid start position")
-
-        return True
 
     def exit_edit_mode(self, canvas: tk.Canvas):
         """Exit editing mode and return to normal view."""

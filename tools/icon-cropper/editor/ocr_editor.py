@@ -51,19 +51,12 @@ class OCREditor:
         # Flag to prevent circular updates when programmatically updating inputs
         self.updating_inputs_programmatically = False
 
-    def enter_ocr_edit_mode(self, canvas: tk.Canvas, current_image) -> bool:
+    def enter_ocr_edit_mode(self, canvas: tk.Canvas):
         """Enter OCR region editing mode.
 
         Args:
             canvas: Canvas widget
-            current_image: Current image loaded (or None)
-
-        Returns:
-            True if mode entered successfully, False if no image loaded
         """
-        if current_image is None:
-            return False
-
         self.is_active = True
         self.edit_step = OCREditStep.DEFINE
         self.drag_start = None

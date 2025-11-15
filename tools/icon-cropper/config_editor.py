@@ -41,6 +41,12 @@ from editor.preview_window import PreviewWindow
 from editor.workspace_manager import WorkspaceManager
 from editor.config_template import create_workspace_config
 
+# Import tool system
+from editor.tool_manager import ToolManager
+from editor.select_tool import SelectTool
+from editor.draw_grid_tool import DrawGridTool
+from editor.draw_ocr_tool import DrawOCRTool
+
 
 class ConfigEditorApp:
     """Main application for the Config Editor GUI."""
@@ -84,6 +90,9 @@ class ConfigEditorApp:
 
         # Flag to prevent callbacks during workspace loading
         self._loading_workspace = False
+
+        # Track selected overlay in overlay management panel
+        self.selected_overlay_id = None
 
         # Initialize grid configuration from workspace config
         grid = self.config.get('grid', {})
@@ -146,6 +155,17 @@ class ConfigEditorApp:
 
         self.preview_controller = PreviewController()
 
+        # Initialize tool system
+        self.tool_manager = ToolManager()
+
+        # Register tools
+        self.tool_manager.register_tool('select', SelectTool(self.canvas_controller))
+        self.tool_manager.register_tool('draw_grid', DrawGridTool(self.grid_editor))
+        self.tool_manager.register_tool('draw_ocr', DrawOCRTool(self.ocr_editor))
+
+        # Set default tool to select (will be activated after UI loads)
+        self.tool_manager.default_tool_name = 'select'
+
         # Set initial overlays based on loaded config
         grid = self.config.get('grid', {})
         ocr = self.config.get('ocr', {})
@@ -161,6 +181,9 @@ class ConfigEditorApp:
 
         # Bind events
         self._bind_events()
+
+        # Activate default tool (select tool)
+        self.tool_manager.set_active_tool('select', self.canvas, self.update_status)
 
     def _build_ui(self):
         """Build the application UI using UIBuilder."""
@@ -300,7 +323,7 @@ class ConfigEditorApp:
     # ========== Screenshot Operations ==========
 
     def open_screenshot(self):
-        """Open a screenshot from file."""
+        """Open a screenshot from file and import it to the current workspace."""
         file_path = filedialog.askopenfilename(
             title="Open Screenshot",
             filetypes=[
@@ -311,14 +334,22 @@ class ConfigEditorApp:
 
         if file_path:
             try:
+                # Load the image
                 image = Image.open(file_path)
-                self.canvas_controller.load_image(image)
-                self.canvas_controller.center_image()
-                self.canvas_controller.display_image()
-                self.update_status(f"Loaded: {Path(file_path).name}")
+
+                # Import to workspace (copy file, update metadata, set as selected)
+                filename = self.workspace_manager.add_screenshot(self.current_workspace, image)
+
+                # Refresh the screenshot list to show the new image
+                self._refresh_screenshot_list()
+
+                # Load and display the newly imported screenshot
+                self._load_selected_screenshot()
+
+                self.update_status(f"Imported to workspace as {filename}")
             except Exception as e:
-                messagebox.showerror("Error", f"Failed to open image:\n{e}")
-                self.update_status("Error loading image")
+                messagebox.showerror("Error", f"Failed to import image:\n{e}")
+                self.update_status("Error importing image")
 
     def capture_screenshot(self):
         """Capture a screenshot from the Stella Sora game window."""
@@ -500,18 +531,8 @@ class ConfigEditorApp:
             messagebox.showwarning("No Image", "Please load or capture a screenshot first.")
             return
 
-        # Exit OCR mode if active
-        if self.ocr_editor.is_in_ocr_edit_mode():
-            self.ocr_editor.exit_ocr_edit_mode(self.canvas)
-
-        success = self.grid_editor.enter_grid_edit_mode(
-            self.canvas,
-            self.canvas_controller.current_image
-        )
-
-        if not success:
-            return
-
+        # Switch to draw grid tool (tool handles mode transitions)
+        self.tool_manager.set_active_tool('draw_grid', self.canvas, self.update_status)
         self.canvas_controller.display_image()
 
     def enter_ocr_edit_mode(self):
@@ -520,28 +541,55 @@ class ConfigEditorApp:
             messagebox.showwarning("No Image", "Please load or capture a screenshot first.")
             return
 
-        # Exit grid mode if active
-        if self.grid_editor.is_in_grid_edit_mode():
-            self.grid_editor.exit_edit_mode(self.canvas)
-
-        success = self.ocr_editor.enter_ocr_edit_mode(
-            self.canvas,
-            self.canvas_controller.current_image
-        )
-
-        if not success:
-            return
-
+        # Switch to draw OCR tool (tool handles mode transitions)
+        self.tool_manager.set_active_tool('draw_ocr', self.canvas, self.update_status)
         self.canvas_controller.display_image()
 
     def enter_pan_mode(self):
         """Enter pan/zoom mode (normal mode)."""
-        # Exit any active editing mode
-        self.grid_editor.exit_edit_mode(self.canvas)
-        self.ocr_editor.exit_ocr_edit_mode(self.canvas)
+        # Switch to select tool (tool handles exiting edit modes)
+        self.tool_manager.set_active_tool('select', self.canvas, self.update_status)
         self.canvas_controller.display_image()
 
     # ========== Mouse Event Handlers ==========
+
+    def _build_tool_context(self) -> dict:
+        """Build context dictionary for tool event handlers.
+
+        Returns:
+            Dictionary with shared state and callbacks for tools
+        """
+        return {
+            'canvas': self.canvas,
+            'canvas_controller': self.canvas_controller,
+            'grid_config': self.grid_config,
+            'ocr_config': self.ocr_config,
+            'grid_inputs': self.grid_inputs,
+            'ocr_inputs': self.ocr_inputs,
+            'auto_switch_tool': self._auto_switch_tool,
+            'status_callback': self.update_status,
+            'save_overlays_callback': self._save_current_overlays,
+            'refresh_overlay_list_callback': self._refresh_overlay_list,
+            'set_selected_overlay_callback': self._set_selected_overlay
+        }
+
+    def _set_selected_overlay(self, overlay_id: str):
+        """Set the selected overlay ID.
+
+        Args:
+            overlay_id: ID of overlay to select
+        """
+        self.selected_overlay_id = overlay_id
+
+    def _auto_switch_tool(self, tool_name: str):
+        """Helper to switch tools from within tool handlers.
+
+        Args:
+            tool_name: Name of tool to switch to
+        """
+        self.tool_manager.set_active_tool(tool_name, self.canvas, self.update_status)
+        # Redraw to show/hide handles based on new tool
+        self.canvas_controller.display_image()
 
     def on_mouse_press(self, event):
         """Handle mouse button press.
@@ -554,29 +602,12 @@ class ConfigEditorApp:
         # Note: Resize handles are bound directly via tag_bind in GridRenderer
         # and handle clicks through callbacks, so we don't check for them here
 
-        # Check if in grid edit mode
-        if self.grid_editor.is_in_grid_edit_mode():
-            self.grid_editor.on_grid_click(
-                event, self.canvas,
-                self.canvas_controller.zoom_level,
-                self.canvas_controller.pan_offset,
-                self.grid_inputs
-            )
-            self.canvas_controller.display_image()
-            return
+        # Delegate to active tool
+        context = self._build_tool_context()
+        self.tool_manager.on_mouse_press(event, context)
 
-        # Check if in OCR edit mode
-        if self.ocr_editor.is_in_ocr_edit_mode():
-            self.ocr_editor.on_ocr_click(
-                event, self.canvas,
-                self.canvas_controller.zoom_level,
-                self.canvas_controller.pan_offset
-            )
-            self.canvas_controller.display_image()
-            return
-
-        # Normal panning mode
-        self.canvas_controller.start_pan(event)
+        # Redraw to update any visual changes
+        self.canvas_controller.display_image()
 
     def on_mouse_move(self, event):
         """Handle mouse motion.
@@ -586,7 +617,8 @@ class ConfigEditorApp:
         Args:
             event: Mouse motion event
         """
-        # Check if resizing grid
+        # Priority 1: Check if resizing grid (via handle drag)
+        # Resize operations bypass tool system since they're triggered by tag_bind
         if self.resize_controller.is_resizing:
             # Performance optimization: Skip spinbox updates during drag
             self.resize_controller.do_resize(
@@ -613,7 +645,7 @@ class ConfigEditorApp:
             # Handles and spinboxes will be updated on mouse release
             return
 
-        # Check if resizing OCR region
+        # Priority 2: Check if resizing OCR region (via handle drag)
         if self.ocr_resize_controller.is_resizing:
             self.ocr_resize_controller.do_resize(
                 event, self.canvas,
@@ -633,28 +665,13 @@ class ConfigEditorApp:
             )
             return
 
-        # Check if dragging grid cell
-        if self.grid_editor.is_dragging_cell():
-            self.grid_editor.on_grid_drag(
-                event, self.canvas,
-                self.canvas_controller.zoom_level,
-                self.canvas_controller.pan_offset
-            )
-            self.canvas_controller.display_image()
-            return
+        # Priority 3: Delegate to active tool
+        context = self._build_tool_context()
+        handled = self.tool_manager.on_mouse_move(event, context)
 
-        # Check if dragging OCR region
-        if self.ocr_editor.is_dragging():
-            self.ocr_editor.on_ocr_drag(
-                event, self.canvas,
-                self.canvas_controller.zoom_level,
-                self.canvas_controller.pan_offset
-            )
+        # Redraw if tool handled the event
+        if handled:
             self.canvas_controller.display_image()
-            return
-
-        # Normal panning
-        self.canvas_controller.update_pan(event)
 
     def on_mouse_release(self, event):
         """Handle mouse button release.
@@ -664,9 +681,21 @@ class ConfigEditorApp:
         Args:
             event: Mouse button release event
         """
-        # Check if resizing grid
+        # Priority 1: Check if resizing grid (via handle drag)
+        # Resize operations bypass tool system since they're triggered by tag_bind
         if self.resize_controller.is_resizing:
             self.resize_controller.end_resize(event, self.canvas)
+
+            # Update the selected overlay's config with the new values
+            if self.selected_overlay_id:
+                selected_overlay = self.canvas_controller.get_overlay_by_id(self.selected_overlay_id)
+                if selected_overlay and selected_overlay.type == 'grid':
+                    # Copy all values from self.grid_config to the overlay's config
+                    for key, value in self.grid_config.items():
+                        selected_overlay.config[key] = value
+                    # Save overlays to workspace
+                    self._save_current_overlays()
+
             # Update spinboxes with final values (skipped during drag for performance)
             self.grid_editor.updating_inputs_programmatically = True
             try:
@@ -680,75 +709,103 @@ class ConfigEditorApp:
             self.draw_grid_overlay()
             return
 
-        # Check if resizing OCR region
+        # Priority 2: Check if resizing OCR region (via handle drag)
         if self.ocr_resize_controller.is_resizing:
             self.ocr_resize_controller.end_resize(event, self.canvas)
+
+            # Update the selected overlay's config with the new values
+            if self.selected_overlay_id:
+                selected_overlay = self.canvas_controller.get_overlay_by_id(self.selected_overlay_id)
+                if selected_overlay and selected_overlay.type == 'ocr':
+                    # Copy all values from self.ocr_config to the overlay's config
+                    for key, value in self.ocr_config.items():
+                        selected_overlay.config[key] = value
+                    # Save overlays to workspace
+                    self._save_current_overlays()
+
             # Redraw OCR overlay with handles after resize completes
             self.canvas.delete("ocr_overlay")
             self.draw_ocr_overlay()
             return
 
-        # Check if completing grid cell definition
-        if self.grid_editor.is_dragging_cell():
-            self.grid_editor.on_grid_release(
-                event, self.canvas,
-                self.canvas_controller.zoom_level,
-                self.canvas_controller.pan_offset,
-                self.grid_inputs
-            )
-            # Mark grid overlay as active
-            self.canvas_controller.set_overlay('grid', self.grid_config)
-            self.canvas_controller.display_image()
-            return
+        # Priority 3: Delegate to active tool
+        context = self._build_tool_context()
+        handled = self.tool_manager.on_mouse_release(event, context)
 
-        # Check if completing OCR region definition
-        if self.ocr_editor.is_dragging():
-            self.ocr_editor.on_ocr_release(
-                event, self.canvas,
-                self.canvas_controller.zoom_level,
-                self.canvas_controller.pan_offset,
-                self.ocr_inputs
-            )
-            # Mark OCR overlay as active
-            self.canvas_controller.set_overlay('ocr', self.ocr_config)
-            self.canvas_controller.display_image()
-            return
-
-        # Normal panning end
-        self.canvas_controller.end_pan(event)
+        # Note: Tools handle their own overlay updates and auto-switching
+        # No need to redraw here - tools call auto_switch_tool which triggers redraw
 
     # ========== Grid Overlay Drawing ==========
 
     def draw_grid_overlay(self):
-        """Draw the grid overlay on the canvas.
+        """Draw all grid overlays on the canvas.
 
-        Always shows the grid if drawn. Shows handles only in grid edit mode.
+        Draws all saved grid overlays, plus any in-progress drawing.
+        Shows handles when overlay exists and not currently drawing.
         """
         if self.canvas_controller.current_image is None:
             return
 
-        # Draw grid overlay
-        self.grid_renderer.draw_grid_overlay(
-            self.canvas,
-            self.grid_config,
-            self.canvas_controller.zoom_level,
-            self.canvas_controller.pan_offset,
-            self.grid_editor.edit_mode,
-            self.grid_editor.grid_edit_step,
-            self.grid_editor.grid_temp_start,
-            self.grid_editor.grid_drag_start,
-            self.grid_editor.grid_drag_current
-        )
+        # Draw all saved grid overlays
+        grid_overlays = [o for o in self.canvas_controller.get_all_overlays() if o.type == 'grid' and o.visible]
+        for overlay in grid_overlays:
+            self.grid_renderer.draw_grid_overlay(
+                self.canvas,
+                overlay.config,
+                self.canvas_controller.zoom_level,
+                self.canvas_controller.pan_offset,
+                None,  # Not in edit mode for saved overlays
+                None,  # No edit step
+                None,  # No temp start
+                None,  # No drag start
+                None   # No drag current
+            )
 
-        # Draw resize handles only in ADJUST step (after user finishes drawing)
-        if self.grid_editor.is_in_adjust_step():
-            self.grid_renderer.draw_resize_handles(
+        # If currently drawing a new grid, draw the in-progress overlay
+        if self.grid_editor.edit_mode == EditMode.GRID_EDIT:
+            self.grid_renderer.draw_grid_overlay(
                 self.canvas,
                 self.grid_config,
                 self.canvas_controller.zoom_level,
                 self.canvas_controller.pan_offset,
-                self._on_handle_click
+                self.grid_editor.edit_mode,
+                self.grid_editor.grid_edit_step,
+                self.grid_editor.grid_temp_start,
+                self.grid_editor.grid_drag_start,
+                self.grid_editor.grid_drag_current
             )
+
+        # Draw resize handles only for the selected grid overlay (if not currently drawing)
+        if self._should_show_grid_handles() and self.selected_overlay_id:
+            selected_overlay = self.canvas_controller.get_overlay_by_id(self.selected_overlay_id)
+            if selected_overlay and selected_overlay.type == 'grid' and selected_overlay.visible:
+                self.grid_renderer.draw_resize_handles(
+                    self.canvas,
+                    selected_overlay.config,
+                    self.canvas_controller.zoom_level,
+                    self.canvas_controller.pan_offset,
+                    self._on_handle_click
+                )
+
+    def _should_show_grid_handles(self) -> bool:
+        """Determine if grid resize handles should be visible.
+
+        Handles are visible when:
+        1. Grid overlay exists, AND
+        2. NOT currently drawing a new grid
+
+        Returns:
+            True if handles should be shown
+        """
+        # Check if grid overlay exists
+        if not self.canvas_controller.has_overlay('grid'):
+            return False
+
+        # Hide handles while actively drawing grid
+        if isinstance(self.tool_manager.active_tool, DrawGridTool):
+            return False
+
+        return True
 
     def _on_handle_click(self, event, handle_tag: str):
         """Callback for resize handle clicks (from GridRenderer).
@@ -760,6 +817,14 @@ class ConfigEditorApp:
         Returns:
             'break' to stop event propagation
         """
+        # Load the selected overlay's config into self.grid_config for resize controller
+        if self.selected_overlay_id:
+            selected_overlay = self.canvas_controller.get_overlay_by_id(self.selected_overlay_id)
+            if selected_overlay and selected_overlay.type == 'grid':
+                # Copy the overlay's config to self.grid_config
+                for key, value in selected_overlay.config.items():
+                    self.grid_config[key] = value
+
         self.resize_controller.on_handle_click(
             event, handle_tag, self.canvas,
             self.canvas_controller.zoom_level,
@@ -768,34 +833,72 @@ class ConfigEditorApp:
         return 'break'
 
     def draw_ocr_overlay(self):
-        """Draw the OCR region overlay on the canvas.
+        """Draw all OCR region overlays on the canvas.
 
-        Always shows the OCR region if drawn. Shows handles only in OCR edit mode.
+        Draws all saved OCR overlays, plus any in-progress drawing.
+        Shows handles when overlay exists and not currently drawing.
         """
         if self.canvas_controller.current_image is None:
             return
 
-        # Draw OCR overlay
-        self.grid_renderer.draw_ocr_overlay(
-            self.canvas,
-            self.ocr_config,
-            self.canvas_controller.zoom_level,
-            self.canvas_controller.pan_offset,
-            is_active=self.ocr_editor.is_in_ocr_edit_mode(),
-            is_defining=(self.ocr_editor.edit_step == "define"),
-            drag_start=self.ocr_editor.drag_start,
-            drag_current=self.ocr_editor.drag_current
-        )
+        # Draw all saved OCR overlays
+        ocr_overlays = [o for o in self.canvas_controller.get_all_overlays() if o.type == 'ocr' and o.visible]
+        for overlay in ocr_overlays:
+            self.grid_renderer.draw_ocr_overlay(
+                self.canvas,
+                overlay.config,
+                self.canvas_controller.zoom_level,
+                self.canvas_controller.pan_offset,
+                is_active=False,  # Saved overlays are not in active editing
+                is_defining=False,  # Not defining
+                drag_start=None,
+                drag_current=None
+            )
 
-        # Draw resize handles only in ADJUST step (after user finishes drawing)
-        if self.ocr_editor.is_in_adjust_step():
-            self.grid_renderer.draw_ocr_resize_handles(
+        # If currently drawing a new OCR region, draw the in-progress overlay
+        if self.ocr_editor.is_in_ocr_edit_mode():
+            self.grid_renderer.draw_ocr_overlay(
                 self.canvas,
                 self.ocr_config,
                 self.canvas_controller.zoom_level,
                 self.canvas_controller.pan_offset,
-                self._on_ocr_handle_click
+                is_active=True,
+                is_defining=(self.ocr_editor.edit_step == "define"),
+                drag_start=self.ocr_editor.drag_start,
+                drag_current=self.ocr_editor.drag_current
             )
+
+        # Draw resize handles only for the selected OCR overlay (if not currently drawing)
+        if self._should_show_ocr_handles() and self.selected_overlay_id:
+            selected_overlay = self.canvas_controller.get_overlay_by_id(self.selected_overlay_id)
+            if selected_overlay and selected_overlay.type == 'ocr' and selected_overlay.visible:
+                self.grid_renderer.draw_ocr_resize_handles(
+                    self.canvas,
+                    selected_overlay.config,
+                    self.canvas_controller.zoom_level,
+                    self.canvas_controller.pan_offset,
+                    self._on_ocr_handle_click
+                )
+
+    def _should_show_ocr_handles(self) -> bool:
+        """Determine if OCR resize handles should be visible.
+
+        Handles are visible when:
+        1. OCR overlay exists, AND
+        2. NOT currently drawing a new OCR region
+
+        Returns:
+            True if handles should be shown
+        """
+        # Check if OCR overlay exists
+        if not self.canvas_controller.has_overlay('ocr'):
+            return False
+
+        # Hide handles while actively drawing OCR region
+        if isinstance(self.tool_manager.active_tool, DrawOCRTool):
+            return False
+
+        return True
 
     def _on_ocr_handle_click(self, event, handle_tag: str):
         """Callback for OCR resize handle clicks (from GridRenderer).
@@ -807,6 +910,14 @@ class ConfigEditorApp:
         Returns:
             'break' to stop event propagation
         """
+        # Load the selected overlay's config into self.ocr_config for resize controller
+        if self.selected_overlay_id:
+            selected_overlay = self.canvas_controller.get_overlay_by_id(self.selected_overlay_id)
+            if selected_overlay and selected_overlay.type == 'ocr':
+                # Copy the overlay's config to self.ocr_config
+                for key, value in selected_overlay.config.items():
+                    self.ocr_config[key] = value
+
         self.ocr_resize_controller.on_handle_click(
             event, handle_tag, self.canvas,
             self.canvas_controller.zoom_level,
@@ -1021,17 +1132,99 @@ class ConfigEditorApp:
         self._load_selected_screenshot()
 
     def _load_selected_screenshot(self):
-        """Load the selected screenshot onto canvas."""
+        """Load the selected screenshot onto canvas and restore its overlays."""
         selected = self.workspace_manager.get_selected_screenshot(self.current_workspace)
         if not selected:
             return
 
         screenshot_path = self.workspace_manager.get_screenshot_path(self.current_workspace, selected)
         if screenshot_path.exists():
+            # Load image
             image = Image.open(screenshot_path)
             self.canvas_controller.load_image(image)
             self.canvas_controller.center_image()
+
+            # Load overlays for this screenshot
+            overlays = self.workspace_manager.load_overlays(self.current_workspace, selected)
+
+            # Clear existing overlays and load saved ones
+            self.canvas_controller.overlay_manager.clear()
+            self.selected_overlay_id = None  # Clear selection when switching screenshots
+            for overlay_id, overlay in overlays.items():
+                self.canvas_controller.overlay_manager.add_overlay(overlay)
+
             self.canvas_controller.display_image()
+
+            # Refresh overlay list UI
+            self._refresh_overlay_list()
+
+    def _save_current_overlays(self):
+        """Save current canvas overlays to the workspace for the selected screenshot."""
+        selected = self.workspace_manager.get_selected_screenshot(self.current_workspace)
+        if not selected:
+            return
+
+        # Convert overlay objects to serializable dicts
+        overlays_dict = self.canvas_controller.overlay_manager.to_dict()
+
+        # Save to workspace
+        self.workspace_manager.save_overlays(self.current_workspace, selected, overlays_dict)
+
+    def _refresh_overlay_list(self):
+        """Refresh the overlay list widget."""
+        overlays = self.canvas_controller.get_all_overlays()
+
+        self.ui_builder.update_overlay_list(
+            overlays,
+            self.selected_overlay_id,
+            self._on_overlay_selected,
+            self._on_delete_overlay,
+            self._on_lock_overlay
+        )
+
+    def _on_overlay_selected(self, overlay_id: str):
+        """Handle overlay selection from list."""
+        self.selected_overlay_id = overlay_id
+        self._refresh_overlay_list()
+        # Redraw to highlight selected overlay (future enhancement)
+        self.canvas_controller.display_image()
+
+    def _on_delete_overlay(self):
+        """Handle delete overlay button click."""
+        if not self.selected_overlay_id:
+            return
+
+        # Check if locked
+        overlay = self.canvas_controller.get_overlay_by_id(self.selected_overlay_id)
+        if overlay and overlay.locked:
+            messagebox.showwarning("Locked", "Cannot delete locked overlay. Unlock it first.")
+            return
+
+        # Confirm deletion
+        if messagebox.askyesno("Delete Overlay", f"Delete overlay '{overlay.name}'?"):
+            self.canvas_controller.remove_overlay_by_id(self.selected_overlay_id)
+            self.selected_overlay_id = None
+            self._save_current_overlays()
+            self._refresh_overlay_list()
+            self.canvas_controller.display_image()
+            self.update_status(f"Deleted overlay '{overlay.name}'")
+
+    def _on_lock_overlay(self):
+        """Handle lock/unlock overlay button click."""
+        if not self.selected_overlay_id:
+            return
+
+        overlay = self.canvas_controller.get_overlay_by_id(self.selected_overlay_id)
+        if not overlay:
+            return
+
+        # Toggle lock
+        self.canvas_controller.toggle_overlay_lock(self.selected_overlay_id)
+        self._save_current_overlays()
+        self._refresh_overlay_list()
+
+        status = "locked" if overlay.locked else "unlocked"
+        self.update_status(f"Overlay '{overlay.name}' {status}")
 
     def delete_screenshot(self):
         """Delete the selected screenshot."""

@@ -31,6 +31,8 @@ class UIBuilder:
         """
         self.root = root
         self.callbacks = callbacks
+        self.screenshot_selected_var = tk.StringVar()  # Persistent selection state
+        self.overlay_selected_var = tk.StringVar()  # Persistent overlay selection state
 
     def _create_scrollable_frame(self, parent: ttk.Frame) -> ttk.Frame:
         """Create a scrollable frame inside a parent frame.
@@ -316,12 +318,24 @@ class UIBuilder:
         self._grid_tab = grid_tab
         self._ocr_tab = ocr_tab
 
-        # Right panel for canvas
-        right_panel = ttk.Frame(main_frame)
-        right_panel.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=5, pady=5)
+        # Right panel - split between canvas and overlay management
+        right_container = ttk.Frame(main_frame)
+        right_container.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # Create PanedWindow to split canvas and overlay panel
+        paned = ttk.PanedWindow(right_container, orient=tk.HORIZONTAL)
+        paned.pack(fill=tk.BOTH, expand=True)
+
+        # Canvas panel (left side of paned window)
+        canvas_panel = ttk.Frame(paned)
+        paned.add(canvas_panel, weight=3)
+
+        # Overlay panel (right side of paned window)
+        overlay_panel = ttk.Frame(paned, width=200)
+        paned.add(overlay_panel, weight=1)
 
         # Create canvas with scrollbars
-        canvas_frame = ttk.Frame(right_panel)
+        canvas_frame = ttk.Frame(canvas_panel)
         canvas_frame.pack(fill=tk.BOTH, expand=True)
 
         # Scrollbars
@@ -343,6 +357,49 @@ class UIBuilder:
         h_scrollbar.config(command=canvas.xview)
         v_scrollbar.config(command=canvas.yview)
 
+        # === Overlay Management Panel (Right Sidebar) ===
+        ttk.Label(overlay_panel, text="Overlays", font=("Arial", 12, "bold")).pack(pady=(5, 10))
+
+        # Overlay count label
+        self.overlay_count_label = ttk.Label(overlay_panel, text="No overlays", foreground="gray")
+        self.overlay_count_label.pack(pady=(0, 5))
+
+        # Scrollable overlay list
+        overlay_list_frame = ttk.Frame(overlay_panel)
+        overlay_list_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        overlay_canvas = tk.Canvas(overlay_list_frame, highlightthickness=0)
+        overlay_scrollbar = ttk.Scrollbar(overlay_list_frame, orient=tk.VERTICAL, command=overlay_canvas.yview)
+        overlay_canvas.configure(yscrollcommand=overlay_scrollbar.set)
+
+        overlay_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        overlay_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        overlay_list_inner = ttk.Frame(overlay_canvas)
+        overlay_canvas.create_window((0, 0), window=overlay_list_inner, anchor='nw')
+
+        # Store references for updating
+        self.overlay_list_frame = overlay_list_inner
+        self.overlay_list_canvas = overlay_canvas
+
+        # Control buttons
+        button_frame = ttk.Frame(overlay_panel)
+        button_frame.pack(fill=tk.X, padx=5, pady=10)
+
+        self.delete_overlay_btn = ttk.Button(
+            button_frame,
+            text="🗑️ Delete",
+            state='disabled'
+        )
+        self.delete_overlay_btn.pack(side=tk.LEFT, padx=2, fill=tk.X, expand=True)
+
+        self.lock_overlay_btn = ttk.Button(
+            button_frame,
+            text="🔒 Lock",
+            state='disabled'
+        )
+        self.lock_overlay_btn.pack(side=tk.LEFT, padx=2, fill=tk.X, expand=True)
+
         # Status bar
         status_bar = ttk.Label(
             self.root,
@@ -351,6 +408,9 @@ class UIBuilder:
             anchor=tk.W
         )
         status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+
+        # Store reference to overlay panel
+        self.overlay_panel = overlay_panel
 
         return left_panel, canvas, instruction_label, status_bar, grid_tab, ocr_tab
 
@@ -541,8 +601,8 @@ class UIBuilder:
         for widget in self.screenshot_list_frame.winfo_children():
             widget.destroy()
 
-        # Create radio buttons for each screenshot
-        selected_var = tk.StringVar(value=selected or "")
+        # Set the selection value (use persistent instance variable)
+        self.screenshot_selected_var.set(selected or "")
 
         for screenshot in screenshots:
             filename = screenshot["filename"]
@@ -554,7 +614,7 @@ class UIBuilder:
             radio = ttk.Radiobutton(
                 frame,
                 text=f"{filename}",
-                variable=selected_var,
+                variable=self.screenshot_selected_var,
                 value=filename,
                 command=lambda f=filename: on_select_callback(f)
             )
@@ -571,3 +631,78 @@ class UIBuilder:
         # Update scroll region
         self.screenshot_list_frame.update_idletasks()
         self.screenshot_list_canvas.configure(scrollregion=self.screenshot_list_canvas.bbox('all'))
+
+    def update_overlay_list(self, overlays: List[Any], selected_id: Optional[str],
+                           on_select_callback: Callable, on_delete_callback: Callable,
+                           on_lock_callback: Callable):
+        """Update the overlay list widget.
+
+        Args:
+            overlays: List of Overlay objects
+            selected_id: Currently selected overlay ID
+            on_select_callback: Function to call when an overlay is selected (overlay_id)
+            on_delete_callback: Function to call when delete button is clicked
+            on_lock_callback: Function to call when lock button is clicked
+        """
+        # Clear existing widgets
+        for widget in self.overlay_list_frame.winfo_children():
+            widget.destroy()
+
+        if not overlays:
+            self.overlay_count_label.config(text="No overlays")
+            self.delete_overlay_btn.config(state='disabled')
+            self.lock_overlay_btn.config(state='disabled')
+            return
+
+        # Update count
+        self.overlay_count_label.config(text=f"{len(overlays)} overlay{'s' if len(overlays) != 1 else ''}")
+
+        # Set the selection value (use persistent instance variable)
+        self.overlay_selected_var.set(selected_id or "")
+
+        for overlay in overlays:
+            frame = ttk.Frame(self.overlay_list_frame)
+            frame.pack(fill=tk.X, pady=2)
+
+            # Icon based on type
+            icon = "🔲" if overlay.type == "grid" else "📄"
+
+            # Lock icon if locked
+            lock_icon = "🔒 " if overlay.locked else ""
+
+            # Radio button with icon and name
+            radio = ttk.Radiobutton(
+                frame,
+                text=f"{lock_icon}{icon} {overlay.name}",
+                variable=self.overlay_selected_var,
+                value=overlay.id,
+                command=lambda oid=overlay.id: on_select_callback(oid)
+            )
+            radio.pack(side=tk.LEFT, anchor='w', fill=tk.X, expand=True)
+
+        # Update scroll region
+        self.overlay_list_frame.update_idletasks()
+        self.overlay_list_canvas.configure(scrollregion=self.overlay_list_canvas.bbox('all'))
+
+        # Wire up button callbacks
+        self.delete_overlay_btn.config(command=on_delete_callback)
+        self.lock_overlay_btn.config(command=on_lock_callback)
+
+        # Enable buttons if an overlay is selected
+        if selected_id:
+            # Find selected overlay to check if locked
+            selected_overlay = next((o for o in overlays if o.id == selected_id), None)
+            if selected_overlay:
+                # Delete button disabled if locked
+                self.delete_overlay_btn.config(state='disabled' if selected_overlay.locked else 'normal')
+                # Lock button shows current state
+                self.lock_overlay_btn.config(
+                    text="🔓 Unlock" if selected_overlay.locked else "🔒 Lock",
+                    state='normal'
+                )
+            else:
+                self.delete_overlay_btn.config(state='disabled')
+                self.lock_overlay_btn.config(state='disabled')
+        else:
+            self.delete_overlay_btn.config(state='disabled')
+            self.lock_overlay_btn.config(state='disabled')
