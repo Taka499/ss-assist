@@ -256,20 +256,32 @@ uv run python config_editor.py
 ```
 
 **Features:**
-- **Visual Grid Editor**: Click and drag to define icon grid layout
+- **Workspace-Based Projects**: Each workspace is a self-contained cropping project with its own config, screenshots, and overlays
+- **Multi-Screenshot Support**: Capture and manage multiple screenshots per workspace (for scrolling/paginated UIs)
+- **Multi-Overlay Support**: Create multiple grids and OCR regions on each screenshot
+- **Select Tools to Edit**: Select tool (pan/zoom/resize), Draw Grid tool, Draw OCR tool
+- **Visual Grid Editor**: Click and drag to define icon grid layouts
 - **OCR Region Editor**: Draw rectangles around page-identifying text
 - **Live Preview**: See extracted icons before saving
-- **Load From Config**: Load existing configuration for adjustments
 - **Interactive Resize**: PowerPoint-like handles with modifier keys (Shift: aspect ratio, Ctrl: center-fixed)
 - **Real-time Updates**: Changes reflect immediately on the canvas
 - **Automatic Backup**: Creates timestamped backups before saving
+- **Portable Workspaces**: Each workspace can be zipped, shared, or archived independently
 
-**Workflow:**
-1. **Load Screenshot**: Click "📂 Open Screenshot" or "📷 Capture Screenshot"
-2. **Draw Grid**: Click "🔲 Draw Grid Layout" and follow the on-screen instructions
-3. **Draw OCR Region**: Click "📄 Draw OCR Region" and draw around the page title
-4. **Preview Icons**: Click "👁️ Preview Icons" to verify grid alignment
-5. **Save**: Click "💾 Save Configuration" to update config.yaml
+**Workspace-Centric Workflow:**
+1. **Select Workspace**: Choose from dropdown or click [+] to create new workspace
+2. **Capture Screenshots**: Click "📷 Capture Screenshot" - can capture multiple for scrolling UIs
+3. **Select Screenshot**: Click screenshots in the sidebar list to switch between them
+4. **Draw Grid(s)**: Click "🔲 Draw Grid Layout" - can draw multiple grids if needed
+5. **Draw OCR Region(s)**: Click "📄 Draw OCR Region" - can draw multiple regions
+6. **Adjust**: Tool auto-switches to Select mode - resize/adjust overlays with handles
+7. **Preview Icons**: Click "👁️ Preview Icons" to verify grid alignment
+8. **Save**: Click "💾 Save Configuration" to save to workspace's config.yaml
+
+**Tool System:**
+- **Select Tool** (default): Pan, zoom, and resize existing overlays via handles
+- **Draw Grid Tool**: Draw new grid overlays (auto-switches to Select when done)
+- **Draw OCR Tool**: Draw new OCR regions (auto-switches to Select when done)
 
 **Keyboard Shortcuts:**
 - `Ctrl+O`: Open screenshot from file
@@ -280,10 +292,12 @@ uv run python config_editor.py
 - `Ctrl+Scroll`: Zoom in/out
 
 **Tips:**
-- Use Pan/Zoom mode to verify precise alignment
+- Create separate workspaces for different game UIs (character_select, item_inventory, etc.)
+- Use multiple screenshots in one workspace for scrolling UIs
+- Select tool is always active after drawing - handles appear automatically
 - Adjust spinbox values for fine-tuning (works in any mode)
-- Load From Config to quickly resume editing
 - Preview before saving to catch misalignments
+- Workspaces are stored in `workspaces/` - can be zipped and shared
 
 ### Adjusting Grid Positions Manually
 
@@ -480,7 +494,8 @@ To create a folder-based distribution (faster startup, larger folder):
 
 ```
 icon-cropper/
-├── config.yaml          # Configuration file
+├── config.yaml          # DEPRECATED: Now used as template only
+├── config_template.yaml # Template for new workspace configs
 ├── pyproject.toml       # Python dependencies
 ├── uv.lock              # Locked dependency versions
 │
@@ -495,12 +510,42 @@ icon-cropper/
 │
 ├── editor/              # Configuration editor modules
 │   ├── __init__.py      # Package initialization
+│   ├── config_template.py    # Workspace config template utilities
+│   ├── workspace_manager.py  # Workspace directory and metadata management
+│   ├── config_serializer.py  # YAML load/save with comment preservation
 │   ├── coordinate_system.py  # Pure coordinate transformation functions
-│   ├── canvas_controller.py  # Image display, zoom, pan operations
+│   ├── canvas_controller.py  # Image display, zoom, pan, overlay management
 │   ├── grid_renderer.py      # Grid overlay and visual feedback rendering
 │   ├── grid_editor.py        # Grid editing state machine and workflow
+│   ├── ocr_editor.py         # OCR region editing state machine
 │   ├── resize_controller.py  # Resize handle interaction logic
+│   ├── base_tool.py          # Abstract base class for tools
+│   ├── tool_manager.py       # Tool selection and event delegation
+│   ├── select_tool.py        # Select tool (pan/zoom/resize)
+│   ├── draw_grid_tool.py     # Draw grid tool
+│   ├── draw_ocr_tool.py      # Draw OCR region tool
 │   └── ui_builder.py         # UI component creation (menu, sidebar, canvas)
+│
+├── workspaces/          # Workspace-based projects (self-contained)
+│   ├── character_select/
+│   │   ├── config.yaml       # Workspace-specific configuration
+│   │   ├── workspace.json    # Metadata (selected screenshot, timestamps)
+│   │   ├── screenshots/      # Multiple screenshots for scrolling UIs
+│   │   │   ├── 001.png
+│   │   │   ├── 002.png
+│   │   │   └── 003.png
+│   │   └── cropped/          # Future: batch crop output
+│   │       ├── 001/
+│   │       └── 002/
+│   ├── item_inventory/
+│   │   ├── config.yaml
+│   │   ├── workspace.json
+│   │   └── screenshots/
+│   └── [user_workspaces]/ # User-created workspaces
+│
+├── _docs/               # Design documents and ExecPlans
+│   ├── PLANS.md        # ExecPlan methodology
+│   └── execplan-*.md   # Phase-by-phase implementation plans
 │
 ├── cropper.spec         # PyInstaller build configuration
 ├── version_info.txt     # Windows executable metadata
@@ -508,6 +553,7 @@ icon-cropper/
 ├── build.sh             # Linux/WSL build script
 │
 ├── README.md            # This file
+├── CLAUDE.md            # Development guidelines
 ├── .gitignore           # Git ignore rules
 │
 ├── .venv/               # Virtual environment (created by uv)
@@ -525,16 +571,41 @@ icon-cropper/
 
 ### Configuration Editor Architecture
 
-The `config_editor.py` GUI tool has been refactored into a modular architecture for better maintainability and extensibility. The `editor/` package contains focused modules:
+The `config_editor.py` GUI tool has been refactored into a workspace-centric, tool-based architecture for better maintainability and extensibility. The `editor/` package contains focused modules:
 
-- **coordinate_system.py** (93 lines): Pure functions for canvas ↔ image coordinate transformations
-- **canvas_controller.py** (320 lines): Manages image display, zoom (1x-10x with cursor-centered zooming), and pan operations
-- **grid_renderer.py** (219 lines): Renders grid overlays, crop padding indicators, resize handles, and visual feedback
-- **grid_editor.py** (270 lines): State machine for 3-step grid editing workflow (set start → define cell → adjust)
-- **resize_controller.py** (280 lines): Handles 8 resize handles (4 corners + 4 edges) with modifier key support (Shift: aspect ratio, Ctrl: center-fixed)
-- **ui_builder.py** (327 lines): Creates all UI components (menu bar, sidebar, canvas, input widgets)
+**Workspace Management:**
+- **workspace_manager.py**: Manages workspace directories, screenshots, and metadata (workspace.json)
+- **config_template.py**: Template utilities for creating new workspace configs
+- **config_serializer.py**: YAML load/save with comment preservation and validation
 
-The main `config_editor.py` (477 lines) orchestrates these modules, handling screenshot capture and event routing.
+**Canvas & Rendering:**
+- **coordinate_system.py**: Pure functions for canvas ↔ image coordinate transformations
+- **canvas_controller.py**: Manages image display, zoom (1x-10x with cursor-centered zooming), pan, and unified overlay state
+- **grid_renderer.py**: Renders grid/OCR overlays, crop padding indicators, resize handles, and visual feedback
+
+**Editing Workflows:**
+- **grid_editor.py**: State machine for 3-step grid editing workflow (set start → define cell → adjust)
+- **ocr_editor.py**: State machine for OCR region editing
+- **resize_controller.py**: Handles 8 resize handles (4 corners + 4 edges) with modifier key support (Shift: aspect ratio, Ctrl: center-fixed)
+
+**Tool System (Photoshop-like):**
+- **base_tool.py**: Abstract base class defining tool interface
+- **tool_manager.py**: Tool selection and event delegation system
+- **select_tool.py**: Default tool for pan, zoom, and resizing overlays via handles
+- **draw_grid_tool.py**: Tool for drawing new grid overlays (wraps GridEditor)
+- **draw_ocr_tool.py**: Tool for drawing new OCR regions (wraps OCREditor)
+
+**UI Components:**
+- **ui_builder.py**: Creates all UI components (menu bar, workspace selector, screenshot list, canvas, input widgets)
+
+The main `config_editor.py` orchestrates these modules, handling workspace switching, screenshot capture, and event routing.
+
+**Key Architecture Patterns:**
+1. **Workspace-Centric**: Each workspace is self-contained with its own config.yaml, screenshots, and metadata
+2. **Tool-Based UX**: Photoshop-like tool selection instead of mode-based workflow
+3. **Unified Overlay State**: CanvasController owns all visual state (overlays, zoom, pan) for automatic cleanup
+4. **Multi-Overlay Support**: Extensible dict-based overlay system allows unlimited overlays per type
+5. **Auto-Switch Pattern**: Drawing tools automatically switch to Select tool on completion for immediate adjustment
 
 ## Output
 
