@@ -45,6 +45,10 @@ from editor.select_tool import SelectTool
 from editor.draw_grid_tool import DrawGridTool
 from editor.draw_ocr_tool import DrawOCRTool
 
+# Import batch cropping
+from editor.cropper_api import batch_crop_workspace
+from editor.crop_preview_dialog import show_crop_preview_dialog
+
 
 class ConfigEditorApp:
     """Main application for the Config Editor GUI."""
@@ -166,6 +170,7 @@ class ConfigEditorApp:
             'capture_screenshot': self.capture_screenshot,
             'delete_screenshot': self.delete_screenshot,
             'preview_icons': self.preview_icons,
+            'batch_crop_all': self.batch_crop_all,
             'quit_app': self.quit_app,
             'zoom_in': lambda: self.canvas_controller.zoom_in() if hasattr(self, 'canvas_controller') else None,
             'zoom_out': lambda: self.canvas_controller.zoom_out() if hasattr(self, 'canvas_controller') else None,
@@ -232,6 +237,7 @@ class ConfigEditorApp:
         self.root.bind('<Control-o>', lambda e: self.open_screenshot())
         self.root.bind('<Control-g>', lambda e: self.capture_screenshot())
         self.root.bind('<Control-p>', lambda e: self.preview_icons())
+        self.root.bind('<Control-b>', lambda e: self.batch_crop_all())
         self.root.bind('<Control-q>', lambda e: self.quit_app())
 
     def _on_display_complete(self):
@@ -882,6 +888,61 @@ class ConfigEditorApp:
                 f"An error occurred while generating preview:\n\n{str(e)}"
             )
             self.update_status("Preview failed")
+
+    def batch_crop_all(self):
+        """Run batch crop operation on all screenshots in workspace."""
+        try:
+            # Validate workspace
+            if not self.current_workspace:
+                messagebox.showwarning(
+                    "No Workspace",
+                    "Please select a workspace first."
+                )
+                return
+
+            # Show preview dialog
+            self.update_status("Preparing batch crop preview...")
+            proceed = show_crop_preview_dialog(
+                self.root,
+                self.current_workspace,
+                self.workspace_manager.workspaces_root
+            )
+
+            if not proceed:
+                self.update_status("Batch crop cancelled")
+                return
+
+            # Run batch crop
+            self.update_status("Running batch crop...")
+            results = batch_crop_workspace(
+                self.current_workspace,
+                workspaces_root=self.workspace_manager.workspaces_root
+            )
+
+            # Show success message
+            total_icons = sum(len(paths) for paths in results.values())
+            messagebox.showinfo(
+                "Batch Crop Complete",
+                f"Successfully extracted {total_icons} icons!\n\n"
+                f"Output location:\n"
+                f"workspaces/{self.current_workspace}/cropped/"
+            )
+            self.update_status(f"Batch crop complete: {total_icons} icons extracted")
+
+        except FileNotFoundError as e:
+            messagebox.showerror(
+                "Workspace Not Found",
+                f"Error: {str(e)}\n\n"
+                f"Please ensure the workspace exists."
+            )
+            self.update_status("Batch crop failed: workspace not found")
+
+        except Exception as e:
+            messagebox.showerror(
+                "Batch Crop Error",
+                f"An error occurred during batch cropping:\n\n{str(e)}"
+            )
+            self.update_status("Batch crop failed")
 
     # ========== Workspace Management ==========
 

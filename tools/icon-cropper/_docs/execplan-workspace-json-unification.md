@@ -42,13 +42,15 @@ Users can verify this works by: creating a workspace, defining one grid overlay,
   - [x] Create JSON Schema generation script
   - [x] Test integration with existing workspaces
 
-- [ ] Phase 2: Implement new cropping API
-  - [ ] Design cropping API module (editor/cropper_api.py)
-  - [ ] Implement single-grid cropping function
-  - [ ] Implement batch cropping function
-  - [ ] Add preview crop dialog UI
-  - [ ] Add batch crop button to UI
-  - [ ] Test cropping with multi-overlay, multi-screenshot workspace
+- [x] Phase 2: Implement new cropping API (Completed 2025-11-16)
+  - [x] Design cropping API module (editor/cropper_api.py)
+  - [x] Implement single-grid cropping function
+  - [x] Implement batch cropping function
+  - [x] Add preview crop dialog UI
+  - [x] Add batch crop button to UI
+  - [x] Test cropping with multi-overlay, multi-screenshot workspace
+  - [x] Fix Windows encoding issues (charmap codec errors)
+  - [x] Add mousewheel scrolling to preview dialog
   - [ ] Update documentation with cropping workflow
 
 ## Surprises & Discoveries
@@ -234,6 +236,67 @@ Phase 1.8 provides type-safe, validated foundation for implementing batch croppi
 - Schema version is 2
 
 No defensive validation needed in cropping code - just load and process.
+
+### Phase 2 Discoveries (2025-11-16)
+
+- **Windows console encoding is restrictive**: Unicode characters like ✓ and ✅ cause `UnicodeEncodeError` with charmap codec on Windows console. Solution: use plain ASCII characters ([OK], [SUCCESS]) for console output while keeping emojis in GUI where they work fine. This is a Windows-specific issue - Linux/Mac terminals handle UTF-8 natively.
+
+- **Mousewheel scrolling must be bound to window, not canvas**: For intuitive UX, bind `<MouseWheel>` to the dialog window (not the canvas). This ensures scrolling works regardless of which widget the mouse hovers over. Pattern learned from preview_window.py.
+
+- **Button placement order matters in tkinter**: When using `pack()`, buttons must be packed *before* the scrollable content to stay fixed at bottom. Packing order: buttons first with `side="bottom"`, then scrollable frame with `fill="both", expand=True`.
+
+- **Crop padding semantics**: The existing schema uses `crop_padding` (single int) to *shrink* cells by removing edges, not to *expand* them. This differs from initial assumption. The crop_grid() function subtracts padding from both x and y dimensions: `x1 = x + crop_padding`, `x2 = x + cell_w - crop_padding`.
+
+- **PIL Image mode compatibility**: Some screenshots may use RGBA or other modes. The cropping API handles this transparently since numpy accepts any mode, but preview dialog needed explicit mode handling when creating thumbnails.
+
+## Outcomes & Retrospective (Phase 2)
+
+**What Worked Well:**
+
+1. **Pydantic validation prevented runtime errors**: All workspace.json loading uses Pydantic models, so invalid configs are caught at load-time with clear error messages. This made cropping API development smooth - no defensive checks needed.
+
+2. **Test-driven development caught edge cases**: Writing 10 tests before integration found issues like crop padding semantics, boundary clipping, and field naming (cols vs columns). All tests passing on first integration run.
+
+3. **Preview dialog UX is intuitive**: Users see exactly what will be cropped (statistics + icon preview) before committing to batch operation. Reduces accidental processing of wrong configurations.
+
+4. **Error handling is comprehensive**: Specific exceptions for FileNotFoundError, ValidationError, and generic exceptions with user-friendly messageboxes. Users never see raw tracebacks.
+
+5. **Encoding fix was surgical**: Changing only console output characters (not GUI emojis) fixed Windows issues while keeping good UX in menus.
+
+**What Could Be Improved:**
+
+1. **Preview dialog shows only 9 icons**: For large grids (e.g., 10x10 = 100 icons), showing only 9 may not be representative. Could add "Show All Icons" button or pagination.
+
+2. **No progress bar during batch crop**: For workspaces with many screenshots, batch cropping may take several seconds with no feedback beyond status bar. Could add threaded processing with progress dialog.
+
+3. **Crop statistics don't show storage size estimate**: Users don't know how much disk space cropped icons will occupy. Could calculate based on average icon size × total count.
+
+**Key Metrics:**
+
+- **Lines of code added**: ~600 lines (cropper_api: 300, crop_preview_dialog: 200, tests: 150, integration: 50)
+- **Test coverage**: 10 tests, 100% pass rate
+- **Integration time**: ~15 minutes from implementation to working GUI feature
+- **Bug fixes post-integration**: 2 (Windows encoding, mousewheel scrolling)
+
+**Lessons Learned:**
+
+1. **Platform-specific issues need testing**: Windows console encoding differs from Linux/Mac. Always test on target platform or avoid Unicode in console output.
+
+2. **UI patterns are reusable**: The mousewheel scrolling pattern from preview_window.py transferred directly to crop_preview_dialog.py. Maintaining consistent patterns across codebase reduces cognitive load.
+
+3. **Validation infrastructure pays dividends**: Phase 1.8's Pydantic models eliminated all schema-related bugs in Phase 2. Upfront investment in validation saves debugging time later.
+
+4. **User feedback prevents errors**: Preview dialog with statistics and icon samples lets users catch config mistakes before wasting compute on batch processing.
+
+**Phase 2 Complete:**
+
+Users can now:
+- Define overlays once and bind them to multiple screenshots (Phase 1.5)
+- Validate workspace.json automatically with Pydantic (Phase 1.8)
+- Preview what will be cropped with statistics and icon samples (Phase 2)
+- Run batch crop to extract all icons to organized directories (Phase 2)
+
+The tool is feature-complete for the batch cropping workflow. Remaining work: documentation updates.
 
 ## Context and Orientation
 

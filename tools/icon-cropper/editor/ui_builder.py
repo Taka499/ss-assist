@@ -127,6 +127,15 @@ class UIBuilder:
             accelerator="0"
         )
 
+        # Tools menu
+        tools_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Tools", menu=tools_menu)
+        tools_menu.add_command(
+            label="✂️ Batch Crop All...",
+            command=self.callbacks['batch_crop_all'],
+            accelerator="Ctrl+B"
+        )
+
         # Help menu
         help_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Help", menu=help_menu)
