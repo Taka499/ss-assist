@@ -15,22 +15,24 @@ The icon-cropper has evolved into a **workspace-centric, tool-based GUI applicat
 ### Workspace-Centric Design
 
 Each workspace is a **self-contained project** with its own:
-- `config.yaml` - Grid/OCR configuration
+- `workspace.json` - Single source of truth for all configuration (overlays, screenshots, bindings)
 - `screenshots/` - Multiple screenshots for scrolling UIs
-- `cropped/` - Future batch crop output
-- `workspace.json` - Metadata (selected screenshot, timestamps)
+- `cropped/` - Batch crop output (organized by screenshot and overlay)
 
 ```
 workspaces/
 ├── character_select/    # Workspace 1
-│   ├── config.yaml
 │   ├── workspace.json
-│   └── screenshots/
-│       ├── 001.png
-│       ├── 002.png
-│       └── 003.png
+│   ├── screenshots/
+│   │   ├── 001.png
+│   │   ├── 002.png
+│   │   └── 003.png
+│   └── cropped/         # Batch crop output
+│       ├── 001.png/
+│       │   └── grid_1/  # Icons from screenshot 001.png using grid_1
+│       └── 002.png/
+│           └── grid_1/
 └── item_inventory/      # Workspace 2
-    ├── config.yaml
     ├── workspace.json
     └── screenshots/
 ```
@@ -117,6 +119,41 @@ canvas_controller.set_overlay('ocr', ocr_config, index=0)    # First OCR region
   - `get_screenshots(workspace)` - Returns list with validated metadata
   - `_load_metadata(path)` - Loads and validates workspace.json with Pydantic
   - `_save_metadata(path, data)` - Validates before saving to prevent corrupt data
+
+### Batch Cropping Layer
+
+**`editor/cropper_api.py`**
+- Core API for extracting icons from screenshots using workspace overlays
+- **Functions:**
+  - `crop_grid(image, grid_config)` - Extract icons from a single image using GridConfig
+    - Handles crop padding (shrinks cells by removing edges)
+    - Clips at image boundaries
+    - Returns list of icon arrays (numpy) in row-major order
+  - `preview_overlay(workspace, screenshot, overlay_id)` - Preview icons for one overlay
+    - Validates workspace.json with Pydantic
+    - Returns list of PIL Images for display
+  - `batch_crop_workspace(workspace)` - Batch crop all screenshots with bindings
+    - Processes all screenshots × bound overlays
+    - Saves to `workspaces/{workspace}/cropped/{screenshot}/{overlay}/`
+    - Returns dict mapping "{screenshot}/{overlay}" → list of output paths
+  - `get_crop_statistics(workspace)` - Get statistics without cropping
+    - Used by preview dialog to show counts and breakdown
+
+**`editor/crop_preview_dialog.py`**
+- Preview dialog before running batch crop
+- **Features:**
+  - Summary: Total screenshots, bindings, icons
+  - Breakdown table: What will be cropped per screenshot/overlay
+  - Icon preview: Shows first 9 icons from first overlay
+  - Scrollable content with mousewheel support
+  - Fixed Cancel/Proceed buttons at bottom
+- **Returns:** Boolean (True if user clicked "Proceed")
+
+**Why separate cropping API?**
+- Decouples icon extraction from GUI
+- Enables future CLI/scripting use cases
+- Testable in isolation (10 comprehensive tests)
+- Pydantic validation ensures valid inputs
 
 ### Canvas & Visual Layer
 

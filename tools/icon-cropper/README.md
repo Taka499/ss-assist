@@ -258,7 +258,9 @@ uv run python config_editor.py
 **Features:**
 - **Workspace-Based Projects**: Each workspace is a self-contained cropping project with its own config, screenshots, and overlays
 - **Multi-Screenshot Support**: Capture and manage multiple screenshots per workspace (for scrolling/paginated UIs)
-- **Multi-Overlay Support**: Create multiple grids and OCR regions on each screenshot
+- **Multi-Overlay Support**: Create multiple grids and OCR regions, bind them to screenshots
+- **Batch Cropping**: Extract icons from all screenshots with one click, organized by screenshot and overlay
+- **Crop Preview**: See statistics and icon samples before running batch crop
 - **Select Tools to Edit**: Select tool (pan/zoom/resize), Draw Grid tool, Draw OCR tool
 - **Visual Grid Editor**: Click and drag to define icon grid layouts
 - **OCR Region Editor**: Draw rectangles around page-identifying text
@@ -273,9 +275,11 @@ uv run python config_editor.py
 2. **Capture Screenshots**: Click "📷 Capture Screenshot" - can capture multiple for scrolling UIs
 3. **Select Screenshot**: Click screenshots in the sidebar list to switch between them
 4. **Draw Grid(s)**: Click "🔲 Draw Grid Layout" - can draw multiple grids if needed
-5. **Draw OCR Region(s)**: Click "📄 Draw OCR Region" - can draw multiple regions
-6. **Adjust**: Tool auto-switches to Select mode - resize/adjust overlays with handles
-7. **Preview Icons**: Click "👁️ Preview Icons" to verify grid alignment
+5. **Bind Overlays**: Use checkboxes in "Apply to Screenshot" section to bind grids to screenshots
+6. **Draw OCR Region(s)**: Click "📄 Draw OCR Region" - can draw multiple regions (optional)
+7. **Adjust**: Tool auto-switches to Select mode - resize/adjust overlays with handles
+8. **Preview Icons**: Click "👁️ Preview Icons" to verify grid alignment
+9. **Batch Crop**: Click Tools → "✂️ Batch Crop All..." (Ctrl+B) to extract all icons
 
 **Note:** All overlay configurations are automatically saved to workspace.json in real-time with validation. There is no need for manual save/load operations.
 
@@ -298,14 +302,45 @@ If validation fails, you'll see a user-friendly error message indicating exactly
 - `Ctrl+O`: Open screenshot from file
 - `Ctrl+G`: Capture screenshot from game window
 - `Ctrl+P`: Preview extracted icons
+- `Ctrl+B`: Batch crop all screenshots
 - `Ctrl+Scroll`: Zoom in/out
+
+**Batch Cropping Workflow:**
+
+The batch crop feature allows you to extract icons from multiple screenshots at once:
+
+1. **Setup**: Create overlays (grids) and bind them to screenshots using the checkboxes
+2. **Preview**: Click Tools → "✂️ Batch Crop All..." to see:
+   - Total screenshots, grid bindings, and icons to extract
+   - Breakdown table showing what will be cropped
+   - Preview of the first 9 icons
+3. **Execute**: Click "Proceed with Batch Crop" to extract all icons
+4. **Output**: Icons are saved to `workspaces/{workspace_name}/cropped/` organized by:
+   ```
+   cropped/
+   ├── 001.png/          # Screenshot folder
+   │   └── grid_1/       # Overlay folder
+   │       ├── 001.png   # First icon
+   │       ├── 002.png   # Second icon
+   │       └── ...
+   └── 002.png/
+       └── grid_1/
+           └── ...
+   ```
+
+**Use Case Example:**
+- Capture 3 screenshots of a scrolling character list
+- Draw one grid overlay for the character grid layout
+- Bind the same grid to all 3 screenshots (using checkboxes)
+- Run batch crop → extracts all characters from all screenshots automatically
 
 **Tips:**
 - Create separate workspaces for different game UIs (character_select, item_inventory, etc.)
 - Use multiple screenshots in one workspace for scrolling UIs
+- Bind the same grid overlay to multiple screenshots to avoid duplicating grid configs
 - Select tool is always active after drawing - handles appear automatically
 - Adjust spinbox values for fine-tuning (works in any mode)
-- Preview extracted icons to verify grid alignment
+- Preview extracted icons to verify grid alignment before batch cropping
 - Workspaces are stored in `workspaces/` - can be zipped and shared
 
 ### Adjusting Grid Positions Manually
