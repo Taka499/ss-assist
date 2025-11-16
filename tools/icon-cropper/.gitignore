@@ -80,3 +80,6 @@ config.override.yaml
 logs/
 *.backup
 *.backup.*
+
+# Workspace test data
+workspaces/
