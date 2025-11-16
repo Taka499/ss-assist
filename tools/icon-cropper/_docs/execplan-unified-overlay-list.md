@@ -56,10 +56,11 @@ Users can verify this works by:
   - [x] Update layout to expand overlay list area
   - [x] Test UI renders correctly without binding panel
 
-- [ ] Phase 3: Update Delete button behavior
-  - [ ] Change `_on_delete_overlay()` to permanently delete overlay
-  - [ ] Add confirmation dialog showing which screenshots use this overlay
-  - [ ] Automatically remove overlay from all screenshot bindings
+- [x] Phase 3: Update Delete button behavior (Completed: 2025-11-16)
+  - [x] Implement `delete_overlay()` method in workspace_manager.py
+  - [x] Change `_on_delete_overlay()` to permanently delete overlay
+  - [x] Add confirmation dialog showing which screenshots use this overlay
+  - [x] Automatically remove overlay from all screenshot bindings
   - [ ] Test delete removes overlay from workspace.json and all screenshots
 
 - [ ] Phase 4: Polish and edge cases
@@ -93,6 +94,14 @@ Users can verify this works by:
 
 3. **Canvas weight adjustment**: User feedback indicated the canvas should be wider. Changed PanedWindow weight from 3:1 to 5:1 (canvas:overlay), giving canvas 83% of horizontal space instead of 75%. This provides more room for working with screenshots.
 
+### Phase 3 Discoveries (2025-11-16)
+
+1. **Straightforward implementation**: The delete_overlay() method was simple to implement because the workspace.json structure already had clear separation between workspace-level overlays (overlays dict) and screenshot-level bindings (overlay_bindings arrays). Just needed to delete from both locations.
+
+2. **Screenshot usage detection**: Iterating through all screenshots to check bindings is cheap (typically <10 screenshots per workspace). No performance optimization needed.
+
+3. **Reload vs clear canvas**: After deletion, calling `_load_selected_screenshot()` instead of just `display_image()` ensures that if the deleted overlay was bound to the current screenshot, it gets properly removed from the canvas. This handles both bound and unbound overlay deletions correctly.
+
 ## Decision Log
 
 - Decision: Show ALL workspace overlays in the list (not just bound ones)
@@ -121,6 +130,10 @@ Users can verify this works by:
 
 - Decision: Move parameter panel to right sidebar (under overlay list)
   Rationale: Consolidates all overlay-related controls into one vertical flow in the right sidebar. Left panel was getting crowded with tools, mode buttons, and parameters. Moving parameters to the right creates a logical grouping: "select overlay → apply to screenshot → edit parameters → delete/lock". This also freed up space in the left panel for future tools.
+  Date: 2025-11-16
+
+- Decision: Show up to 5 screenshots in deletion confirmation, with "... and N more" for additional
+  Rationale: Prevents confirmation dialog from becoming unwieldy with very long lists while still providing visibility into overlay usage. User can see which screenshots are affected without scrolling through potentially hundreds of entries.
   Date: 2025-11-16
 
 ## Outcomes & Retrospective
@@ -636,13 +649,16 @@ The workspace.json schema is not changing, so old code can read new workspaces a
 - Delete handler: `config_editor.py` line 1246 (`_on_delete_overlay()`)
 - Workspace manager: `editor/workspace_manager.py`
 
-**Actual File Changes (Phases 1-2):**
+**Actual File Changes (Phases 1-3):**
 
-- `config_editor.py`: ~30 lines modified (Phase 1), ~25 lines removed (Phase 2: removed `_refresh_binding_list()` method and all calls)
+- `config_editor.py`: ~30 lines modified (Phase 1), ~25 lines removed (Phase 2: removed `_refresh_binding_list()` method and all calls), ~30 lines modified (Phase 3: updated `_on_delete_overlay()` with usage detection and confirmation)
 - `editor/ui_builder.py`: ~50 lines modified (Phase 1: updated `update_overlay_list()` signature and rendering), ~52 lines removed (Phase 2: removed binding panel UI and `update_binding_list()` method), ~5 lines modified (moved parameter panel to right sidebar, adjusted canvas weight to 5:1)
-- `editor/workspace_manager.py`: ~20 lines to be added in Phase 3 (`delete_overlay()`)
+- `editor/workspace_manager.py`: ~20 lines added (Phase 3: `delete_overlay()` method)
 
 ---
 
 *Plan created: 2025-11-16*
-*Last updated: 2025-11-16 (Phases 1-2 completed)*
+*Last updated: 2025-11-16 (Phases 1-3 completed)*
+
+**Update 2025-11-16 (Phase 3 completion):**
+Implemented permanent delete functionality. The `delete_overlay()` method in workspace_manager.py removes overlays from both the workspace-level overlays dict and all screenshot bindings. The `_on_delete_overlay()` handler now shows a confirmation dialog listing which screenshots use the overlay (up to 5, with "... and N more" for additional). Testing pending for validation of all edge cases.

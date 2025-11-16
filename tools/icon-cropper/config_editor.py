@@ -1258,7 +1258,7 @@ class ConfigEditorApp:
         self.canvas_controller.display_image()
 
     def _on_delete_overlay(self):
-        """Handle delete overlay button click."""
+        """Handle delete overlay button click - PERMANENTLY deletes overlay from workspace."""
         if not self.selected_overlay_id or not self.current_workspace:
             return
 
@@ -1273,19 +1273,37 @@ class ConfigEditorApp:
             messagebox.showwarning("Locked", "Cannot delete locked overlay. Unlock it first.")
             return
 
-        # Confirm deletion
-        if messagebox.askyesno("Delete Overlay", f"Delete overlay '{overlay.name}'?"):
-            # Remove from canvas if it's currently bound
-            self.canvas_controller.remove_overlay_by_id(self.selected_overlay_id)
-            self.selected_overlay_id = None
+        # Check which screenshots use this overlay
+        screenshots_using = []
+        for screenshot in self.workspace_manager.get_screenshots(self.current_workspace):
+            bindings = self.workspace_manager.load_screenshot_bindings(
+                self.current_workspace, screenshot["filename"]
+            )
+            if self.selected_overlay_id in bindings:
+                screenshots_using.append(screenshot["filename"])
 
-            # Update parameter panel to show empty state (Phase 2)
+        # Build confirmation message
+        msg = f"Permanently delete overlay '{overlay.name}' from workspace?"
+        if screenshots_using:
+            msg += f"\n\nThis overlay is used by {len(screenshots_using)} screenshot(s):\n"
+            msg += "\n".join(f"  • {s}" for s in screenshots_using[:5])
+            if len(screenshots_using) > 5:
+                msg += f"\n  ... and {len(screenshots_using) - 5} more"
+
+        # Confirm deletion
+        if messagebox.askyesno("Delete Overlay", msg):
+            # Remove from workspace (this handles unbinding from all screenshots)
+            self.workspace_manager.delete_overlay(self.current_workspace, self.selected_overlay_id)
+
+            # Clear selection and UI
+            self.selected_overlay_id = None
             self.ui_builder.update_parameter_panel(None, None)
 
-            self._save_current_overlays()
+            # Refresh lists and canvas
             self._refresh_overlay_list()
-            self.canvas_controller.display_image()
-            self.update_status(f"Deleted overlay '{overlay.name}'")
+            self._load_selected_screenshot()  # Reload canvas with new bindings
+
+            self.update_status(f"Deleted overlay '{overlay.name}' from workspace")
 
     def _on_lock_overlay(self):
         """Handle lock/unlock overlay button click."""

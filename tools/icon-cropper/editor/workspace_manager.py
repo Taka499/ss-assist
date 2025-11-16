@@ -254,6 +254,27 @@ class WorkspaceManager:
         metadata["overlays"] = overlays
         self._save_metadata(workspace_path, metadata)
 
+    def delete_overlay(self, page_name: str, overlay_id: str):
+        """Permanently delete overlay from workspace and all screenshot bindings.
+
+        Args:
+            page_name: Name of the workspace
+            overlay_id: ID of overlay to delete
+        """
+        workspace_path = self.get_workspace_path(page_name)
+        metadata = self._load_metadata(workspace_path)
+
+        # Remove from overlays dict
+        if overlay_id in metadata.get("overlays", {}):
+            del metadata["overlays"][overlay_id]
+
+        # Remove from all screenshot bindings
+        for screenshot in metadata.get("screenshots", []):
+            if overlay_id in screenshot.get("overlay_bindings", []):
+                screenshot["overlay_bindings"].remove(overlay_id)
+
+        self._save_metadata(workspace_path, metadata)
+
     def load_workspace_overlays(self, page_name: str) -> Dict[str, Overlay]:
         """Load workspace-level overlays.
 
