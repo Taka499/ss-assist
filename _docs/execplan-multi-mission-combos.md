@@ -35,11 +35,21 @@ You can verify success by selecting multiple missions with different requirement
 - [ ] Implement mission coverage badges/indicators in UI
 - [ ] Add grouping logic to display combinations by mission coverage
 
-**Phase 3: Integration and Validation**
+**Phase 3: Performance Optimization** (PLANNED)
+
+- [ ] Implement Top-K heap to avoid sorting all combinations (O(n log K) vs O(n log n))
+- [ ] Implement greedy Max-k-Coverage algorithm for large character sets
+- [ ] Implement hybrid strategy: exact for N≤25, greedy for N>25
+- [ ] Add benchmark suite to measure and document speedup
+- [ ] Update tests to verify greedy approximation quality
+- [ ] Document performance characteristics and trade-offs
+
+**Phase 4: End-to-End Validation** (original Phase 3)
 
 - [ ] Validate end-to-end functionality with realistic mission selections
 - [ ] Update training priority logic if needed to align with new algorithm
 - [ ] Run full test suite and type checking
+- [ ] Performance validation with large datasets (50 chars, 5+ missions)
 
 
 ## Surprises & Discoveries
@@ -146,6 +156,38 @@ You can verify success by selecting multiple missions with different requirement
 - Follows existing pattern from `CombinationSearchResult`
 
 **Implementation:** See `MultiMissionCombinationResult` type in types/index.ts lines 172-185
+
+### Decision 4: Adding Performance Optimization Phase
+
+**Date:** 2025-11-17 02:45Z
+
+**Context:** After Phase 1 implementation, identified performance bottlenecks in the exhaustive O(C³) algorithm. User suggested three optimization strategies: Top-K heap, greedy Max-k-Coverage, and hybrid exact/greedy approach.
+
+**Options:**
+1. Optimize immediately before Phase 2 (UI)
+2. Add as Phase 3.5 after Phase 2 (UI working first)
+3. Defer to future work (note as "known opportunities")
+
+**Decision:** Option 2 - Add as new Phase 3, shift original Phase 3 to Phase 4
+
+**Rationale:**
+- **Phase 2 reveals real performance needs**: UI testing will show actual roster sizes and usage patterns
+- **Greedy approximation needs UI validation**: Users must verify approximation "looks right"
+- **Hybrid threshold tuning**: Need real data to set the 25-character threshold
+- **Correctness before speed**: Get feature working end-to-end, then optimize bottlenecks
+- **Lower risk**: Optimization after UI reduces chance of optimizing wrong thing
+
+**Planned optimizations:**
+1. Top-K heap: O(n log K) vs O(n log n) sorting (~7x speedup)
+2. Greedy algorithm: O(k·M·C) vs O(C³) generation (~833x for C=50)
+3. Hybrid: Exact for N≤25, greedy for N>25 (best of both worlds)
+
+**Testing requirements:**
+- Benchmark suite across roster sizes (10, 20, 30, 50, 100 chars)
+- Quality tests: greedy vs exhaustive comparison (>90% match expected)
+- Document approximation limits and edge cases
+
+**Impact:** Plan now has 4 phases instead of 3. Performance optimization deferred until after UI proves the feature works.
 
 
 ## Outcomes & Retrospective
@@ -266,7 +308,7 @@ See `src/lib/bitmask.ts::satisfiesConditionWithCounts()` for the count validatio
 
 ## Plan of Work
 
-This plan is divided into three phases to maintain incremental validation and testability.
+This plan is divided into four phases to maintain incremental validation and testability.
 
 ### Phase 1: Core Multi-Mission Algorithm
 
@@ -302,12 +344,51 @@ The display should help users quickly identify:
 - If no universal team exists, which teams come closest
 - Trade-offs between different combinations
 
-### Phase 3: Integration and Validation
+### Phase 3: Performance Optimization
+
+After Phase 2 reveals real-world performance characteristics, optimize the algorithm for large character rosters. The current exhaustive algorithm has O(C³) combination generation which becomes prohibitive when C > 30.
+
+**Optimization strategies:**
+
+1. **Top-K Heap (Easy win)**
+   - Current: Sort all combinations O(n log n)
+   - Optimized: Maintain top-K heap O(n log K)
+   - Impact: With K=50 and n=10,000 → ~7x speedup
+   - Implementation: Use min-heap or bounded priority queue
+
+2. **Greedy Max-k-Coverage Algorithm (Big win)**
+   - Problem recognition: This is a variant of Max-k-Coverage (NP-hard)
+   - Greedy approach: Iteratively select character with highest marginal score gain
+   - Complexity: O(k · M · C) where k=3 (constant) → linear in C instead of cubic
+   - Trade-off: Approximation ratio ≥(1-1/e) ≈ 63% of optimal, often much better
+   - Practical impact: C=50 → ~833x speedup (125k operations → 150)
+
+3. **Hybrid Strategy (Best of both worlds)**
+   ```typescript
+   if (relevantCharacters.length <= 25) {
+     return exhaustiveSearch(); // C(25,3) = 2,300 combos (trivial)
+   } else {
+     return greedySearch(); // ~150 operations for 50 chars
+   }
+   ```
+   - Threshold tuning: Benchmark to find optimal crossover point
+   - Maintains exactness for small rosters
+   - Gains speed for large rosters
+   - Could expose as user preference: "Fast mode" vs "Exhaustive mode"
+
+**Testing strategy:**
+
+- Add benchmark suite measuring performance across roster sizes (10, 20, 30, 50, 100 chars)
+- Add quality tests comparing greedy vs exhaustive results (should match >90% of the time)
+- Verify greedy approximation finds same top-10 combos in typical scenarios
+- Document when greedy might miss optimal solutions (pathological cases)
+
+### Phase 4: End-to-End Validation (original Phase 3)
 
 1. Test the complete flow end-to-end with realistic mission selections
 2. Verify that the training priority calculator (`src/lib/scoring.ts`) still works correctly, or update if needed to align with the new multi-mission paradigm
 3. Run full test suite to ensure no regressions
-4. Validate performance: with 20 characters and 5 missions, results should still appear in under 100ms
+4. Validate performance with optimizations: 50 characters and 5 missions should appear in <100ms
 5. Test edge cases: very restrictive missions, missions with overlapping requirements, missions with conflicting level requirements
 
 
@@ -842,3 +923,41 @@ Per PLANS.md guidelines, ExecPlans are living documents that must be updated as 
 - Test suite passing: 132/132 tests (including 9 new multi-mission tests)
 - Type checking passing: 0 TypeScript errors
 - ExecPlan sections updated: Progress ✓, Discoveries ✓, Decisions ✓, Retrospective ✓
+
+### Revision 2: Performance Optimization Phase Added (2025-11-17 02:46Z)
+
+**Changes made:**
+- Updated Progress section: Added new Phase 3 (Performance Optimization), renumbered old Phase 3 to Phase 4
+- Updated Plan of Work: Changed from "three phases" to "four phases"
+- Added detailed Phase 3 description in Plan of Work:
+  - Top-K heap optimization (O(n log K) vs O(n log n))
+  - Greedy Max-k-Coverage algorithm (O(k·M·C) vs O(C³))
+  - Hybrid strategy (exact for N≤25, greedy for N>25)
+  - Testing strategy for benchmarking and quality validation
+- Added Decision 4 in Decision Log: Documents rationale for adding optimization phase after UI
+- Updated Phase 4 to include performance validation with optimizations
+
+**Reason for changes:**
+User identified performance bottlenecks in the exhaustive O(C³) algorithm and proposed three optimization strategies. Adopted "Option A" approach: implement optimizations as new Phase 3 after Phase 2 (UI) completes. This allows UI testing to reveal real-world performance needs before optimization, reducing risk of premature optimization.
+
+**Impact:**
+- Plan structure now has 4 phases instead of 3
+- Performance optimization explicitly planned with concrete strategies
+- Testing requirements defined (benchmark suite, quality tests)
+- Clear rationale documented for why optimization comes after UI
+
+**Rationale for deferred optimization:**
+- Phase 2 will reveal actual roster sizes and usage patterns
+- Greedy approximation needs UI validation to ensure it "looks right" to users
+- Hybrid threshold (25 chars) should be tuned based on real data
+- Correctness-first approach: prove feature works, then optimize
+- Lower risk: avoid optimizing the wrong bottleneck
+
+**Performance targets documented:**
+- Top-K heap: ~7x speedup for large result sets
+- Greedy algorithm: ~833x speedup for C=50 characters
+- Hybrid: Maintains exactness for small rosters, gains speed for large rosters
+- Overall goal: <100ms for 50 characters, 5 missions
+
+**Next steps:**
+Phase 2 (UI integration) proceeds as planned, with performance optimization deferred to Phase 3.
