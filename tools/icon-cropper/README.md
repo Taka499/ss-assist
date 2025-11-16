@@ -275,7 +275,7 @@ uv run python config_editor.py
 2. **Capture Screenshots**: Click "📷 Capture Screenshot" - can capture multiple for scrolling UIs
 3. **Select Screenshot**: Click screenshots in the sidebar list to switch between them
 4. **Draw Grid(s)**: Click "🔲 Draw Grid Layout" - can draw multiple grids if needed
-5. **Bind Overlays**: Use checkboxes in "Apply to Screenshot" section to bind grids to screenshots
+5. **Bind Overlays**: Use "Apply" checkboxes in the unified overlay list to bind grids to screenshots
 6. **Draw OCR Region(s)**: Click "📄 Draw OCR Region" - can draw multiple regions (optional)
 7. **Adjust**: Tool auto-switches to Select mode - resize/adjust overlays with handles
 8. **Preview Icons**: Click "👁️ Preview Icons" to verify grid alignment
@@ -333,6 +333,34 @@ The batch crop feature allows you to extract icons from multiple screenshots at 
 - Draw one grid overlay for the character grid layout
 - Bind the same grid to all 3 screenshots (using checkboxes)
 - Run batch crop → extracts all characters from all screenshots automatically
+
+**Unified Overlay List:**
+
+The tool uses a single unified overlay list that shows ALL workspace overlays:
+
+```
+Overlays (3 overlays in workspace)
+
+○ 🔲 Grid 1          [☑ Apply]  🗑️ Delete  🔒 Lock
+● 📄 OCR Region 1    [☑ Apply]  🗑️ Delete  🔒 Lock
+○ 🔲 Grid 2          [☐ Apply]  🗑️ Delete  🔒 Lock
+```
+
+- **Radio button (○/●)**: Select overlay to edit (shows parameter panel)
+- **Apply checkbox**: Bind/unbind overlay to current screenshot
+  - Checked = overlay visible on canvas
+  - Unchecked = overlay exists in workspace but hidden
+  - Switching screenshots updates checkbox state automatically
+- **Delete button**: Permanently removes overlay from workspace
+  - Shows confirmation dialog listing affected screenshots
+  - Cannot delete locked overlays
+- **Lock button**: Toggle lock state (prevents editing)
+
+**Key Behaviors:**
+- Overlays exist at workspace level (shared across screenshots)
+- Bindings are screenshot-specific (each screenshot has its own set)
+- Deleting removes overlay from workspace AND all screenshot bindings
+- Creating overlay in screenshot A makes it available (but not bound) in screenshot B
 
 **Tips:**
 - Create separate workspaces for different game UIs (character_select, item_inventory, etc.)

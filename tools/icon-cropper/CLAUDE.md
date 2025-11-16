@@ -239,6 +239,7 @@ canvas_controller.set_overlay('ocr', ocr_config, index=0)    # First OCR region
 - Workspace selector dropdown with [+] button
 - Screenshot list (radio selection)
 - Canvas with scrollbars
+- **Unified overlay list** (see Overlay Management UI below)
 - Grid/OCR parameter spinboxes
 - Mode buttons, menu bar
 
@@ -248,6 +249,107 @@ canvas_controller.set_overlay('ocr', ocr_config, index=0)    # First OCR region
 - Handles workspace switching
 - Screenshot capture integration
 - Load/save configuration
+
+### Overlay Management UI
+
+The tool uses a **unified overlay list** that shows ALL workspace overlays (not just bound ones). This replaced the old dual-panel system that had separate "Overlays" and "Apply to Screenshot" panels.
+
+**UI Pattern:**
+```
+Overlays (3 overlays in workspace)
+
+○ 🔲 Grid 1          [☑ Apply]  🗑️ Delete  🔒 Lock
+● 📄 OCR Region 1    [☑ Apply]  🗑️ Delete  🔒 Lock
+○ 🔲 Grid 2          [☐ Apply]  🗑️ Delete  🔒 Lock
+```
+
+**Components:**
+- **Radio button (○/●)**: Selects which overlay to edit (shows parameter panel)
+- **Icon + Name**: Visual identification of overlay type and name
+- **Apply checkbox**: Binds/unbinds overlay to current screenshot
+- **Delete button**: Permanently removes overlay from workspace
+- **Lock button**: Toggles overlay lock state (prevents editing)
+
+**Behavior:**
+
+1. **Unified List Shows All Overlays:**
+   - List displays ALL workspace overlays (from `workspace.json["overlays"]`)
+   - Not limited to overlays bound to current screenshot
+   - Count label shows total workspace overlays (e.g., "3 overlays in workspace")
+
+2. **Apply Checkbox (Binding Toggle):**
+   - Checked: Overlay is bound to current screenshot (visible on canvas)
+   - Unchecked: Overlay exists in workspace but not bound (hidden from canvas)
+   - Switching screenshots updates checkbox state based on that screenshot's bindings
+   - Implementation: `_on_binding_toggle()` in config_editor.py
+
+3. **Delete Button (Permanent Deletion):**
+   - Removes overlay from workspace.json permanently
+   - Automatically removes overlay from ALL screenshot bindings
+   - Shows confirmation dialog listing affected screenshots (up to 5, then "... and N more")
+   - Locked overlays cannot be deleted (warning shown)
+   - Implementation: `_on_delete_overlay()` calls `workspace_manager.delete_overlay()`
+
+4. **Parameter Panel Visibility:**
+   - Only shows when overlay is bound (Apply checkbox checked)
+   - Rationale: Unbound overlays aren't on canvas, so editing would be confusing
+   - Workflow: Apply → Select → Edit
+
+**Why Unified List?**
+- Eliminates confusion between "bound" vs "all" overlays
+- Clear separation: Apply checkbox = binding, Delete button = removal
+- Users can see all workspace resources in one place
+- Matches mental model: "overlays are workspace-level, bindings are screenshot-level"
+
+**Implementation Details:**
+
+```python
+# config_editor.py: _refresh_overlay_list()
+def _refresh_overlay_list(self):
+    """Refresh overlay list (shows ALL workspace overlays)."""
+    # Load ALL workspace overlays
+    all_overlays = self.workspace_manager.load_workspace_overlays(self.current_workspace)
+
+    # Load bindings for current screenshot
+    bound_ids = self.workspace_manager.load_screenshot_bindings(
+        self.current_workspace, selected_screenshot
+    )
+
+    # Update UI with both overlay list and binding state
+    self.ui_builder.update_overlay_list(
+        list(all_overlays.values()),
+        self.selected_overlay_id,
+        bound_ids,  # Determines checkbox state
+        self._on_overlay_selected,
+        self._on_binding_toggle,  # Apply checkbox callback
+        self._on_delete_overlay,
+        self._on_lock_overlay
+    )
+```
+
+```python
+# workspace_manager.py: delete_overlay()
+def delete_overlay(self, workspace: str, overlay_id: str):
+    """Permanently delete overlay from workspace and all bindings."""
+    # Remove from workspace-level overlays dict
+    del metadata["overlays"][overlay_id]
+
+    # Remove from all screenshot bindings
+    for screenshot in metadata["screenshots"]:
+        if overlay_id in screenshot["overlay_bindings"]:
+            screenshot["overlay_bindings"].remove(overlay_id)
+
+    self._save_metadata(metadata_path, metadata)
+```
+
+**Testing the Unified List:**
+
+1. Create overlay in screenshot A → appears in list with Apply checked
+2. Switch to screenshot B → overlay still in list but Apply unchecked
+3. Check Apply on screenshot B → overlay appears on canvas
+4. Uncheck Apply → overlay disappears but stays in list
+5. Delete overlay → confirmation shows which screenshots use it
+6. Confirm delete → overlay removed from workspace.json and all bindings
 
 ## Development Workflow
 
@@ -501,8 +603,16 @@ Watch for these common bugs:
 - Automatic cleanup on workspace switch
 - Extensible for future overlay types
 
+**Why unified overlay list UI?**
+- Old dual-panel system was confusing (two lists showing different subsets)
+- Users expected Delete to delete, not unbind
+- Single list with Apply checkbox makes binding explicit and discoverable
+- Clear mental model: overlays are workspace resources, bindings are screenshot-specific
+- Delete button now does what users expect (permanent removal)
+
 ## References
 
-- **ExecPlan**: See `_docs/execplan-icon-cropper-multipage-workspace.md`
+- **ExecPlan (Unified Overlay List)**: See `_docs/execplan-unified-overlay-list.md`
+- **ExecPlan (Multipage Workspace)**: See `_docs/execplan-icon-cropper-multipage-workspace.md`
 - **PLANS.md**: See `_docs/PLANS.md` for ExecPlan methodology
 - **README.md**: User-facing documentation and workflow guide 
