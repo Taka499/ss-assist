@@ -803,14 +803,19 @@ class UIBuilder:
         self.screenshot_list_canvas.configure(scrollregion=self.screenshot_list_canvas.bbox('all'))
 
     def update_overlay_list(self, overlays: List[Any], selected_id: Optional[str],
-                           on_select_callback: Callable, on_delete_callback: Callable,
+                           bound_ids: List[str],
+                           on_select_callback: Callable,
+                           on_binding_toggle_callback: Callable,
+                           on_delete_callback: Callable,
                            on_lock_callback: Callable):
         """Update the overlay list widget.
 
         Args:
             overlays: List of Overlay objects
             selected_id: Currently selected overlay ID
+            bound_ids: List of overlay IDs bound to current screenshot
             on_select_callback: Function to call when an overlay is selected (overlay_id)
+            on_binding_toggle_callback: Function to call when Apply checkbox is toggled (overlay_id, is_bound)
             on_delete_callback: Function to call when delete button is clicked
             on_lock_callback: Function to call when lock button is clicked
         """
@@ -825,7 +830,7 @@ class UIBuilder:
             return
 
         # Update count
-        self.overlay_count_label.config(text=f"{len(overlays)} overlay{'s' if len(overlays) != 1 else ''}")
+        self.overlay_count_label.config(text=f"{len(overlays)} overlay{'s' if len(overlays) != 1 else ''} in workspace")
 
         # Set the selection value (use persistent instance variable)
         self.overlay_selected_var.set(selected_id or "")
@@ -853,9 +858,20 @@ class UIBuilder:
             )
             radio.pack(side=tk.LEFT, anchor='w', fill=tk.X, expand=True)
 
-            # Bind mousewheel to frame and radio button for scrolling
+            # Apply checkbox (bind/unbind from screenshot) - on the right
+            var = tk.BooleanVar(value=(overlay.id in bound_ids))
+            checkbox = ttk.Checkbutton(
+                frame,
+                text="Apply",
+                variable=var,
+                command=lambda oid=overlay.id, v=var: on_binding_toggle_callback(oid, v.get())
+            )
+            checkbox.pack(side=tk.RIGHT, padx=5)
+
+            # Bind mousewheel to frame, radio button, and checkbox for scrolling
             frame.bind("<MouseWheel>", on_mousewheel)
             radio.bind("<MouseWheel>", on_mousewheel)
+            checkbox.bind("<MouseWheel>", on_mousewheel)
 
         # Update scroll region
         self.overlay_list_frame.update_idletasks()

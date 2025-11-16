@@ -44,11 +44,11 @@ Users can verify this works by:
 
 ## Progress
 
-- [ ] Phase 1: Update overlay list to show ALL workspace overlays
-  - [ ] Update `_refresh_overlay_list()` to load all workspace overlays
-  - [ ] Add "Apply" checkbox column to overlay list UI
-  - [ ] Wire checkbox to binding toggle logic
-  - [ ] Test overlay list shows all overlays (bound and unbound)
+- [x] Phase 1: Update overlay list to show ALL workspace overlays (Completed: 2025-11-16)
+  - [x] Update `_refresh_overlay_list()` to load all workspace overlays
+  - [x] Add "Apply" checkbox column to overlay list UI
+  - [x] Wire checkbox to binding toggle logic
+  - [x] Test overlay list shows all overlays (bound and unbound)
 
 - [ ] Phase 2: Remove "Apply to Screenshot" panel
   - [ ] Remove binding panel from `ui_builder.py`
@@ -70,7 +70,20 @@ Users can verify this works by:
 
 ## Surprises & Discoveries
 
-(To be filled during implementation)
+### Phase 1 Discoveries (2025-11-16)
+
+1. **Overlay objects vs dicts**: The `workspace_manager.load_workspace_overlays()` returns `Overlay` objects (with `.type`, `.config` attributes), not plain dicts. Initial implementation incorrectly used `overlay.get('type')` instead of `overlay.type`, causing `AttributeError`. Fixed by using object attribute access consistently.
+
+2. **Parameter panel sync issue**: When implementing Apply checkbox, discovered that parameter panel didn't sync correctly:
+   - Selecting unbound overlay → checking Apply → panel didn't appear until re-selecting
+   - Unchecking Apply on selected overlay → panel didn't disappear
+   - **Solution**: Updated both `_on_binding_toggle()` and `_on_overlay_selected()` to check binding state and show/hide parameter panel accordingly
+
+3. **Checkbox positioning**: Initial implementation placed checkbox on left side, but UX testing revealed it should be on right side (after overlay name) for better visual hierarchy. Changed from `pack(side=tk.LEFT)` to `pack(side=tk.RIGHT)`.
+
+4. **Delete button with unbound overlays**: Original `_on_delete_overlay()` assumed overlay was always on canvas (via `canvas_controller.get_overlay_by_id()`). With unified list showing all overlays, unbound overlays aren't on canvas, causing `AttributeError: 'NoneType' object has no attribute 'name'`. Fixed by loading from workspace instead.
+
+5. **Existing `_on_binding_toggle()` callback**: Discovered that Phase 1.5 (workspace-level overlays) already implemented the binding toggle logic we needed! This saved implementation time - we just reused the existing callback instead of writing new code.
 
 ## Decision Log
 
@@ -88,6 +101,14 @@ Users can verify this works by:
 
 - Decision: Keep Delete/Lock buttons in overlay list (not per-row)
   Rationale: Keeps UI compact and follows the pattern of "select item → act on it with button". Adding buttons to each row would make the list too wide and cluttered. The selected overlay (radio button) makes it clear which overlay the buttons act on.
+  Date: 2025-11-16
+
+- Decision: Parameter panel only shows for bound (applied) overlays
+  Rationale: Unbound overlays aren't on the canvas, so editing their parameters would be confusing (no visual feedback). Users should check "Apply" first to see the overlay, then edit parameters. This creates a clear workflow: Apply → Select → Edit.
+  Date: 2025-11-16
+
+- Decision: Place Apply checkbox on right side of overlay name
+  Rationale: Visual hierarchy should be: Selection (radio) → Identification (icon + name) → Action (checkbox). Placing checkbox on the right keeps it near the Delete/Lock buttons and maintains left-to-right reading flow.
   Date: 2025-11-16
 
 ## Outcomes & Retrospective
@@ -611,4 +632,4 @@ The workspace.json schema is not changing, so old code can read new workspaces a
 ---
 
 *Plan created: 2025-11-16*
-*Last updated: 2025-11-16*
+*Last updated: 2025-11-16 (Phase 1 completed)*

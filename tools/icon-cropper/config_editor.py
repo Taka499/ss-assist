@@ -1124,13 +1124,27 @@ class ConfigEditorApp:
             )
 
     def _refresh_overlay_list(self):
-        """Refresh the overlay list widget."""
-        overlays = self.canvas_controller.get_all_overlays()
+        """Refresh the overlay list widget (shows ALL workspace overlays)."""
+        if not self.current_workspace:
+            return
+
+        # Get selected screenshot to determine bindings
+        selected = self.workspace_manager.get_selected_screenshot(self.current_workspace)
+
+        # Load ALL workspace overlays
+        all_overlays = self.workspace_manager.load_workspace_overlays(self.current_workspace)
+
+        # Load bindings for current screenshot
+        bound_ids = []
+        if selected:
+            bound_ids = self.workspace_manager.load_screenshot_bindings(self.current_workspace, selected)
 
         self.ui_builder.update_overlay_list(
-            overlays,
+            list(all_overlays.values()),
             self.selected_overlay_id,
+            bound_ids,  # NEW: Pass binding state
             self._on_overlay_selected,
+            self._on_binding_toggle,  # NEW: Checkbox callback
             self._on_delete_overlay,
             self._on_lock_overlay
         )
@@ -1184,6 +1198,18 @@ class ConfigEditorApp:
         # Save changes
         self._save_current_overlays()
 
+        # Update parameter panel if this is the selected overlay
+        if overlay_id == self.selected_overlay_id:
+            if is_bound:
+                # Show parameter panel for newly bound overlay
+                overlay = all_overlays.get(overlay_id)
+                if overlay:
+                    self.ui_builder.update_parameter_panel(overlay_id, overlay.type)
+                    self._load_overlay_into_spinboxes(overlay_id)
+            else:
+                # Hide parameter panel for unbound overlay
+                self.ui_builder.update_parameter_panel(None, None)
+
         # Refresh UI
         self._refresh_overlay_list()
         self._refresh_binding_list()
@@ -1195,11 +1221,12 @@ class ConfigEditorApp:
         Args:
             overlay_id: ID of overlay to load
         """
-        if not overlay_id:
+        if not overlay_id or not self.current_workspace:
             return
 
-        # Get the overlay
-        overlay = self.canvas_controller.get_overlay_by_id(overlay_id)
+        # Get the overlay from workspace (not canvas, since not all overlays are bound)
+        all_overlays = self.workspace_manager.load_workspace_overlays(self.current_workspace)
+        overlay = all_overlays.get(overlay_id)
         if not overlay:
             return
 
@@ -1231,13 +1258,28 @@ class ConfigEditorApp:
         """Handle overlay selection from list."""
         self.selected_overlay_id = overlay_id
 
-        # Load overlay's values into spinboxes
-        self._load_overlay_into_spinboxes(overlay_id)
+        # Get selected screenshot to check if overlay is bound
+        selected = self.workspace_manager.get_selected_screenshot(self.current_workspace)
+        if not selected:
+            return
 
-        # Update parameter panel to show appropriate controls (Phase 2)
-        overlay = self.canvas_controller.get_overlay_by_id(overlay_id)
-        overlay_type = overlay.type if overlay else None
-        self.ui_builder.update_parameter_panel(overlay_id, overlay_type)
+        # Load all workspace overlays
+        all_overlays = self.workspace_manager.load_workspace_overlays(self.current_workspace)
+        overlay = all_overlays.get(overlay_id)
+
+        # Check if overlay is bound to current screenshot
+        bound_ids = self.workspace_manager.load_screenshot_bindings(self.current_workspace, selected)
+        is_bound = overlay_id in bound_ids
+
+        # Only show parameter panel if overlay is bound (applied)
+        if is_bound and overlay:
+            # Load overlay's values into spinboxes
+            self._load_overlay_into_spinboxes(overlay_id)
+            # Update parameter panel to show appropriate controls
+            self.ui_builder.update_parameter_panel(overlay_id, overlay.type)
+        else:
+            # Hide parameter panel for unbound overlays
+            self.ui_builder.update_parameter_panel(None, None)
 
         self._refresh_overlay_list()
         # Redraw to highlight selected overlay (future enhancement)
@@ -1245,17 +1287,23 @@ class ConfigEditorApp:
 
     def _on_delete_overlay(self):
         """Handle delete overlay button click."""
-        if not self.selected_overlay_id:
+        if not self.selected_overlay_id or not self.current_workspace:
+            return
+
+        # Get overlay from workspace (may not be on canvas if not bound)
+        all_overlays = self.workspace_manager.load_workspace_overlays(self.current_workspace)
+        overlay = all_overlays.get(self.selected_overlay_id)
+        if not overlay:
             return
 
         # Check if locked
-        overlay = self.canvas_controller.get_overlay_by_id(self.selected_overlay_id)
-        if overlay and overlay.locked:
+        if overlay.locked:
             messagebox.showwarning("Locked", "Cannot delete locked overlay. Unlock it first.")
             return
 
         # Confirm deletion
         if messagebox.askyesno("Delete Overlay", f"Delete overlay '{overlay.name}'?"):
+            # Remove from canvas if it's currently bound
             self.canvas_controller.remove_overlay_by_id(self.selected_overlay_id)
             self.selected_overlay_id = None
 
