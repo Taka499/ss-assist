@@ -5,7 +5,7 @@
  * Uses hybrid validation: bitmasks for fast pruning, count-based checking for correctness.
  */
 
-import type { Character, Mission, Condition } from "../types";
+import type { Character, Mission, Condition, MultiMissionCombinationResult, MissionCoverage } from "../types";
 import {
   characterToBitmask,
   conditionToBitmask,
@@ -351,5 +351,171 @@ export function findCombinations(
     bestCombinations,
     missingForBase,
     missingForBonus,
+  };
+}
+
+// ============================================================================
+// Multi-Mission Combination Search
+// ============================================================================
+
+/**
+ * Find character combinations that satisfy multiple missions simultaneously
+ *
+ * This function validates combinations against ALL selected missions at once,
+ * unlike findCombinations() which handles a single mission.
+ *
+ * Algorithm:
+ * 1. Create superset of relevant characters (union of characters relevant to any mission)
+ * 2. Generate all 1-3 character combinations from the superset
+ * 3. For each combination, validate against ALL missions
+ * 4. Calculate coverage score based on missions satisfied
+ * 5. Rank by score (more coverage = better)
+ *
+ * @param missions Array of missions to find combinations for
+ * @param ownedCharacters Characters the player owns
+ * @param currentLevels Map of character ID to current level
+ * @param bitmaskLookup Bitmask lookup table
+ * @returns Multi-mission search result with combinations and coverage data
+ */
+export function findCombinationsForMultipleMissions(
+  missions: Mission[],
+  ownedCharacters: Character[],
+  currentLevels: Record<string, number>,
+  bitmaskLookup: BitmaskLookup
+): MultiMissionCombinationResult {
+  // Handle edge case: no missions selected
+  if (missions.length === 0) {
+    return {
+      combinations: [],
+      totalCandidatesGenerated: 0,
+      totalCandidatesValidated: 0,
+      pruningStats: {
+        charactersPruned: 0,
+        charactersRemaining: 0,
+      },
+    };
+  }
+
+  // Step 1: Compute character bitmasks once
+  const characterBitmasks = new Map<string, CategoryBitmasks>();
+  for (const char of ownedCharacters) {
+    characterBitmasks.set(char.id, characterToBitmask(char, bitmaskLookup));
+  }
+
+  // Step 2: Pruning - create superset of relevant characters
+  // A character is relevant if it interacts with ANY mission's conditions
+  const relevantCharacterSet = new Set<string>();
+
+  for (const mission of missions) {
+    for (const char of ownedCharacters) {
+      const mask = characterBitmasks.get(char.id);
+      if (!mask) continue;
+
+      if (interactsWith(
+        mask,
+        mission.baseConditions,
+        mission.bonusConditions,
+        bitmaskLookup
+      )) {
+        relevantCharacterSet.add(char.id);
+      }
+    }
+  }
+
+  const relevantCharacters = ownedCharacters.filter(char =>
+    relevantCharacterSet.has(char.id)
+  );
+
+  const charactersPruned = ownedCharacters.length - relevantCharacters.length;
+
+  // Step 3: Generate all combinations (up to 3 characters)
+  const candidateCombos = generateCombinations(relevantCharacters, 3);
+  const totalCandidatesGenerated = candidateCombos.length;
+
+  // Step 4: Validate each combination against ALL missions
+  const validatedCombinations: MultiMissionCombinationResult['combinations'] = [];
+
+  for (const combo of candidateCombos) {
+    const missionCoverage: MissionCoverage[] = [];
+
+    // Check this combination against each mission
+    for (const mission of missions) {
+      const satisfiesBase = satisfiesAllConditionsWithCounts(
+        combo,
+        mission.baseConditions
+      );
+
+      const satisfiesBonus = mission.bonusConditions
+        ? satisfiesAllConditionsWithCounts(combo, mission.bonusConditions)
+        : false;
+
+      // Check level requirements
+      const levelDeficits = checkLevelRequirements(
+        combo.map(c => c.id),
+        mission.requiredLevel,
+        currentLevels
+      );
+      const meetsLevelRequirement = Object.keys(levelDeficits).length === 0;
+
+      missionCoverage.push({
+        missionId: mission.id,
+        satisfiesBase,
+        satisfiesBonus,
+        meetsLevelRequirement,
+      });
+    }
+
+    // Calculate coverage score
+    // +10 points: Satisfies base + bonus + level for a mission
+    // +5 points: Satisfies base + level (but not bonus) for a mission
+    // +2 points: Satisfies base only (level insufficient) for a mission
+    // -1 point: Each character in the combination (prefer smaller teams)
+    let score = 0;
+    for (const coverage of missionCoverage) {
+      if (coverage.satisfiesBase && coverage.satisfiesBonus && coverage.meetsLevelRequirement) {
+        score += 10;
+      } else if (coverage.satisfiesBase && coverage.meetsLevelRequirement) {
+        score += 5;
+      } else if (coverage.satisfiesBase) {
+        score += 2;
+      }
+    }
+    score -= combo.length; // Prefer smaller combinations
+
+    // Extract contributing tags
+    const contributingTags = extractContributingTags(combo);
+
+    validatedCombinations.push({
+      characterIds: combo.map(c => c.id),
+      missionCoverage,
+      score,
+      contributingTags,
+    });
+  }
+
+  // Step 5: Rank combinations by score (descending), then by size (ascending)
+  const rankedCombinations = validatedCombinations.sort((a, b) => {
+    // Higher score is better
+    if (a.score !== b.score) {
+      return b.score - a.score;
+    }
+
+    // Fewer characters is better (tiebreaker)
+    if (a.characterIds.length !== b.characterIds.length) {
+      return a.characterIds.length - b.characterIds.length;
+    }
+
+    // Lexicographic by character IDs (deterministic)
+    return a.characterIds.join(',').localeCompare(b.characterIds.join(','));
+  });
+
+  return {
+    combinations: rankedCombinations,
+    totalCandidatesGenerated,
+    totalCandidatesValidated: validatedCombinations.length,
+    pruningStats: {
+      charactersPruned,
+      charactersRemaining: relevantCharacters.length,
+    },
   };
 }

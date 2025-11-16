@@ -7,6 +7,7 @@ import {
   findMissingTags,
   rankCombinations,
   findCombinations,
+  findCombinationsForMultipleMissions,
   type Combination,
 } from "./combos";
 import { buildBitmaskLookup, characterToBitmask } from "./bitmask";
@@ -17,19 +18,19 @@ import { buildBitmaskLookup, characterToBitmask } from "./bitmask";
 
 const createTestTagDict = (): TagDict => ({
   role: [
-    { id: "role-001", ja: "Ðéóµü" },
-    { id: "role-002", ja: "¢¿Ã«ü" },
-    { id: "role-003", ja: "µÝü¿ü" },
+    { id: "role-001", ja: "ï¿½ï¿½ï¿½ï¿½" },
+    { id: "role-002", ja: "ï¿½ï¿½Ã«ï¿½" },
+    { id: "role-003", ja: "ï¿½ï¿½ï¿½ï¿½ï¿½" },
   ],
   style: [
-    { id: "style-001", ja: "’z¶" },
-    { id: "style-002", ja: "ìu'" },
-    { id: "style-003", ja: "ÎÆ¶" },
+    { id: "style-001", ja: "ï¿½zï¿½" },
+    { id: "style-002", ja: "ï¿½u'" },
+    { id: "style-003", ja: "ï¿½Æ¶" },
   ],
   faction: [
-    { id: "faction-001", ja: "ò‡" },
-    { id: "faction-002", ja: "àüÊïü¯¹" },
-    { id: "faction-003", ja: "Öéó¯" },
+    { id: "faction-001", ja: "ï¿½ï¿½" },
+    { id: "faction-002", ja: "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½" },
+    { id: "faction-003", ja: "ï¿½ï¿½ï¿½" },
   ],
   element: [
     { id: "element-001", ja: "4" },
@@ -617,6 +618,388 @@ describe("Combination Search", () => {
           c.characterIds.includes("char1") && c.characterIds.includes("char2")
       );
       expect(comboWithBoth).toBeUndefined();
+    });
+  });
+
+  describe("findCombinationsForMultipleMissions", () => {
+    let lookup: ReturnType<typeof buildBitmaskLookup>;
+
+    beforeEach(() => {
+      const tags = createTestTagDict();
+      lookup = buildBitmaskLookup(tags);
+    });
+
+    it("handles empty mission list", () => {
+      const characters = [
+        createTestCharacter("char1", { role: ["role-001"] }),
+      ];
+      const levels = { char1: 60 };
+
+      const result = findCombinationsForMultipleMissions(
+        [],
+        characters,
+        levels,
+        lookup
+      );
+
+      expect(result.combinations).toHaveLength(0);
+      expect(result.totalCandidatesGenerated).toBe(0);
+    });
+
+    it("finds combinations that satisfy all missions", () => {
+      // Create characters that can satisfy both missions
+      const characters = [
+        createTestCharacter("char1", {
+          role: ["role-001"],
+          element: ["element-001"],
+        }),
+        createTestCharacter("char2", {
+          role: ["role-002"],
+          element: ["element-002"],
+        }),
+      ];
+
+      // Mission 1: Needs role-001
+      const mission1 = createTestMission("mission1", 50, [
+        { category: "role", anyOf: ["role-001"] },
+      ]);
+
+      // Mission 2: Needs role-002
+      const mission2 = createTestMission("mission2", 50, [
+        { category: "role", anyOf: ["role-002"] },
+      ]);
+
+      const levels = { char1: 60, char2: 60 };
+
+      const result = findCombinationsForMultipleMissions(
+        [mission1, mission2],
+        characters,
+        levels,
+        lookup
+      );
+
+      // Should find combination with both characters
+      const universalCombo = result.combinations.find(
+        (c) =>
+          c.characterIds.includes("char1") && c.characterIds.includes("char2")
+      );
+
+      expect(universalCombo).toBeDefined();
+      if (universalCombo) {
+        // Should satisfy both missions
+        const mission1Coverage = universalCombo.missionCoverage.find(
+          (mc) => mc.missionId === "mission1"
+        );
+        const mission2Coverage = universalCombo.missionCoverage.find(
+          (mc) => mc.missionId === "mission2"
+        );
+
+        expect(mission1Coverage?.satisfiesBase).toBe(true);
+        expect(mission1Coverage?.meetsLevelRequirement).toBe(true);
+        expect(mission2Coverage?.satisfiesBase).toBe(true);
+        expect(mission2Coverage?.meetsLevelRequirement).toBe(true);
+      }
+    });
+
+    it("distinguishes between base-only and base+bonus satisfaction", () => {
+      const characters = [
+        createTestCharacter("char1", { role: ["role-001"] }),
+        createTestCharacter("char2", { role: ["role-002"] }),
+      ];
+
+      // Mission with bonus conditions
+      const mission = createTestMission(
+        "mission1",
+        50,
+        [{ category: "role", anyOf: ["role-001"] }],
+        [
+          { category: "role", anyOf: ["role-001"] },
+          { category: "role", anyOf: ["role-002"] },
+        ]
+      );
+
+      const levels = { char1: 60, char2: 60 };
+
+      const result = findCombinationsForMultipleMissions(
+        [mission],
+        characters,
+        levels,
+        lookup
+      );
+
+      // Single-character combo: should satisfy base but not bonus
+      const singleCombo = result.combinations.find(
+        (c) => c.characterIds.length === 1 && c.characterIds.includes("char1")
+      );
+
+      expect(singleCombo).toBeDefined();
+      if (singleCombo) {
+        const coverage = singleCombo.missionCoverage[0];
+        expect(coverage.satisfiesBase).toBe(true);
+        expect(coverage.satisfiesBonus).toBe(false);
+      }
+
+      // Two-character combo: should satisfy both base and bonus
+      const dualCombo = result.combinations.find(
+        (c) =>
+          c.characterIds.includes("char1") && c.characterIds.includes("char2")
+      );
+
+      expect(dualCombo).toBeDefined();
+      if (dualCombo) {
+        const coverage = dualCombo.missionCoverage[0];
+        expect(coverage.satisfiesBase).toBe(true);
+        expect(coverage.satisfiesBonus).toBe(true);
+      }
+    });
+
+    it("handles missions with conflicting level requirements", () => {
+      const characters = [
+        createTestCharacter("char1", { role: ["role-001"] }),
+      ];
+
+      // Mission A: level 20 required
+      const missionA = createTestMission("missionA", 20, [
+        { category: "role", anyOf: ["role-001"] },
+      ]);
+
+      // Mission B: level 50 required
+      const missionB = createTestMission("missionB", 50, [
+        { category: "role", anyOf: ["role-001"] },
+      ]);
+
+      // Character at level 30: satisfies A but not B
+      const levels = { char1: 30 };
+
+      const result = findCombinationsForMultipleMissions(
+        [missionA, missionB],
+        characters,
+        levels,
+        lookup
+      );
+
+      const combo = result.combinations.find((c) =>
+        c.characterIds.includes("char1")
+      );
+
+      expect(combo).toBeDefined();
+      if (combo) {
+        const coverageA = combo.missionCoverage.find(
+          (mc) => mc.missionId === "missionA"
+        );
+        const coverageB = combo.missionCoverage.find(
+          (mc) => mc.missionId === "missionB"
+        );
+
+        expect(coverageA?.satisfiesBase).toBe(true);
+        expect(coverageA?.meetsLevelRequirement).toBe(true);
+        expect(coverageB?.satisfiesBase).toBe(true);
+        expect(coverageB?.meetsLevelRequirement).toBe(false); // Level insufficient
+      }
+    });
+
+    it("returns partial coverage when no universal team exists", () => {
+      const characters = [
+        createTestCharacter("char1", { role: ["role-001"] }), // Only Attacker
+        createTestCharacter("char2", { role: ["role-002"] }), // Only Supporter
+      ];
+
+      // Mission A: Needs role-001
+      const missionA = createTestMission("missionA", 50, [
+        { category: "role", anyOf: ["role-001"] },
+      ]);
+
+      // Mission B: Needs role-003 (which no character has)
+      const missionB = createTestMission("missionB", 50, [
+        { category: "role", anyOf: ["role-003"] },
+      ]);
+
+      const levels = { char1: 60, char2: 60 };
+
+      const result = findCombinationsForMultipleMissions(
+        [missionA, missionB],
+        characters,
+        levels,
+        lookup
+      );
+
+      // Should have combos that satisfy missionA but not missionB
+      const partialCombo = result.combinations.find(
+        (c) => c.characterIds.includes("char1")
+      );
+
+      expect(partialCombo).toBeDefined();
+      if (partialCombo) {
+        const coverageA = partialCombo.missionCoverage.find(
+          (mc) => mc.missionId === "missionA"
+        );
+        const coverageB = partialCombo.missionCoverage.find(
+          (mc) => mc.missionId === "missionB"
+        );
+
+        expect(coverageA?.satisfiesBase).toBe(true);
+        expect(coverageB?.satisfiesBase).toBe(false);
+      }
+
+      // No combination should satisfy both missions
+      const universalCombo = result.combinations.find((c) =>
+        c.missionCoverage.every((mc) => mc.satisfiesBase)
+      );
+      expect(universalCombo).toBeUndefined();
+    });
+
+    it("scores combinations correctly", () => {
+      const characters = [
+        createTestCharacter("char1", { role: ["role-001"] }),
+        createTestCharacter("char2", { role: ["role-002"] }),
+      ];
+
+      const mission = createTestMission(
+        "mission1",
+        50,
+        [{ category: "role", anyOf: ["role-001"] }],
+        [
+          { category: "role", anyOf: ["role-001"] },
+          { category: "role", anyOf: ["role-002"] },
+        ]
+      );
+
+      const levels = { char1: 60, char2: 60 };
+
+      const result = findCombinationsForMultipleMissions(
+        [mission],
+        characters,
+        levels,
+        lookup
+      );
+
+      // Two-character combo with bonus should score higher than single-character
+      const singleCombo = result.combinations.find(
+        (c) => c.characterIds.length === 1
+      );
+      const dualCombo = result.combinations.find(
+        (c) => c.characterIds.length === 2
+      );
+
+      expect(singleCombo).toBeDefined();
+      expect(dualCombo).toBeDefined();
+
+      if (singleCombo && dualCombo) {
+        // Dual combo satisfies bonus (+10) with 2 chars (-2) = 8
+        // Single combo satisfies base only (+5) with 1 char (-1) = 4
+        expect(dualCombo.score).toBeGreaterThan(singleCombo.score);
+      }
+    });
+
+    it("ranks combinations by coverage score", () => {
+      const characters = [
+        createTestCharacter("char1", { role: ["role-001"] }),
+        createTestCharacter("char2", { role: ["role-002"] }),
+        createTestCharacter("char3", { role: ["role-003"] }),
+      ];
+
+      const mission1 = createTestMission("mission1", 50, [
+        { category: "role", anyOf: ["role-001"] },
+      ]);
+
+      const mission2 = createTestMission("mission2", 50, [
+        { category: "role", anyOf: ["role-002"] },
+      ]);
+
+      const levels = { char1: 60, char2: 60, char3: 60 };
+
+      const result = findCombinationsForMultipleMissions(
+        [mission1, mission2],
+        characters,
+        levels,
+        lookup
+      );
+
+      // Top-ranked combo should satisfy both missions
+      const topCombo = result.combinations[0];
+
+      const mission1Coverage = topCombo.missionCoverage.find(
+        (mc) => mc.missionId === "mission1"
+      );
+      const mission2Coverage = topCombo.missionCoverage.find(
+        (mc) => mc.missionId === "mission2"
+      );
+
+      expect(mission1Coverage?.satisfiesBase).toBe(true);
+      expect(mission2Coverage?.satisfiesBase).toBe(true);
+    });
+
+    it("applies pruning across multiple missions", () => {
+      const characters = [
+        createTestCharacter("char1", { role: ["role-001"] }),
+        createTestCharacter("char2", { role: ["role-002"] }),
+        createTestCharacter("char3", { faction: ["faction-001"] }), // Irrelevant to both missions
+      ];
+
+      const mission1 = createTestMission("mission1", 50, [
+        { category: "role", anyOf: ["role-001"] },
+      ]);
+
+      const mission2 = createTestMission("mission2", 50, [
+        { category: "role", anyOf: ["role-002"] },
+      ]);
+
+      const levels = { char1: 60, char2: 60, char3: 60 };
+
+      const result = findCombinationsForMultipleMissions(
+        [mission1, mission2],
+        characters,
+        levels,
+        lookup
+      );
+
+      // char3 should be pruned
+      expect(result.pruningStats.charactersPruned).toBe(1);
+      expect(result.pruningStats.charactersRemaining).toBe(2);
+
+      // No combination should include char3
+      const comboWithChar3 = result.combinations.find((c) =>
+        c.characterIds.includes("char3")
+      );
+      expect(comboWithChar3).toBeUndefined();
+    });
+
+    it("matches single-mission behavior for backward compatibility", () => {
+      const characters = [
+        createTestCharacter("char1", { role: ["role-001"] }),
+        createTestCharacter("char2", { role: ["role-002"] }),
+      ];
+
+      const mission = createTestMission("mission1", 50, [
+        { category: "role", anyOf: ["role-001"] },
+      ]);
+
+      const levels = { char1: 60, char2: 60 };
+
+      // Single-mission with old function
+      const singleResult = findCombinations(mission, characters, levels, lookup);
+
+      // Single-mission with new function
+      const multiResult = findCombinationsForMultipleMissions(
+        [mission],
+        characters,
+        levels,
+        lookup
+      );
+
+      // Should have same number of valid combinations
+      expect(multiResult.combinations.length).toBe(
+        singleResult.combinations.length
+      );
+
+      // All combos in single result should exist in multi result
+      for (const singleCombo of singleResult.combinations) {
+        const matchingMultiCombo = multiResult.combinations.find((mc) =>
+          singleCombo.characterIds.every((id) => mc.characterIds.includes(id)) &&
+          mc.characterIds.length === singleCombo.characterIds.length
+        );
+        expect(matchingMultiCombo).toBeDefined();
+      }
     });
   });
 });

@@ -153,3 +153,33 @@ export interface BitmaskLookup {
   tagToBit: Record<string, number>;
   categoryBitRanges: Record<Category, { start: number; count: number }>;
 }
+
+/**
+ * Mission coverage for a single combination
+ * Tracks which missions a combination satisfies and to what degree
+ */
+export interface MissionCoverage {
+  missionId: string;
+  satisfiesBase: boolean;
+  satisfiesBonus: boolean;
+  meetsLevelRequirement: boolean;
+}
+
+/**
+ * Multi-mission combination search result
+ * Contains combinations that are validated against multiple missions simultaneously
+ */
+export interface MultiMissionCombinationResult {
+  combinations: Array<{
+    characterIds: string[];
+    missionCoverage: MissionCoverage[];
+    score: number; // Overall score based on coverage breadth and depth
+    contributingTags: string[]; // Tag IDs that satisfied conditions
+  }>;
+  totalCandidatesGenerated: number;
+  totalCandidatesValidated: number;
+  pruningStats: {
+    charactersPruned: number;
+    charactersRemaining: number;
+  };
+}
