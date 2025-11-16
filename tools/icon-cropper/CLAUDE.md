@@ -2,6 +2,10 @@
 
 This file provides guidance for working with the icon-cropper tool.
 
+# ExecPlans
+
+When writing complex features or significant refactors, use an ExecPlan (as described in `_docs/PLANS.md`) from design to implementation.
+
 ## Principles
 
 1. **Always use `uv run`** to execute Python commands.

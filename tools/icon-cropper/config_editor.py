@@ -262,6 +262,17 @@ class ConfigEditorApp:
             return
 
         self.grid_editor.on_grid_param_changed(self.grid_inputs)
+
+        # Update the selected overlay's config with the new values
+        if self.selected_overlay_id:
+            selected_overlay = self.canvas_controller.get_overlay_by_id(self.selected_overlay_id)
+            if selected_overlay and selected_overlay.type == 'grid':
+                # Copy all values from self.grid_config to the overlay's config
+                for key, value in self.grid_config.items():
+                    selected_overlay.config[key] = value
+                # Save overlays to workspace
+                self._save_current_overlays()
+
         # Always update display if grid overlay is active
         if self.canvas_controller.has_overlay('grid'):
             self.canvas_controller.display_image()
@@ -273,6 +284,17 @@ class ConfigEditorApp:
             return
 
         self.ocr_editor.on_ocr_param_changed(self.ocr_inputs)
+
+        # Update the selected overlay's config with the new values
+        if self.selected_overlay_id:
+            selected_overlay = self.canvas_controller.get_overlay_by_id(self.selected_overlay_id)
+            if selected_overlay and selected_overlay.type == 'ocr':
+                # Copy all values from self.ocr_config to the overlay's config
+                for key, value in self.ocr_config.items():
+                    selected_overlay.config[key] = value
+                # Save overlays to workspace
+                self._save_current_overlays()
+
         # Always update display if OCR overlay is active
         if self.canvas_controller.has_overlay('ocr'):
             self.canvas_controller.display_image()
@@ -1131,9 +1153,51 @@ class ConfigEditorApp:
         self._refresh_binding_list()
         self.canvas_controller.display_image()
 
+    def _load_overlay_into_spinboxes(self, overlay_id: str):
+        """Load overlay's config values into spinboxes.
+
+        Args:
+            overlay_id: ID of overlay to load
+        """
+        if not overlay_id:
+            return
+
+        # Get the overlay
+        overlay = self.canvas_controller.get_overlay_by_id(overlay_id)
+        if not overlay:
+            return
+
+        # Suppress spinbox callbacks while loading to prevent feedback loop
+        self._loading_workspace = True
+
+        try:
+            # Load values based on overlay type
+            if overlay.type == 'grid':
+                self.grid_inputs['start_x'].set(overlay.config['start_x'])
+                self.grid_inputs['start_y'].set(overlay.config['start_y'])
+                self.grid_inputs['cell_width'].set(overlay.config['cell_width'])
+                self.grid_inputs['cell_height'].set(overlay.config['cell_height'])
+                self.grid_inputs['spacing_x'].set(overlay.config['spacing_x'])
+                self.grid_inputs['spacing_y'].set(overlay.config['spacing_y'])
+                self.grid_inputs['columns'].set(overlay.config['columns'])
+                self.grid_inputs['rows'].set(overlay.config['rows'])
+                self.grid_inputs['crop_padding'].set(overlay.config['crop_padding'])
+
+            elif overlay.type == 'ocr':
+                self.ocr_inputs['x'].set(overlay.config['x'])
+                self.ocr_inputs['y'].set(overlay.config['y'])
+                self.ocr_inputs['width'].set(overlay.config['width'])
+                self.ocr_inputs['height'].set(overlay.config['height'])
+        finally:
+            self._loading_workspace = False
+
     def _on_overlay_selected(self, overlay_id: str):
         """Handle overlay selection from list."""
         self.selected_overlay_id = overlay_id
+
+        # Load overlay's values into spinboxes
+        self._load_overlay_into_spinboxes(overlay_id)
+
         self._refresh_overlay_list()
         # Redraw to highlight selected overlay (future enhancement)
         self.canvas_controller.display_image()
