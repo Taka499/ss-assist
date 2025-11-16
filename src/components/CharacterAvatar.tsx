@@ -11,6 +11,9 @@ export function CharacterAvatar({ character, dimmed = false, levelDeficit }: Cha
   const lang = useLanguageStore((state) => state.lang);
   const name = character.name[lang] || character.name.ja;
 
+  // Prepend Vite base URL to icon path for correct asset resolution
+  const iconUrl = character.icon ? `${import.meta.env.BASE_URL}${character.icon}` : '';
+
   return (
     <div className="relative inline-block">
       <div
@@ -19,7 +22,7 @@ export function CharacterAvatar({ character, dimmed = false, levelDeficit }: Cha
         }`}
       >
         <img
-          src={character.icon}
+          src={iconUrl}
           alt={name}
           className="w-full h-full object-cover"
         />
