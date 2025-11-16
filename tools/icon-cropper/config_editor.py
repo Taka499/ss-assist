@@ -513,7 +513,6 @@ class ConfigEditorApp:
             'status_callback': self.update_status,
             'save_overlays_callback': self._save_current_overlays,
             'refresh_overlay_list_callback': self._refresh_overlay_list,
-            'refresh_binding_list_callback': self._refresh_binding_list,  # Phase 1.5
             'set_selected_overlay_callback': self._set_selected_overlay
         }
 
@@ -1079,9 +1078,6 @@ class ConfigEditorApp:
                 # Refresh overlay list UI
                 self._refresh_overlay_list()
 
-                # Refresh binding list UI (Phase 1.5)
-                self._refresh_binding_list()
-
         except ValueError as e:
             # Workspace validation failed
             messagebox.showerror(
@@ -1149,29 +1145,6 @@ class ConfigEditorApp:
             self._on_lock_overlay
         )
 
-    def _refresh_binding_list(self):
-        """Refresh the overlay binding list (Phase 1.5: workspace-level overlays)."""
-        if not self.current_workspace:
-            return
-
-        # Get selected screenshot
-        selected = self.workspace_manager.get_selected_screenshot(self.current_workspace)
-        if not selected:
-            return
-
-        # Load all workspace overlays
-        all_overlays = self.workspace_manager.load_workspace_overlays(self.current_workspace)
-
-        # Load bindings for current screenshot
-        bound_ids = self.workspace_manager.load_screenshot_bindings(self.current_workspace, selected)
-
-        # Update UI
-        self.ui_builder.update_binding_list(
-            list(all_overlays.values()),
-            bound_ids,
-            self._on_binding_toggle
-        )
-
     def _on_binding_toggle(self, overlay_id: str, is_bound: bool):
         """Handle overlay binding checkbox toggle (Phase 1.5).
 
@@ -1212,7 +1185,6 @@ class ConfigEditorApp:
 
         # Refresh UI
         self._refresh_overlay_list()
-        self._refresh_binding_list()
         self.canvas_controller.display_image()
 
     def _load_overlay_into_spinboxes(self, overlay_id: str):
@@ -1312,7 +1284,6 @@ class ConfigEditorApp:
 
             self._save_current_overlays()
             self._refresh_overlay_list()
-            self._refresh_binding_list()  # Update bindings (Phase 1.5)
             self.canvas_controller.display_image()
             self.update_status(f"Deleted overlay '{overlay.name}'")
 

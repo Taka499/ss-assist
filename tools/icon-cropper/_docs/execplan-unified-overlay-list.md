@@ -50,11 +50,11 @@ Users can verify this works by:
   - [x] Wire checkbox to binding toggle logic
   - [x] Test overlay list shows all overlays (bound and unbound)
 
-- [ ] Phase 2: Remove "Apply to Screenshot" panel
-  - [ ] Remove binding panel from `ui_builder.py`
-  - [ ] Remove binding panel update logic from `config_editor.py`
-  - [ ] Update layout to expand overlay list area
-  - [ ] Test UI renders correctly without binding panel
+- [x] Phase 2: Remove "Apply to Screenshot" panel (Completed: 2025-11-16)
+  - [x] Remove binding panel from `ui_builder.py`
+  - [x] Remove binding panel update logic from `config_editor.py`
+  - [x] Update layout to expand overlay list area
+  - [x] Test UI renders correctly without binding panel
 
 - [ ] Phase 3: Update Delete button behavior
   - [ ] Change `_on_delete_overlay()` to permanently delete overlay
@@ -63,7 +63,7 @@ Users can verify this works by:
   - [ ] Test delete removes overlay from workspace.json and all screenshots
 
 - [ ] Phase 4: Polish and edge cases
-  - [ ] Update overlay count label to show total workspace overlays
+  - [x] Update overlay count label to show total workspace overlays (Completed in Phase 1)
   - [ ] Handle case when deleting a bound overlay (warn user)
   - [ ] Test with multiple screenshots and overlays
   - [ ] Update CLAUDE.md with new UI pattern
@@ -84,6 +84,14 @@ Users can verify this works by:
 4. **Delete button with unbound overlays**: Original `_on_delete_overlay()` assumed overlay was always on canvas (via `canvas_controller.get_overlay_by_id()`). With unified list showing all overlays, unbound overlays aren't on canvas, causing `AttributeError: 'NoneType' object has no attribute 'name'`. Fixed by loading from workspace instead.
 
 5. **Existing `_on_binding_toggle()` callback**: Discovered that Phase 1.5 (workspace-level overlays) already implemented the binding toggle logic we needed! This saved implementation time - we just reused the existing callback instead of writing new code.
+
+### Phase 2 Discoveries (2025-11-16)
+
+1. **Clean removal**: Removing the binding panel was straightforward - no unexpected dependencies. The panel was completely self-contained with its own canvas and scrollbar, making removal safe.
+
+2. **Parameter panel relocation opportunity**: During panel removal, realized the dynamic parameter panel would fit perfectly in the right sidebar under the overlay list. This improves UX by keeping all overlay-related controls in one vertical column (select → apply → parameters → delete/lock).
+
+3. **Canvas weight adjustment**: User feedback indicated the canvas should be wider. Changed PanedWindow weight from 3:1 to 5:1 (canvas:overlay), giving canvas 83% of horizontal space instead of 75%. This provides more room for working with screenshots.
 
 ## Decision Log
 
@@ -109,6 +117,10 @@ Users can verify this works by:
 
 - Decision: Place Apply checkbox on right side of overlay name
   Rationale: Visual hierarchy should be: Selection (radio) → Identification (icon + name) → Action (checkbox). Placing checkbox on the right keeps it near the Delete/Lock buttons and maintains left-to-right reading flow.
+  Date: 2025-11-16
+
+- Decision: Move parameter panel to right sidebar (under overlay list)
+  Rationale: Consolidates all overlay-related controls into one vertical flow in the right sidebar. Left panel was getting crowded with tools, mode buttons, and parameters. Moving parameters to the right creates a logical grouping: "select overlay → apply to screenshot → edit parameters → delete/lock". This also freed up space in the left panel for future tools.
   Date: 2025-11-16
 
 ## Outcomes & Retrospective
@@ -619,17 +631,18 @@ The workspace.json schema is not changing, so old code can read new workspaces a
 
 - Overlay list refresh: `config_editor.py` line 1126 (`_refresh_overlay_list()`)
 - Overlay list UI: `editor/ui_builder.py` line 805 (`update_overlay_list()`)
-- Binding panel UI: `editor/ui_builder.py` line 378-403 (TO BE REMOVED)
+- Binding panel UI: `editor/ui_builder.py` line 378-403 (REMOVED in Phase 2)
+- Parameter panel: `editor/ui_builder.py` line 419 (`_build_dynamic_parameter_panel()`) - moved to right sidebar
 - Delete handler: `config_editor.py` line 1246 (`_on_delete_overlay()`)
 - Workspace manager: `editor/workspace_manager.py`
 
-**Expected File Changes:**
+**Actual File Changes (Phases 1-2):**
 
-- `config_editor.py`: ~50 lines modified, ~30 lines removed
-- `editor/ui_builder.py`: ~100 lines modified, ~50 lines removed
-- `editor/workspace_manager.py`: ~20 lines added (`delete_overlay()`)
+- `config_editor.py`: ~30 lines modified (Phase 1), ~25 lines removed (Phase 2: removed `_refresh_binding_list()` method and all calls)
+- `editor/ui_builder.py`: ~50 lines modified (Phase 1: updated `update_overlay_list()` signature and rendering), ~52 lines removed (Phase 2: removed binding panel UI and `update_binding_list()` method), ~5 lines modified (moved parameter panel to right sidebar, adjusted canvas weight to 5:1)
+- `editor/workspace_manager.py`: ~20 lines to be added in Phase 3 (`delete_overlay()`)
 
 ---
 
 *Plan created: 2025-11-16*
-*Last updated: 2025-11-16 (Phase 1 completed)*
+*Last updated: 2025-11-16 (Phases 1-2 completed)*
