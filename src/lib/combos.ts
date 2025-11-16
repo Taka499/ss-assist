@@ -482,6 +482,11 @@ export function findCombinationsForMultipleMissions(
     }
     score -= combo.length; // Prefer smaller combinations
 
+    if (score <= 0) {
+      // Discard combinations with non-positive score
+      continue;
+    }
+
     // Extract contributing tags
     const contributingTags = extractContributingTags(combo);
 
