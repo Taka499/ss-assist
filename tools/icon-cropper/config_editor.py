@@ -61,7 +61,7 @@ class ConfigEditorApp:
         """
         self.root = root
         self.root.title("Icon Cropper - Configuration Editor")
-        self.root.geometry("1200x800")
+        self.root.geometry("1800x800")
 
         # Initialize workspace manager
         workspaces_root = Path(__file__).parent / "workspaces"

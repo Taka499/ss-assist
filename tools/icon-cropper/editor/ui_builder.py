@@ -300,11 +300,27 @@ class UIBuilder:
 
         # Canvas panel (left side of paned window)
         canvas_panel = ttk.Frame(paned)
-        paned.add(canvas_panel, weight=5)
+        paned.add(canvas_panel, weight=10)
 
-        # Overlay panel (right side of paned window)
-        overlay_panel = ttk.Frame(paned, width=200)
+        # Overlay panel (right side of paned window) - narrower
+        overlay_panel = ttk.Frame(paned)
         paned.add(overlay_panel, weight=1)
+
+        # Store reference and set sash position after window is mapped
+        self.paned_window = paned
+        # Set sash position to make overlay panel ~300px wide (will be set after window size is known)
+        def set_initial_sash():
+            try:
+                window_width = right_container.winfo_width()
+                if window_width > 300:  # Only set if window has been sized
+                    overlay_width = 300
+                    sash_pos = window_width - overlay_width
+                    paned.sashpos(0, sash_pos)
+            except:
+                pass
+
+        # Schedule after window is displayed
+        self.root.after(100, set_initial_sash)
 
         # Create canvas with scrollbars
         canvas_frame = ttk.Frame(canvas_panel)
@@ -478,9 +494,9 @@ class UIBuilder:
                 from_=min_val,
                 to=max_val,
                 textvariable=self.grid_input_vars[key],
-                width=10
+                width=5
             )
-            spinbox.pack(side=tk.LEFT, padx=5)
+            spinbox.pack(side=tk.LEFT, padx=2)
 
         return panel
 
@@ -519,9 +535,9 @@ class UIBuilder:
                 from_=min_val,
                 to=max_val,
                 textvariable=self.ocr_input_vars[key],
-                width=10
+                width=5
             )
-            spinbox.pack(side=tk.LEFT, padx=5)
+            spinbox.pack(side=tk.LEFT, padx=2)
 
         return panel
 
