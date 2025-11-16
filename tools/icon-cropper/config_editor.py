@@ -189,23 +189,20 @@ class ConfigEditorApp:
         # Create menu bar
         ui_builder.create_menu_bar()
 
-        # Create main layout
+        # Create main layout (Phase 2: no longer returns tabs)
         (self.left_panel, self.canvas, self.instruction_label,
-         self.status_bar, grid_tab, ocr_tab) = ui_builder.create_main_layout()
+         self.status_bar) = ui_builder.create_main_layout()
 
-        # Create grid input widgets in Grid tab
-        self.grid_inputs = ui_builder.create_grid_inputs(
-            grid_tab,
-            self.grid_config,
-            on_change_callback=self._on_grid_param_changed
-        )
+        # Link spinbox IntVars from ui_builder (created in dynamic parameter panel)
+        self.grid_inputs = ui_builder.grid_input_vars
+        self.ocr_inputs = ui_builder.ocr_input_vars
 
-        # Create OCR input widgets in OCR tab
-        self.ocr_inputs = ui_builder.create_ocr_inputs(
-            ocr_tab,
-            self.ocr_config,
-            on_change_callback=self._on_ocr_param_changed
-        )
+        # Wire up callbacks for spinbox changes
+        for param, var in self.grid_inputs.items():
+            var.trace_add('write', lambda *args: self._on_grid_param_changed())
+
+        for param, var in self.ocr_inputs.items():
+            var.trace_add('write', lambda *args: self._on_ocr_param_changed())
 
         # Initialize workspace dropdown with available workspaces
         workspaces = self.workspace_manager.list_workspaces()
@@ -446,6 +443,24 @@ class ConfigEditorApp:
             messagebox.showwarning("No Image", "Please load or capture a screenshot first.")
             return
 
+        # Clear selection to prevent spinbox changes from affecting the previously selected overlay
+        self.selected_overlay_id = None
+        self.ui_builder.update_parameter_panel(None, None)
+        self._refresh_overlay_list()
+
+        # Reset grid_config to default values for new overlay (Phase 2 fix)
+        self.grid_config.update({
+            'start_x': 0,
+            'start_y': 0,
+            'cell_width': 100,
+            'cell_height': 100,
+            'spacing_x': 0,
+            'spacing_y': 0,
+            'columns': 3,
+            'rows': 4,
+            'crop_padding': 0,
+        })
+
         # Switch to draw grid tool (tool handles mode transitions)
         self.tool_manager.set_active_tool('draw_grid', self.canvas, self.update_status)
         self.canvas_controller.display_image()
@@ -455,6 +470,19 @@ class ConfigEditorApp:
         if self.canvas_controller.current_image is None:
             messagebox.showwarning("No Image", "Please load or capture a screenshot first.")
             return
+
+        # Clear selection to prevent spinbox changes from affecting the previously selected overlay
+        self.selected_overlay_id = None
+        self.ui_builder.update_parameter_panel(None, None)
+        self._refresh_overlay_list()
+
+        # Reset ocr_config to default values for new overlay (Phase 2 fix)
+        self.ocr_config.update({
+            'x': 0,
+            'y': 0,
+            'width': 0,
+            'height': 0,
+        })
 
         # Switch to draw OCR tool (tool handles mode transitions)
         self.tool_manager.set_active_tool('draw_ocr', self.canvas, self.update_status)
@@ -490,12 +518,15 @@ class ConfigEditorApp:
         }
 
     def _set_selected_overlay(self, overlay_id: str):
-        """Set the selected overlay ID.
+        """Set the selected overlay ID and update UI.
+
+        Called by drawing tools when a new overlay is created.
 
         Args:
             overlay_id: ID of overlay to select
         """
-        self.selected_overlay_id = overlay_id
+        # Use the full selection handler to update spinboxes and parameter panel
+        self._on_overlay_selected(overlay_id)
 
     def _auto_switch_tool(self, tool_name: str):
         """Helper to switch tools from within tool handlers.
@@ -678,7 +709,8 @@ class ConfigEditorApp:
             )
 
         # If currently drawing a new grid, draw the in-progress overlay
-        if self.grid_editor.edit_mode == EditMode.GRID_EDIT:
+        # Only draw if user has started drawing (not just in edit mode)
+        if self.grid_editor.edit_mode == EditMode.GRID_EDIT and self.grid_editor.grid_temp_start:
             self.grid_renderer.draw_grid_overlay(
                 self.canvas,
                 self.grid_config,
@@ -772,7 +804,8 @@ class ConfigEditorApp:
             )
 
         # If currently drawing a new OCR region, draw the in-progress overlay
-        if self.ocr_editor.is_in_ocr_edit_mode():
+        # Only draw if user has started dragging (not just in edit mode)
+        if self.ocr_editor.is_in_ocr_edit_mode() and self.ocr_editor.drag_start:
             self.grid_renderer.draw_ocr_overlay(
                 self.canvas,
                 self.ocr_config,
@@ -1038,6 +1071,9 @@ class ConfigEditorApp:
                 for overlay_id, overlay in overlays.items():
                     self.canvas_controller.overlay_manager.add_overlay(overlay)
 
+                # Update parameter panel to show empty state (Phase 2)
+                self.ui_builder.update_parameter_panel(None, None)
+
                 self.canvas_controller.display_image()
 
                 # Refresh overlay list UI
@@ -1198,6 +1234,11 @@ class ConfigEditorApp:
         # Load overlay's values into spinboxes
         self._load_overlay_into_spinboxes(overlay_id)
 
+        # Update parameter panel to show appropriate controls (Phase 2)
+        overlay = self.canvas_controller.get_overlay_by_id(overlay_id)
+        overlay_type = overlay.type if overlay else None
+        self.ui_builder.update_parameter_panel(overlay_id, overlay_type)
+
         self._refresh_overlay_list()
         # Redraw to highlight selected overlay (future enhancement)
         self.canvas_controller.display_image()
@@ -1217,6 +1258,10 @@ class ConfigEditorApp:
         if messagebox.askyesno("Delete Overlay", f"Delete overlay '{overlay.name}'?"):
             self.canvas_controller.remove_overlay_by_id(self.selected_overlay_id)
             self.selected_overlay_id = None
+
+            # Update parameter panel to show empty state (Phase 2)
+            self.ui_builder.update_parameter_panel(None, None)
+
             self._save_current_overlays()
             self._refresh_overlay_list()
             self._refresh_binding_list()  # Update bindings (Phase 1.5)

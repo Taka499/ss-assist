@@ -34,6 +34,17 @@ class UIBuilder:
         self.screenshot_selected_var = tk.StringVar()  # Persistent selection state
         self.overlay_selected_var = tk.StringVar()  # Persistent overlay selection state
 
+        # Storage for parameter panel variants (Phase 2: Dynamic Parameter Panel)
+        self.param_content_container = None
+        self.empty_state_panel = None
+        self.grid_params_panel = None
+        self.ocr_params_panel = None
+        self.current_param_panel = None
+
+        # IntVars for spinboxes (shared with config_editor callbacks)
+        self.grid_input_vars = {}
+        self.ocr_input_vars = {}
+
     def _create_scrollable_frame(self, parent: ttk.Frame) -> ttk.Frame:
         """Create a scrollable frame inside a parent frame.
 
@@ -279,23 +290,8 @@ class UIBuilder:
         )
         instruction_label.pack(pady=5)
 
-        # Notebook for Grid and OCR tabs
-        notebook = ttk.Notebook(left_panel)
-        notebook.pack(fill=tk.BOTH, expand=True, pady=5)
-
-        # Grid configuration tab (scrollable)
-        grid_tab_outer = ttk.Frame(notebook)
-        notebook.add(grid_tab_outer, text="Grid Layout")
-        grid_tab = self._create_scrollable_frame(grid_tab_outer)
-
-        # OCR region tab (scrollable)
-        ocr_tab_outer = ttk.Frame(notebook)
-        notebook.add(ocr_tab_outer, text="OCR Region")
-        ocr_tab = self._create_scrollable_frame(ocr_tab_outer)
-
-        # Store references for returning
-        self._grid_tab = grid_tab
-        self._ocr_tab = ocr_tab
+        # Dynamic parameter panel (Phase 2: replaces fixed notebook tabs)
+        param_panel = self._build_dynamic_parameter_panel(left_panel)
 
         # Right panel - split between canvas and overlay management
         right_container = ttk.Frame(main_frame)
@@ -418,7 +414,175 @@ class UIBuilder:
         # Store reference to overlay panel
         self.overlay_panel = overlay_panel
 
-        return left_panel, canvas, instruction_label, status_bar, grid_tab, ocr_tab
+        return left_panel, canvas, instruction_label, status_bar
+
+    def _build_dynamic_parameter_panel(self, parent: ttk.Frame) -> ttk.Frame:
+        """Create dynamic parameter panel that shows different controls based on selected overlay.
+
+        Args:
+            parent: Parent frame for the parameter panel
+
+        Returns:
+            The parameter panel container
+        """
+        # Container frame
+        param_frame = ttk.LabelFrame(parent, text="Overlay Parameters", padding=10)
+        param_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+
+        # Content container that will swap its children
+        self.param_content_container = ttk.Frame(param_frame)
+        self.param_content_container.pack(fill=tk.BOTH, expand=True)
+
+        # Create all three panel variants (will be packed/unpacked as needed)
+        self.empty_state_panel = self._create_empty_state_panel()
+        self.grid_params_panel = self._create_grid_params_panel()
+        self.ocr_params_panel = self._create_ocr_params_panel()
+
+        # Initially show empty state
+        self.current_param_panel = None
+        self._show_panel(self.empty_state_panel)
+
+        return param_frame
+
+    def _create_empty_state_panel(self) -> ttk.Frame:
+        """Create empty state panel shown when no overlay is selected.
+
+        Returns:
+            The empty state panel
+        """
+        panel = ttk.Frame(self.param_content_container)
+
+        message = ttk.Label(
+            panel,
+            text="No overlay selected\n\nSelect an overlay from the list\nto edit its parameters",
+            justify="center",
+            foreground="gray"
+        )
+        message.pack(expand=True, pady=50)
+
+        return panel
+
+    def _create_grid_params_panel(self) -> ttk.Frame:
+        """Create grid parameter spinboxes panel (scrollable).
+
+        Returns:
+            The grid parameters panel with 9 spinboxes
+        """
+        # Outer container
+        panel = ttk.Frame(self.param_content_container)
+
+        # Make scrollable content
+        scrollable_content = self._create_scrollable_frame(panel)
+
+        # Grid parameters (9 spinboxes)
+        grid_params = [
+            ("start_x", "Start X:", 0, 10000),
+            ("start_y", "Start Y:", 0, 10000),
+            ("cell_width", "Cell Width:", 1, 1000),
+            ("cell_height", "Cell Height:", 1, 1000),
+            ("spacing_x", "Spacing X:", 0, 500),
+            ("spacing_y", "Spacing Y:", 0, 500),
+            ("columns", "Columns:", 1, 100),
+            ("rows", "Rows:", 1, 100),
+            ("crop_padding", "Crop Padding:", 0, 100),
+        ]
+
+        for i, (key, label, min_val, max_val) in enumerate(grid_params):
+            row = ttk.Frame(scrollable_content)
+            row.pack(fill=tk.X, pady=2)
+
+            ttk.Label(row, text=label, width=15).pack(side=tk.LEFT)
+
+            # Create IntVar if not exists (shared with config_editor)
+            if key not in self.grid_input_vars:
+                self.grid_input_vars[key] = tk.IntVar(value=0)
+
+            spinbox = ttk.Spinbox(
+                row,
+                from_=min_val,
+                to=max_val,
+                textvariable=self.grid_input_vars[key],
+                width=10
+            )
+            spinbox.pack(side=tk.LEFT, padx=5)
+
+        return panel
+
+    def _create_ocr_params_panel(self) -> ttk.Frame:
+        """Create OCR parameter spinboxes panel (scrollable).
+
+        Returns:
+            The OCR parameters panel with 4 spinboxes
+        """
+        # Outer container
+        panel = ttk.Frame(self.param_content_container)
+
+        # Make scrollable content
+        scrollable_content = self._create_scrollable_frame(panel)
+
+        # OCR parameters (4 spinboxes)
+        ocr_params = [
+            ("x", "X:", 0, 10000),
+            ("y", "Y:", 0, 10000),
+            ("width", "Width:", 0, 10000),
+            ("height", "Height:", 0, 10000),
+        ]
+
+        for key, label, min_val, max_val in ocr_params:
+            row = ttk.Frame(scrollable_content)
+            row.pack(fill=tk.X, pady=2)
+
+            ttk.Label(row, text=label, width=15).pack(side=tk.LEFT)
+
+            # Create IntVar if not exists
+            if key not in self.ocr_input_vars:
+                self.ocr_input_vars[key] = tk.IntVar(value=0)
+
+            spinbox = ttk.Spinbox(
+                row,
+                from_=min_val,
+                to=max_val,
+                textvariable=self.ocr_input_vars[key],
+                width=10
+            )
+            spinbox.pack(side=tk.LEFT, padx=5)
+
+        return panel
+
+    def _show_panel(self, panel: ttk.Frame):
+        """Hide current panel and show the specified panel.
+
+        Args:
+            panel: Panel to show
+        """
+        # Hide current panel
+        if self.current_param_panel:
+            self.current_param_panel.pack_forget()
+
+        # Show new panel
+        panel.pack(fill=tk.BOTH, expand=True)
+        self.current_param_panel = panel
+
+    def update_parameter_panel(self, overlay_id: Optional[str], overlay_type: Optional[str]):
+        """Update parameter panel based on selected overlay.
+
+        Called by config_editor when overlay selection changes.
+
+        Args:
+            overlay_id: ID of selected overlay (None if no selection)
+            overlay_type: Type of overlay ("grid" or "ocr", None if no selection)
+        """
+        if not overlay_id or not overlay_type:
+            self._show_panel(self.empty_state_panel)
+            return
+
+        # Show appropriate panel based on overlay type
+        if overlay_type == 'grid':
+            self._show_panel(self.grid_params_panel)
+        elif overlay_type == 'ocr':
+            self._show_panel(self.ocr_params_panel)
+        else:
+            self._show_panel(self.empty_state_panel)
 
     def create_grid_inputs(
         self,
@@ -666,6 +830,9 @@ class UIBuilder:
         # Set the selection value (use persistent instance variable)
         self.overlay_selected_var.set(selected_id or "")
 
+        def on_mousewheel(event):
+            self.overlay_list_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
         for overlay in overlays:
             frame = ttk.Frame(self.overlay_list_frame)
             frame.pack(fill=tk.X, pady=2)
@@ -685,6 +852,10 @@ class UIBuilder:
                 command=lambda oid=overlay.id: on_select_callback(oid)
             )
             radio.pack(side=tk.LEFT, anchor='w', fill=tk.X, expand=True)
+
+            # Bind mousewheel to frame and radio button for scrolling
+            frame.bind("<MouseWheel>", on_mousewheel)
+            radio.bind("<MouseWheel>", on_mousewheel)
 
         # Update scroll region
         self.overlay_list_frame.update_idletasks()
@@ -734,6 +905,9 @@ class UIBuilder:
             ).pack(pady=5)
             return
 
+        def on_mousewheel(event):
+            self.binding_list_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
         # Create checkboxes for each overlay
         for overlay in all_overlays:
             frame = ttk.Frame(self.binding_list_frame)
@@ -753,6 +927,10 @@ class UIBuilder:
                 command=lambda oid=overlay.id, v=var: on_toggle_callback(oid, v.get())
             )
             checkbox.pack(side=tk.LEFT, anchor='w', fill=tk.X, expand=True)
+
+            # Bind mousewheel to frame and checkbox for scrolling
+            frame.bind("<MouseWheel>", on_mousewheel)
+            checkbox.bind("<MouseWheel>", on_mousewheel)
 
         # Update scroll region
         self.binding_list_frame.update_idletasks()
