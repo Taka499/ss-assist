@@ -39,15 +39,7 @@ cd tools/icon-cropper
 
 ```bash
 # Using uv
-uv venv
-uv pip install -e .
-```
-
-### 4. Activate the virtual environment
-
-```bash
-# Windows
-.venv\Scripts\activate
+uv sync
 ```
 
 ## Getting Started
