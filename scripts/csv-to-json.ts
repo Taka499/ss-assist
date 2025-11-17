@@ -291,10 +291,63 @@ function parseRewards(rewardStr: string, missionId: string): any[] {
 }
 
 /**
+ * Convert items.csv to items.json
+ */
+async function convertItems(): Promise<void> {
+  console.log("[3/4] Converting items from data-sources/stellasora - items.csv...");
+
+  const csvPath = resolve(DATA_SOURCES_DIR, "stellasora - items.csv");
+  const outPath = resolve(DATA_DIR, "items.json");
+
+  const rows = loadCSV(csvPath);
+  if (rows.length === 0) {
+    console.log("  ⚠️  No item data to convert");
+    saveJSON(outPath, []);
+    console.log();
+    return;
+  }
+
+  const output = [];
+
+  for (const row of rows) {
+    const item: any = {
+      id: row.id,
+      name: {
+        ja: row.name_ja,
+      },
+      tier: parseInt(row.tier, 10),
+      icon: row.icon,
+    };
+
+    // Add optional Chinese names
+    if (row["name_zh-Hans"]) {
+      item.name["zh-Hans"] = row["name_zh-Hans"];
+    }
+    if (row["name_zh-Hant"]) {
+      item.name["zh-Hant"] = row["name_zh-Hant"];
+    }
+    if (row["name_en"]) {
+      item.name["en"] = row["name_en"];
+    }
+    if (row["name_kr"]) {
+      item.name["kr"] = row["name_kr"];
+    }
+
+    output.push(item);
+  }
+
+  saveJSON(outPath, output);
+
+  console.log(`  ✓ Processed ${output.length} items`);
+  console.log(`  ✓ Wrote ${outPath}`);
+  console.log();
+}
+
+/**
  * Convert missions.csv to missions.json
  */
 async function convertMissions(jaToId: Map<string, string>): Promise<void> {
-  console.log("[3/3] Converting missions from data-sources/stellasora - missions.csv...");
+  console.log("[4/4] Converting missions from data-sources/stellasora - missions.csv...");
 
   const csvPath = resolve(DATA_SOURCES_DIR, "stellasora - missions.csv");
   const outPath = resolve(DATA_DIR, "missions.json");
@@ -449,7 +502,10 @@ async function main() {
     // Step 2: Convert characters (uses the mapping)
     await convertCharacters(jaToId);
 
-    // Step 3: Convert missions (uses the mapping)
+    // Step 3: Convert items (no mapping needed)
+    await convertItems();
+
+    // Step 4: Convert missions (uses the mapping)
     await convertMissions(jaToId);
 
     console.log("✅ Data conversion completed successfully!");

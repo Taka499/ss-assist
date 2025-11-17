@@ -23,6 +23,7 @@ dist-ssr
 data/tags.json
 data/characters.json
 data/missions.json
+data/items.json
 
 # Keep source data files (human-editable)
 !data/tags.src.json

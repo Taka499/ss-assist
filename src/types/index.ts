@@ -76,6 +76,16 @@ export type ItemCategory =
   | "skill_piece";        // skill_piece_t1
 
 /**
+ * Item data structure
+ */
+export interface Item {
+  id: string;
+  name: MultiLangString;
+  tier: number;
+  icon: string;
+}
+
+/**
  * Reward types (discriminated union)
  * All rewards use the same structure with an item ID and amount range
  */
