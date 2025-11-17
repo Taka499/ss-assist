@@ -45,6 +45,27 @@ class UIBuilder:
         self.grid_input_vars = {}
         self.ocr_input_vars = {}
 
+    def _enable_mousewheel_scrolling(self, canvas: tk.Canvas):
+        """Enable mousewheel scrolling for a canvas when mouse hovers over it.
+
+        This binds mousewheel events to the canvas on Enter and unbinds on Leave,
+        preventing conflicts with other scrollable areas.
+
+        Args:
+            canvas: Canvas widget to enable mousewheel scrolling for
+        """
+        def on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        def bind_mousewheel(event):
+            canvas.bind("<MouseWheel>", on_mousewheel)
+
+        def unbind_mousewheel(event):
+            canvas.unbind("<MouseWheel>")
+
+        canvas.bind("<Enter>", bind_mousewheel)
+        canvas.bind("<Leave>", unbind_mousewheel)
+
     def _create_scrollable_frame(self, parent: ttk.Frame) -> ttk.Frame:
         """Create a scrollable frame inside a parent frame.
 
@@ -75,18 +96,8 @@ class UIBuilder:
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Enable mousewheel scrolling when mouse is over this canvas
-        def on_mousewheel(event):
-            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-
-        def bind_mousewheel(event):
-            canvas.bind("<MouseWheel>", on_mousewheel)
-
-        def unbind_mousewheel(event):
-            canvas.unbind("<MouseWheel>")
-
-        canvas.bind("<Enter>", bind_mousewheel)
-        canvas.bind("<Leave>", unbind_mousewheel)
+        # Enable mousewheel scrolling
+        self._enable_mousewheel_scrolling(canvas)
 
         return scrollable_frame
 
@@ -146,6 +157,11 @@ class UIBuilder:
             command=self.callbacks['batch_crop_all'],
             accelerator="Ctrl+B"
         )
+        tools_menu.add_command(
+            label="🏷️ Annotate Icons...",
+            command=self.callbacks['annotate_icons'],
+            accelerator="Ctrl+A"
+        )
 
         # Help menu
         help_menu = tk.Menu(menubar, tearoff=0)
@@ -176,26 +192,26 @@ class UIBuilder:
 
         ttk.Label(left_panel, text="Tools", font=("Arial", 12, "bold")).pack(pady=5)
 
-        # Page selector frame (at top of left panel)
-        page_frame = ttk.Frame(left_panel)
-        page_frame.pack(fill=tk.X, padx=5, pady=(5, 5))
+        # Workspace selector frame (at top of left panel)
+        workspace_frame = ttk.Frame(left_panel)
+        workspace_frame.pack(fill=tk.X, padx=5, pady=(5, 5))
 
-        ttk.Label(page_frame, text="Page:").pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Label(workspace_frame, text="Workspace:").pack(side=tk.LEFT, padx=(0, 5))
 
-        # Dropdown showing current page
-        self.page_var = tk.StringVar(value="character_select")
-        self.page_dropdown = ttk.Combobox(page_frame, textvariable=self.page_var, width=18, state='readonly')
-        self.page_dropdown.pack(side=tk.LEFT, padx=5)
-        self.page_dropdown.bind('<<ComboboxSelected>>', lambda e: self.callbacks['on_page_changed'](self.page_var.get()))
+        # Dropdown showing current workspace
+        self.workspace_var = tk.StringVar(value="character_select")
+        self.workspace_dropdown = ttk.Combobox(workspace_frame, textvariable=self.workspace_var, width=18, state='readonly')
+        self.workspace_dropdown.pack(side=tk.LEFT, padx=5)
+        self.workspace_dropdown.bind('<<ComboboxSelected>>', lambda e: self.callbacks['on_workspace_changed'](self.workspace_var.get()))
 
-        # [+] button to create new page
-        add_page_btn = ttk.Button(
-            page_frame,
+        # [+] button to create new workspace
+        add_workspace_btn = ttk.Button(
+            workspace_frame,
             text="+",
-            command=self.callbacks['create_new_page'],
+            command=self.callbacks['create_new_workspace'],
             width=3
         )
-        add_page_btn.pack(side=tk.LEFT, padx=2)
+        add_workspace_btn.pack(side=tk.LEFT, padx=2)
 
         # Separator
         ttk.Separator(left_panel, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=5, pady=5)
@@ -214,6 +230,9 @@ class UIBuilder:
 
         screenshot_list_inner = ttk.Frame(list_canvas)
         list_canvas.create_window((0, 0), window=screenshot_list_inner, anchor='nw')
+
+        # Enable mousewheel scrolling
+        self._enable_mousewheel_scrolling(list_canvas)
 
         # Store reference for updating
         self.screenshot_list_frame = screenshot_list_inner
@@ -270,14 +289,26 @@ class UIBuilder:
             command=self.callbacks['enter_pan_mode']
         ).pack(fill=tk.X, pady=2)
 
-        # Preview button
-        preview_frame = ttk.LabelFrame(left_panel, text="Preview", padding=10)
-        preview_frame.pack(fill=tk.X, pady=5)
+        # Actions section
+        actions_frame = ttk.LabelFrame(left_panel, text="Actions", padding=10)
+        actions_frame.pack(fill=tk.X, pady=5)
 
         ttk.Button(
-            preview_frame,
+            actions_frame,
             text="👁️ Preview Icons (Ctrl+P)",
             command=self.callbacks['preview_icons']
+        ).pack(fill=tk.X, pady=2)
+
+        ttk.Button(
+            actions_frame,
+            text="✂️ Batch Crop All (Ctrl+B)",
+            command=self.callbacks['batch_crop_all']
+        ).pack(fill=tk.X, pady=2)
+
+        ttk.Button(
+            actions_frame,
+            text="🏷️ Annotate Icons (Ctrl+A)",
+            command=self.callbacks['annotate_icons']
         ).pack(fill=tk.X, pady=2)
 
         # Instructions label (shared between tabs)
@@ -365,6 +396,9 @@ class UIBuilder:
 
         overlay_list_inner = ttk.Frame(overlay_canvas)
         overlay_canvas.create_window((0, 0), window=overlay_list_inner, anchor='nw')
+
+        # Enable mousewheel scrolling
+        self._enable_mousewheel_scrolling(overlay_canvas)
 
         # Store references for updating
         self.overlay_list_frame = overlay_list_inner

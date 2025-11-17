@@ -101,12 +101,16 @@ class WorkspaceManager:
 
         # Update metadata
         metadata = self._load_metadata(workspace_path)
+
+        # Get all existing overlay IDs to bind to new screenshot by default
+        existing_overlay_ids = list(metadata.get("overlays", {}).keys())
+
         metadata["screenshots"].append({
             "filename": filename,
             "captured_at": datetime.now().isoformat(),
             "resolution": [image.width, image.height],
             "notes": "",
-            "overlay_bindings": []  # Empty binding list for new screenshots (Phase 1.5)
+            "overlay_bindings": existing_overlay_ids  # Bind all existing overlays by default
         })
         metadata["selected_screenshot"] = filename
         self._save_metadata(workspace_path, metadata)

@@ -49,6 +49,9 @@ from editor.draw_ocr_tool import DrawOCRTool
 from editor.cropper_api import batch_crop_workspace
 from editor.crop_preview_dialog import show_crop_preview_dialog
 
+# Import annotation dialog
+from editor.annotation_dialog import show_annotation_dialog
+
 
 class ConfigEditorApp:
     """Main application for the Config Editor GUI."""
@@ -171,6 +174,7 @@ class ConfigEditorApp:
             'delete_screenshot': self.delete_screenshot,
             'preview_icons': self.preview_icons,
             'batch_crop_all': self.batch_crop_all,
+            'annotate_icons': self._on_annotate_icons,
             'quit_app': self.quit_app,
             'zoom_in': lambda: self.canvas_controller.zoom_in() if hasattr(self, 'canvas_controller') else None,
             'zoom_out': lambda: self.canvas_controller.zoom_out() if hasattr(self, 'canvas_controller') else None,
@@ -179,8 +183,8 @@ class ConfigEditorApp:
             'enter_grid_edit_mode': self.enter_grid_edit_mode,
             'enter_ocr_edit_mode': self.enter_ocr_edit_mode,
             'enter_pan_mode': self.enter_pan_mode,
-            'on_page_changed': self.on_page_changed,
-            'create_new_page': self.create_new_workspace
+            'on_workspace_changed': self.on_workspace_changed,
+            'create_new_workspace': self.create_new_workspace
         }
 
         ui_builder = UIBuilder(self.root, callbacks)
@@ -211,8 +215,8 @@ class ConfigEditorApp:
             self.workspace_manager.create_workspace("character_select")
             workspaces = ["character_select"]
 
-        ui_builder.page_dropdown['values'] = workspaces
-        ui_builder.page_var.set(self.current_workspace)
+        ui_builder.workspace_dropdown['values'] = workspaces
+        ui_builder.workspace_var.set(self.current_workspace)
 
         # Initialize screenshot list for current workspace
         self._refresh_screenshot_list()
@@ -235,6 +239,7 @@ class ConfigEditorApp:
         self.root.bind('<Control-g>', lambda e: self.capture_screenshot())
         self.root.bind('<Control-p>', lambda e: self.preview_icons())
         self.root.bind('<Control-b>', lambda e: self.batch_crop_all())
+        self.root.bind('<Control-a>', lambda e: self._on_annotate_icons())
         self.root.bind('<Control-q>', lambda e: self.quit_app())
 
     def _on_display_complete(self):
@@ -998,6 +1003,47 @@ class ConfigEditorApp:
             )
             self.update_status("Batch crop failed")
 
+    def _on_annotate_icons(self):
+        """Launch annotation dialog to assign names to cropped icons."""
+        try:
+            # Validate workspace
+            if not self.current_workspace:
+                messagebox.showwarning(
+                    "No Workspace",
+                    "Please select a workspace first."
+                )
+                return
+
+            # Check if workspace has cropped icons
+            cropped_dir = self.workspace_manager.workspaces_root / self.current_workspace / "cropped"
+            if not cropped_dir.exists() or not any(cropped_dir.iterdir()):
+                messagebox.showinfo(
+                    "No Cropped Icons",
+                    "No cropped icons found. Run batch crop first.\n\n"
+                    "Click Tools → Batch Crop All to extract icons from screenshots."
+                )
+                return
+
+            # Launch annotation dialog
+            self.update_status("Opening annotation dialog...")
+            success = show_annotation_dialog(
+                self.root,
+                self.current_workspace,
+                self.workspace_manager.workspaces_root
+            )
+
+            if success:
+                self.update_status("Icons annotated and saved successfully")
+            else:
+                self.update_status("Annotation cancelled")
+
+        except Exception as e:
+            messagebox.showerror(
+                "Annotation Error",
+                f"An error occurred while annotating icons:\n\n{str(e)}"
+            )
+            self.update_status("Annotation failed")
+
     # ========== Workspace Management ==========
 
     def _load_preferences(self):
@@ -1347,7 +1393,7 @@ class ConfigEditorApp:
                     self.canvas_controller.clear()
                 self.update_status(f"Deleted {selected}")
 
-    def on_page_changed(self, new_workspace: str):
+    def on_workspace_changed(self, new_workspace: str):
         """Handle workspace selector dropdown change."""
         if new_workspace == self.current_workspace:
             return
@@ -1433,11 +1479,11 @@ class ConfigEditorApp:
 
             # Update dropdown
             workspaces = self.workspace_manager.list_workspaces()
-            self.ui_builder.page_dropdown['values'] = workspaces
+            self.ui_builder.workspace_dropdown['values'] = workspaces
 
             # Switch to new workspace
-            self.ui_builder.page_var.set(workspace_name)
-            self.on_page_changed(workspace_name)
+            self.ui_builder.workspace_var.set(workspace_name)
+            self.on_workspace_changed(workspace_name)
 
             dialog.destroy()
 

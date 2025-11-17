@@ -96,6 +96,12 @@ class AnnotatorApp:
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
+        # Enable mousewheel scrolling
+        def on_mousewheel(event):
+            canvas.yview_scroll(-1 * (event.delta // 120), "units")
+
+        self.root.bind("<MouseWheel>", on_mousewheel)
+
         # Create grid of icon annotations
         self._create_icon_grid(scrollable_frame)
 
