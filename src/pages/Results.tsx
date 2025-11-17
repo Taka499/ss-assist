@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { loadData, isDataLoaded, getMissionById, getCharacters, getBitmaskLookup } from '../lib/data';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useAppStore } from '../store/useAppStore';
@@ -14,26 +14,12 @@ interface ResultsProps {
 
 export function Results({ onNavigate }: ResultsProps) {
   const lang = useLanguageStore((state) => state.lang);
-  const { selectedMissionIds, ownedCharacterIds, characterLevels, clearOwnedCharacters, clearLevels, clearSelectedMissions } = useAppStore();
+  const { selectedMissionIds, ownedCharacterIds, characterLevels } = useAppStore();
 
   const [assignmentResult, setAssignmentResult] = useState<MultiMissionAssignmentResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(true);
 
-  useEffect(() => {
-    if (!isDataLoaded()) {
-      loadData().catch(console.error);
-      return;
-    }
-
-    // Perform analysis when data is loaded and selections exist
-    if (selectedMissionIds.length > 0) {
-      analyzeResults();
-    } else {
-      setIsAnalyzing(false);
-    }
-  }, [selectedMissionIds, ownedCharacterIds, characterLevels]);
-
-  const analyzeResults = () => {
+  const analyzeResults = useCallback(() => {
     setIsAnalyzing(true);
 
     try {
@@ -67,7 +53,21 @@ export function Results({ onNavigate }: ResultsProps) {
     } finally {
       setIsAnalyzing(false);
     }
-  };
+  }, [selectedMissionIds, ownedCharacterIds, characterLevels]);
+
+  useEffect(() => {
+    if (!isDataLoaded()) {
+      loadData().catch(console.error);
+      return;
+    }
+
+    // Perform analysis when data is loaded and selections exist
+    if (selectedMissionIds.length > 0) {
+      analyzeResults();
+    } else {
+      setIsAnalyzing(false);
+    }
+  }, [selectedMissionIds, ownedCharacterIds, characterLevels, analyzeResults]);
 
 
   if (!isDataLoaded()) {
@@ -110,11 +110,8 @@ export function Results({ onNavigate }: ResultsProps) {
     );
   }
 
-  const handleReset = () => {
-    clearOwnedCharacters();
-    clearLevels();
-    clearSelectedMissions();
-    onNavigate('home');
+  const handleReanalyze = () => {
+    analyzeResults();
   };
 
   return (
@@ -133,10 +130,10 @@ export function Results({ onNavigate }: ResultsProps) {
             {lang === 'ja' ? '戻る' : lang === 'zh-Hans' ? '返回' : '返回'}
           </button>
           <button
-            onClick={handleReset}
-            className="px-6 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
+            onClick={handleReanalyze}
+            className="px-6 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
           >
-            {lang === 'ja' ? 'リセット' : lang === 'zh-Hans' ? '重置' : '重置'}
+            {lang === 'ja' ? '再分析' : lang === 'zh-Hans' ? '重新分析' : '重新分析'}
           </button>
         </div>
       </div>
@@ -215,7 +212,7 @@ export function Results({ onNavigate }: ResultsProps) {
       )}
 
       {/* Training Recommendations */}
-      {assignmentResult && assignmentResult.trainingRecommendations.length > 0 && (
+      {assignmentResult && assignmentResult.trainingRecommendations && assignmentResult.trainingRecommendations.length > 0 && (
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-2">
             {lang === 'ja' ? '💪 育成推奨' :
@@ -226,7 +223,7 @@ export function Results({ onNavigate }: ResultsProps) {
               lang === 'zh-Hans' ? '培养以下角色可解锁更多任务' :
                 '培養以下角色可解鎖更多任務'}
           </p>
-          <TrainingRecommendationList recommendations={assignmentResult.trainingRecommendations.slice(0, 10)} />
+          <TrainingRecommendationList recommendations={assignmentResult.trainingRecommendations} />
         </div>
       )}
 

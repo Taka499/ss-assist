@@ -374,6 +374,10 @@ export function calculateTrainingPriorityFromBlockedTeams(
       }
     }
 
+    if (levelTargets.size === 0) {
+      continue; // This character is already at or above mission requirements
+    }
+
     // Track best recommendation per unique mission set
     const impactMap = new Map<string, { targetLevel: number; missionsUnlocked: string[]; bonusesAdded: string[]; priority: number }>();
 
@@ -389,36 +393,26 @@ export function calculateTrainingPriorityFromBlockedTeams(
 
         const blockedTeams = blockedTeamsByMission.get(missionId) || [];
 
-        // Check if there's a blocked team that would become valid with this upgrade
+        // Check if there's a blocked team that includes this character
         for (const team of blockedTeams) {
           if (!team.characterIds.includes(character.id)) {
             continue; // This team doesn't include our character
           }
 
-          // Check if ALL characters in this team would meet level requirements
-          // with our character upgraded to targetLevel
-          let teamWouldBeValid = true;
-          for (const charId of team.characterIds) {
-            const currentLevel = characterLevels[charId] || 1;
-            const deficit = team.levelDeficits[charId] || 0;
-            const requiredLevel = currentLevel + deficit;
-            const actualLevel = charId === character.id ? targetLevel : currentLevel;
-
-            if (actualLevel < requiredLevel) {
-              teamWouldBeValid = false;
-              break;
-            }
+          // Check if this character has a level deficit in this team
+          const deficit = team.levelDeficits[character.id] || 0;
+          if (deficit === 0) {
+            continue; // This character already meets level requirement
           }
 
-          if (teamWouldBeValid) {
-            // This mission would be unlocked
-            if (!missionsUnlocked.includes(missionId)) {
-              if (team.meetsBaseConditions) {
-                missionsUnlocked.push(missionId);
-              }
-              if (team.meetsBonusConditions) {
-                bonusesAdded.push(missionId);
-              }
+          // This character needs training for this mission
+          // Even if other characters also need training, we should recommend this one
+          if (!missionsUnlocked.includes(missionId)) {
+            if (team.meetsBaseConditions) {
+              missionsUnlocked.push(missionId);
+            }
+            if (team.meetsBonusConditions) {
+              bonusesAdded.push(missionId);
             }
             break; // Only count this mission once
           }
@@ -431,10 +425,14 @@ export function calculateTrainingPriorityFromBlockedTeams(
         const rarityTag = character.tags.rarity?.[0];
         const rarity = rarityTag ? parseInt(rarityTag.split('-')[1], 10) : 0;
 
+        // Calculate level gap (smaller gap = higher priority since cheaper to train)
+        const levelGap = targetLevel - currentLevel;
+
         const priority =
           1000.0 * missionsUnlocked.length +
           10.0 * bonusesAdded.length +
-          1.0 * rarity;
+          1.0 * rarity -
+          0.5 * levelGap; // Penalize large level gaps
 
         // Create a key based on which missions are unlocked (sorted for consistency)
         const impactKey = [...missionsUnlocked].sort().join(',') + '|' + [...bonusesAdded].sort().join(',');
