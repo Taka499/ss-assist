@@ -1,11 +1,12 @@
 import type { Reward } from '../types';
+import { getItemById } from '../lib/data';
 
 interface RewardChipProps {
   reward: Reward;
 }
 
 export function RewardChip({ reward }: RewardChipProps) {
-  const { amount, category } = reward;
+  const { itemId, amount } = reward;
 
   // Format amount
   const formattedAmount =
@@ -13,23 +14,21 @@ export function RewardChip({ reward }: RewardChipProps) {
       ? amount.min.toLocaleString()
       : `${amount.min.toLocaleString()}~${amount.max.toLocaleString()}`;
 
-  // Icon based on category
-  const iconMap: Record<string, string> = {
-    currency: '💰',
-    prize_egg: '🥚',
-    exp_character: '📚',
-    exp_disc: '💿',
-    tier_character: '⭐',
-    tier_disc: '🔷',
-    skill_cartridge: '🎯',
-    skill_piece: '🧩',
-  };
-
-  const icon = category ? iconMap[category] || '🎁' : '🎁';
+  // Get item data to access icon
+  const item = getItemById(itemId);
+  const iconPath = item?.icon;
 
   return (
     <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-gray-100 text-gray-700">
-      <span className="text-base">{icon}</span>
+      {iconPath ? (
+        <img
+          src={`/${iconPath}`}
+          alt={item?.name.ja || itemId}
+          className="w-4 h-4 object-contain"
+        />
+      ) : (
+        <span className="text-base">🎁</span>
+      )}
       <span className="font-medium">{formattedAmount}</span>
     </span>
   );

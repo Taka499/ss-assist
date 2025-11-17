@@ -38,7 +38,7 @@ export function MissionPicker() {
         </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {missions.map((mission) => {
           const isSelected = selectedMissionIds.includes(mission.id);
           const isDisabled = !isSelected && selectedMissionIds.length >= MAX_MISSIONS;
@@ -48,7 +48,7 @@ export function MissionPicker() {
               key={mission.id}
               onClick={() => handleMissionClick(mission.id)}
               disabled={isDisabled}
-              className={`text-left p-4 rounded-lg border-2 transition-all ${isSelected
+              className={`text-left p-3 rounded-lg border-2 transition-all ${isSelected
                 ? 'border-blue-500 bg-blue-50'
                 : isDisabled
                   ? 'border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed'
@@ -56,21 +56,21 @@ export function MissionPicker() {
                 }`}
             >
               {/* Mission Name */}
-              <div className="flex justify-between items-start mb-2">
-                <h4 className="font-semibold">{mission.name[lang] || mission.name.ja}</h4>
+              <div className="flex justify-between items-start mb-1.5">
+                <h4 className="font-semibold text-sm">{mission.name[lang] || mission.name.ja}</h4>
                 {isSelected && (
-                  <span className="text-blue-500 text-xl">✓</span>
+                  <span className="text-blue-500 text-lg ml-1">✓</span>
                 )}
               </div>
 
               {/* Required Level */}
-              <div className="text-sm text-gray-600 mb-2">
-                {lang === 'ja' ? '必要レベル' : lang === 'zh-Hans' ? '所需等级' : '所需等級'}: Lv{mission.requiredLevel}
+              <div className="text-xs text-gray-600 mb-1.5">
+                Lv{mission.requiredLevel}
               </div>
 
               {/* Base Conditions */}
-              <div className="mb-2">
-                <div className="text-xs text-gray-500 mb-1">
+              <div className="mb-1.5">
+                <div className="text-xs text-gray-500 mb-0.5">
                   {lang === 'ja' ? '受注条件' : lang === 'zh-Hans' ? '接受条件' : '接受條件'}
                 </div>
                 <div className="flex flex-wrap gap-1">
@@ -86,8 +86,8 @@ export function MissionPicker() {
 
               {/* Bonus Conditions */}
               {mission.bonusConditions && mission.bonusConditions.length > 0 && (
-                <div className="mb-2">
-                  <div className="text-xs text-gray-500 mb-1">
+                <div className="mb-1.5">
+                  <div className="text-xs text-gray-500 mb-0.5">
                     {lang === 'ja' ? '追加報酬条件' : lang === 'zh-Hans' ? '额外奖励条件' : '額外獎勵條件'}
                   </div>
                   <div className="flex flex-wrap gap-1">
@@ -104,7 +104,7 @@ export function MissionPicker() {
 
               {/* Rewards (show first duration only for preview) */}
               <div>
-                <div className="text-xs text-gray-500 mb-1">
+                <div className="text-xs text-gray-500 mb-0.5">
                   {lang === 'ja' ? '報酬' : lang === 'zh-Hans' ? '奖励' : '獎勵'}
                 </div>
                 <div className="flex flex-wrap gap-1">

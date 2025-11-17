@@ -9,6 +9,7 @@ import type {
   TagDict,
   Character,
   Mission,
+  Item,
   Category,
   Language,
 } from "../types";
@@ -21,6 +22,7 @@ import { buildBitmaskLookup, type BitmaskLookup } from "./bitmask";
 let tagsData: TagDict | null = null;
 let charactersData: Character[] | null = null;
 let missionsData: Mission[] | null = null;
+let itemsData: Item[] | null = null;
 let bitmaskLookup: BitmaskLookup | null = null;
 
 // ============================================================================
@@ -34,15 +36,17 @@ let bitmaskLookup: BitmaskLookup | null = null;
 export async function loadData(): Promise<void> {
   try {
     // Dynamic imports for JSON files (Vite handles these efficiently)
-    const [tagsModule, charactersModule, missionsModule] = await Promise.all([
+    const [tagsModule, charactersModule, missionsModule, itemsModule] = await Promise.all([
       import("../../data/tags.json"),
       import("../../data/characters.json"),
       import("../../data/missions.json"),
+      import("../../data/items.json"),
     ]);
 
     tagsData = tagsModule.default as TagDict;
     charactersData = charactersModule.default as Character[];
     missionsData = missionsModule.default as Mission[];
+    itemsData = itemsModule.default as Item[];
 
     // Build bitmask lookup table from tags
     bitmaskLookup = buildBitmaskLookup(tagsData);
@@ -97,10 +101,21 @@ export function getBitmaskLookup(): BitmaskLookup {
 }
 
 /**
+ * Get all items
+ * @throws Error if data not loaded
+ */
+export function getItems(): Item[] {
+  if (!itemsData) {
+    throw new Error("Data not loaded. Call loadData() first.");
+  }
+  return itemsData;
+}
+
+/**
  * Check if data has been loaded
  */
 export function isDataLoaded(): boolean {
-  return !!(tagsData && charactersData && missionsData && bitmaskLookup);
+  return !!(tagsData && charactersData && missionsData && itemsData && bitmaskLookup);
 }
 
 // ============================================================================
@@ -290,11 +305,24 @@ export function getMissionName(mission: Mission, lang: Language = "ja"): string 
 }
 
 /**
+ * Get item by ID
+ * @param itemId Item ID
+ * @returns Item or undefined if not found
+ */
+export function getItemById(itemId: string): Item | undefined {
+  if (!itemsData) {
+    return undefined;
+  }
+  return itemsData.find((item) => item.id === itemId);
+}
+
+/**
  * Reset all loaded data (useful for testing)
  */
 export function resetData(): void {
   tagsData = null;
   charactersData = null;
   missionsData = null;
+  itemsData = null;
   bitmaskLookup = null;
 }

@@ -31,24 +31,27 @@ export function RosterManagement({ onNavigate }: RosterManagementProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">
-            {lang === 'ja' ? 'キャラクター選択' :
-              lang === 'zh-Hans' ? '选择角色' : '選擇角色'}
-          </h1>
-          <p className="text-sm text-gray-600 mt-1">
-            {lang === 'ja' ? `選択中: ${ownedCharacterIds.length}人` :
-              lang === 'zh-Hans' ? `已选择: ${ownedCharacterIds.length}个` :
-                `已選擇: ${ownedCharacterIds.length}個`}
-          </p>
+      {/* Sticky header with navigation */}
+      <div className="sticky top-0 z-10 bg-white pb-4 border-b border-gray-200 -mx-6 px-6 -mt-6 pt-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold">
+              {lang === 'ja' ? 'キャラクター選択' :
+                lang === 'zh-Hans' ? '选择角色' : '選擇角色'}
+            </h1>
+            <p className="text-sm text-gray-600 mt-1">
+              {lang === 'ja' ? `選択中: ${ownedCharacterIds.length}人` :
+                lang === 'zh-Hans' ? `已选择: ${ownedCharacterIds.length}个` :
+                  `已選擇: ${ownedCharacterIds.length}個`}
+            </p>
+          </div>
+          <button
+            onClick={() => onNavigate('levels')}
+            className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+          >
+            {lang === 'ja' ? '次へ' : lang === 'zh-Hans' ? '下一步' : '下一步'}
+          </button>
         </div>
-        <button
-          onClick={() => onNavigate('levels')}
-          className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-        >
-          {lang === 'ja' ? '次へ' : lang === 'zh-Hans' ? '下一步' : '下一步'}
-        </button>
       </div>
 
       <RosterSelector />
