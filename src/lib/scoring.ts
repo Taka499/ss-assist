@@ -5,7 +5,7 @@
  * to prioritize for maximum mission unlock potential.
  */
 
-import type { Character, Mission, TagDict, Language } from "../types";
+import type { Character, Mission, TagDict, Language, BlockedCombination, TrainingRecommendationNew } from "../types";
 import { findCombinations } from "./combos";
 import type { BitmaskLookup } from "./bitmask";
 
@@ -309,6 +309,156 @@ export function calculateTrainingPriority(
   recommendations.sort((a, b) => b.score - a.score);
 
   return recommendations;
+}
+
+// ============================================================================
+// Multi-Mission Training Priority (using Blocked Teams)
+// ============================================================================
+
+/**
+ * Calculate training priority from blocked teams for unassigned missions
+ *
+ * This function analyzes which characters, when leveled up, would unlock
+ * currently unassigned missions by satisfying their level requirements.
+ *
+ * Scoring formula: 1000.0 × missionsUnlocked + 10.0 × bonusesAdded + 1.0 × rarity
+ *
+ * @param unassignedMissions Missions that could not be assigned in current state
+ * @param blockedTeamsByMission Map of mission ID to its blocked teams
+ * @param characters All owned characters
+ * @param characterLevels Current levels of all characters
+ * @returns Array of training recommendations sorted by priority (highest first), limited to top 20
+ */
+export function calculateTrainingPriorityFromBlockedTeams(
+  unassignedMissions: Mission[],
+  blockedTeamsByMission: Map<string, BlockedCombination[]>,
+  characters: Character[],
+  characterLevels: Record<string, number>
+): TrainingRecommendationNew[] {
+  // Build a map of character -> missions they could help unlock
+  const characterToMissions = new Map<string, Set<string>>();
+
+  for (const mission of unassignedMissions) {
+    const blockedTeams = blockedTeamsByMission.get(mission.id) || [];
+
+    for (const team of blockedTeams) {
+      // For each character in this blocked team, record that they could help unlock this mission
+      for (const charId of team.characterIds) {
+        if (!characterToMissions.has(charId)) {
+          characterToMissions.set(charId, new Set());
+        }
+        characterToMissions.get(charId)!.add(mission.id);
+      }
+    }
+  }
+
+  // For each character, determine level targets and calculate impact
+  const recommendations: TrainingRecommendationNew[] = [];
+
+  for (const character of characters) {
+    const currentLevel = characterLevels[character.id] || 1;
+    const potentialMissions = characterToMissions.get(character.id);
+
+    if (!potentialMissions || potentialMissions.size === 0) {
+      continue; // This character doesn't appear in any blocked teams
+    }
+
+    // Determine meaningful level targets for this character
+    const levelTargets = new Set<number>();
+
+    // Add mission required levels
+    for (const missionId of potentialMissions) {
+      const mission = unassignedMissions.find(m => m.id === missionId);
+      if (mission && mission.requiredLevel > currentLevel) {
+        levelTargets.add(mission.requiredLevel);
+      }
+    }
+
+    // Add standard milestones above current level
+    for (const milestone of LEVEL_MILESTONES) {
+      if (milestone > currentLevel) {
+        levelTargets.add(milestone);
+      }
+    }
+
+    // For each target level, simulate the upgrade and check impact
+    for (const targetLevel of levelTargets) {
+      const missionsUnlocked: string[] = [];
+      const bonusesAdded: string[] = [];
+
+      // Check each mission this character could help unlock
+      for (const missionId of potentialMissions) {
+        const mission = unassignedMissions.find(m => m.id === missionId);
+        if (!mission) continue;
+
+        const blockedTeams = blockedTeamsByMission.get(missionId) || [];
+
+        // Check if there's a blocked team that would become valid with this upgrade
+        for (const team of blockedTeams) {
+          if (!team.characterIds.includes(character.id)) {
+            continue; // This team doesn't include our character
+          }
+
+          // Check if ALL characters in this team would meet level requirements
+          // with our character upgraded to targetLevel
+          let teamWouldBeValid = true;
+          for (const charId of team.characterIds) {
+            const currentLevel = characterLevels[charId] || 1;
+            const deficit = team.levelDeficits[charId] || 0;
+            const requiredLevel = currentLevel + deficit;
+            const actualLevel = charId === character.id ? targetLevel : currentLevel;
+
+            if (actualLevel < requiredLevel) {
+              teamWouldBeValid = false;
+              break;
+            }
+          }
+
+          if (teamWouldBeValid) {
+            // This mission would be unlocked
+            if (!missionsUnlocked.includes(missionId)) {
+              if (team.meetsBaseConditions) {
+                missionsUnlocked.push(missionId);
+              }
+              if (team.meetsBonusConditions) {
+                bonusesAdded.push(missionId);
+              }
+            }
+            break; // Only count this mission once
+          }
+        }
+      }
+
+      // Calculate score if this training would have any impact
+      if (missionsUnlocked.length > 0 || bonusesAdded.length > 0) {
+        // Get character rarity from tags
+        const rarityTag = character.tags.rarity?.[0];
+        const rarity = rarityTag ? parseInt(rarityTag.split('-')[1], 10) : 0;
+
+        const priority =
+          1000.0 * missionsUnlocked.length +
+          10.0 * bonusesAdded.length +
+          1.0 * rarity;
+
+        recommendations.push({
+          characterId: character.id,
+          characterName: character.name,
+          characterRarity: rarity,
+          currentLevel,
+          targetLevel,
+          impact: {
+            missionsUnlocked,
+            bonusesAdded,
+          },
+          priority,
+        });
+      }
+    }
+  }
+
+  // Sort by priority descending and limit to top 20
+  recommendations.sort((a, b) => b.priority - a.priority);
+  return recommendations.slice(0, 20);
 }
 
 // ============================================================================

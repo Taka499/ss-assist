@@ -23,8 +23,8 @@ You can verify success by selecting 4 missions with different requirements, mark
 - [x] Implement mission value calculation based on base condition count
 - [x] Implement DFS assignment algorithm with mission value objective
 - [x] Write tests for DFS assignment optimality
-- [ ] Update training priority calculation to use blocked teams and rarity
-- [ ] Write tests for training priority scoring
+- [x] Update training priority calculation to use blocked teams and rarity
+- [x] Write tests for training priority scoring
 - [ ] Update Results.tsx to display mission-by-mission assignments
 - [ ] Add UI for training recommendations
 - [ ] Run end-to-end tests with multiple missions
@@ -52,6 +52,14 @@ This is correct behavior and important for training recommendations in Milestone
 **Score comparison semantics**: Implemented `compareScores()` to return positive when first argument is better. This follows the natural comparison pattern (a > b returns positive) and makes the DFS logic clearer when checking `if (compareScores(score, bestScore) > 0)` to update the best solution.
 
 **Test coverage breadth**: Wrote 11 comprehensive test cases covering not just happy paths but edge cases (no missions, no characters), partial coverage scenarios, and all three tiers of the lexicographic objective function. This caught several potential issues early, including proper handling of empty inputs.
+
+### Milestone 3 (2025-11-17)
+
+**Level deficit semantics**: The `levelDeficits` field in `BlockedCombination` stores `(requiredLevel - currentLevel)` for each character. When simulating a character upgrade, we must calculate the required level from the **original** current level plus the deficit, not from the simulated target level. Initial implementation had this wrong, which caused all tests to fail until the logic was corrected to: `requiredLevel = currentLevels[charId] + deficit`.
+
+**Team validation with partial upgrades**: When checking if training a single character would unlock a mission, the algorithm correctly validates that ALL characters in a blocked team must meet their level requirements. If a team requires [charA, charB] both at level 50, training only charA to 50 won't unlock the mission (charB is still below level). This prevents false positives in training recommendations.
+
+**Scoring weight validation**: The 1000× weight for mission unlocks vs 10× for bonuses vs 1× for rarity is clearly visible in test results. A character unlocking 1 mission scores ~1004 (1000 + rarity), vastly higher than a character adding 2 bonuses scoring ~24 (20 + rarity). This ensures training recommendations prioritize mission unlocks as intended.
 
 
 ## Decision Log

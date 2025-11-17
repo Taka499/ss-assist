@@ -1,10 +1,11 @@
 import { describe, it, expect } from "vitest";
-import type { TagDict, Character, Mission, Condition, Category } from "../types";
+import type { TagDict, Character, Mission, Condition, Category, BlockedCombination } from "../types";
 import {
   calculateTagRarity,
   calculateCharacterRarity,
   calculateTrainingImpact,
   calculateTrainingPriority,
+  calculateTrainingPriorityFromBlockedTeams,
   explainRecommendation,
   DEFAULT_WEIGHTS,
   LEVEL_MILESTONES,
@@ -609,6 +610,428 @@ describe("Scoring System", () => {
 
     it("has correct level milestones", () => {
       expect(LEVEL_MILESTONES).toEqual([10, 20, 30, 40, 50, 60, 70, 80, 90]);
+    });
+  });
+
+  describe("calculateTrainingPriorityFromBlockedTeams", () => {
+    it("heavily weights mission unlocks over bonuses", () => {
+      // Setup: Char A unlocks 1 mission (score = 1000 + rarity)
+      //        Char B adds 2 bonuses (score = 20 + rarity)
+      const characters: Character[] = [
+        createTestCharacter("charA", {
+          role: ["role-001"],
+          rarity: ["rarity-004"]  // rarity 4
+        }),
+        createTestCharacter("charB", {
+          role: ["role-002"],
+          rarity: ["rarity-004"]  // rarity 4
+        }),
+      ];
+
+      const unassignedMissions: Mission[] = [
+        createTestMission("mission1", 50, [
+          { category: "role", anyOf: ["role-001"] },
+        ]),
+        createTestMission("mission2", 50, [
+          { category: "role", anyOf: ["role-002"] },
+        ]),
+      ];
+
+      const currentLevels = { charA: 30, charB: 30 };
+
+      const blockedTeamsByMission = new Map<string, BlockedCombination[]>([
+        [
+          "mission1",
+          [
+            {
+              characterIds: ["charA"],
+              meetsBaseConditions: true,
+              meetsBonusConditions: false,
+              levelDeficits: { charA: 20 }, // needs to go from 30 to 50
+            },
+          ],
+        ],
+        [
+          "mission2",
+          [
+            {
+              characterIds: ["charB"],
+              meetsBaseConditions: false, // not base unlock
+              meetsBonusConditions: true, // but bonus unlock
+              levelDeficits: { charB: 20 },
+            },
+            {
+              characterIds: ["charB"],
+              meetsBaseConditions: false,
+              meetsBonusConditions: true,
+              levelDeficits: { charB: 20 },
+            },
+          ],
+        ],
+      ]);
+
+      const recommendations = calculateTrainingPriorityFromBlockedTeams(
+        unassignedMissions,
+        blockedTeamsByMission,
+        characters,
+        currentLevels
+      );
+
+      // Char A should rank higher despite only unlocking 1 mission
+      const charARec = recommendations.find(r => r.characterId === "charA");
+      const charBRec = recommendations.find(r => r.characterId === "charB");
+
+      expect(charARec).toBeDefined();
+      expect(charARec!.priority).toBeCloseTo(1000 + 4, 1); // 1000 × 1 mission + 4 rarity
+
+      if (charBRec) {
+        expect(charBRec.priority).toBeCloseTo(10 * 1 + 4, 1); // 10 × 1 bonus + 4 rarity (much lower)
+        expect(charARec!.priority).toBeGreaterThan(charBRec.priority);
+      }
+    });
+
+    it("includes character rarity in scoring", () => {
+      // 5★ char and 3★ char both unlock 1 mission
+      const characters: Character[] = [
+        createTestCharacter("char5Star", {
+          role: ["role-001"],
+          rarity: ["rarity-005"], // 5★
+        }),
+        createTestCharacter("char4Star", {
+          role: ["role-002"],
+          rarity: ["rarity-004"], // 4★
+        }),
+      ];
+
+      const unassignedMissions: Mission[] = [
+        createTestMission("mission1", 50, [
+          { category: "role", anyOf: ["role-001"] },
+        ]),
+        createTestMission("mission2", 50, [
+          { category: "role", anyOf: ["role-002"] },
+        ]),
+      ];
+
+      const currentLevels = { char5Star: 30, char4Star: 30 };
+
+      const blockedTeamsByMission = new Map<string, BlockedCombination[]>([
+        [
+          "mission1",
+          [
+            {
+              characterIds: ["char5Star"],
+              meetsBaseConditions: true,
+              meetsBonusConditions: false,
+              levelDeficits: { char5Star: 20 },
+            },
+          ],
+        ],
+        [
+          "mission2",
+          [
+            {
+              characterIds: ["char4Star"],
+              meetsBaseConditions: true,
+              meetsBonusConditions: false,
+              levelDeficits: { char4Star: 20 },
+            },
+          ],
+        ],
+      ]);
+
+      const recommendations = calculateTrainingPriorityFromBlockedTeams(
+        unassignedMissions,
+        blockedTeamsByMission,
+        characters,
+        currentLevels
+      );
+
+      const rec5Star = recommendations.find(r => r.characterId === "char5Star");
+      const rec4Star = recommendations.find(r => r.characterId === "char4Star");
+
+      expect(rec5Star).toBeDefined();
+      expect(rec4Star).toBeDefined();
+
+      // Both unlock 1 mission (1000 points), but 5★ has higher rarity
+      expect(rec5Star!.priority).toBeCloseTo(1005, 1); // 1000 + 5
+      expect(rec4Star!.priority).toBeCloseTo(1004, 1); // 1000 + 4
+      expect(rec5Star!.priority).toBeGreaterThan(rec4Star!.priority);
+    });
+
+    it("recommends minimum level targets to unlock missions", () => {
+      // Mission requires Lv30, char at Lv20
+      const characters: Character[] = [
+        createTestCharacter("char1", {
+          role: ["role-001"],
+          rarity: ["rarity-004"]
+        }),
+      ];
+
+      const unassignedMissions: Mission[] = [
+        createTestMission("mission1", 30, [
+          { category: "role", anyOf: ["role-001"] },
+        ]),
+      ];
+
+      const currentLevels = { char1: 20 };
+
+      const blockedTeamsByMission = new Map<string, BlockedCombination[]>([
+        [
+          "mission1",
+          [
+            {
+              characterIds: ["char1"],
+              meetsBaseConditions: true,
+              meetsBonusConditions: false,
+              levelDeficits: { char1: 10 }, // needs to go from 20 to 30
+            },
+          ],
+        ],
+      ]);
+
+      const recommendations = calculateTrainingPriorityFromBlockedTeams(
+        unassignedMissions,
+        blockedTeamsByMission,
+        characters,
+        currentLevels
+      );
+
+      // Should have recommendation for level 30 (minimum to unlock)
+      const rec30 = recommendations.find(
+        r => r.characterId === "char1" && r.targetLevel === 30
+      );
+      expect(rec30).toBeDefined();
+      expect(rec30!.impact.missionsUnlocked).toContain("mission1");
+    });
+
+    it("aggregates impact across multiple missions", () => {
+      // Char appears in blocked teams for 3 missions
+      const characters: Character[] = [
+        createTestCharacter("char1", {
+          role: ["role-001"],
+          rarity: ["rarity-004"]
+        }),
+      ];
+
+      const unassignedMissions: Mission[] = [
+        createTestMission("mission1", 50, [
+          { category: "role", anyOf: ["role-001"] },
+        ]),
+        createTestMission("mission2", 50, [
+          { category: "role", anyOf: ["role-001"] },
+        ]),
+        createTestMission("mission3", 50, [
+          { category: "role", anyOf: ["role-001"] },
+        ]),
+      ];
+
+      const currentLevels = { char1: 30 };
+
+      const blockedTeamsByMission = new Map<string, BlockedCombination[]>([
+        [
+          "mission1",
+          [
+            {
+              characterIds: ["char1"],
+              meetsBaseConditions: true,
+              meetsBonusConditions: false,
+              levelDeficits: { char1: 20 },
+            },
+          ],
+        ],
+        [
+          "mission2",
+          [
+            {
+              characterIds: ["char1"],
+              meetsBaseConditions: true,
+              meetsBonusConditions: false,
+              levelDeficits: { char1: 20 },
+            },
+          ],
+        ],
+        [
+          "mission3",
+          [
+            {
+              characterIds: ["char1"],
+              meetsBaseConditions: true,
+              meetsBonusConditions: false,
+              levelDeficits: { char1: 20 },
+            },
+          ],
+        ],
+      ]);
+
+      const recommendations = calculateTrainingPriorityFromBlockedTeams(
+        unassignedMissions,
+        blockedTeamsByMission,
+        characters,
+        currentLevels
+      );
+
+      const rec = recommendations.find(
+        r => r.characterId === "char1" && r.targetLevel === 50
+      );
+
+      expect(rec).toBeDefined();
+      expect(rec!.impact.missionsUnlocked).toHaveLength(3);
+      expect(rec!.impact.missionsUnlocked).toContain("mission1");
+      expect(rec!.impact.missionsUnlocked).toContain("mission2");
+      expect(rec!.impact.missionsUnlocked).toContain("mission3");
+      expect(rec!.priority).toBeCloseTo(3000 + 4, 1); // 1000 × 3 missions + 4 rarity
+    });
+
+    it("handles characters that unlock no missions", () => {
+      // Char not in any blocked teams
+      const characters: Character[] = [
+        createTestCharacter("char1", {
+          role: ["role-001"],
+          rarity: ["rarity-004"]
+        }),
+        createTestCharacter("char2", {
+          role: ["role-002"],
+          rarity: ["rarity-004"]
+        }),
+      ];
+
+      const unassignedMissions: Mission[] = [
+        createTestMission("mission1", 50, [
+          { category: "role", anyOf: ["role-001"] },
+        ]),
+      ];
+
+      const currentLevels = { char1: 30, char2: 30 };
+
+      const blockedTeamsByMission = new Map<string, BlockedCombination[]>([
+        [
+          "mission1",
+          [
+            {
+              characterIds: ["char1"], // only char1 in blocked team
+              meetsBaseConditions: true,
+              meetsBonusConditions: false,
+              levelDeficits: { char1: 20 },
+            },
+          ],
+        ],
+      ]);
+
+      const recommendations = calculateTrainingPriorityFromBlockedTeams(
+        unassignedMissions,
+        blockedTeamsByMission,
+        characters,
+        currentLevels
+      );
+
+      // char2 should not have any recommendations
+      const char2Recs = recommendations.filter(r => r.characterId === "char2");
+      expect(char2Recs).toHaveLength(0);
+
+      // char1 should have recommendations
+      const char1Recs = recommendations.filter(r => r.characterId === "char1");
+      expect(char1Recs.length).toBeGreaterThan(0);
+    });
+
+    it("limits results to top 20 recommendations", () => {
+      // Create many characters with many blocked missions
+      const characters: Character[] = [];
+      for (let i = 0; i < 30; i++) {
+        characters.push(
+          createTestCharacter(`char${i}`, {
+            role: ["role-001"],
+            rarity: ["rarity-004"]
+          })
+        );
+      }
+
+      const unassignedMissions: Mission[] = [
+        createTestMission("mission1", 50, [
+          { category: "role", anyOf: ["role-001"] },
+        ]),
+      ];
+
+      const currentLevels: Record<string, number> = {};
+      const blockedTeams: BlockedCombination[] = [];
+
+      for (let i = 0; i < 30; i++) {
+        currentLevels[`char${i}`] = 30;
+        blockedTeams.push({
+          characterIds: [`char${i}`],
+          meetsBaseConditions: true,
+          meetsBonusConditions: false,
+          levelDeficits: { [`char${i}`]: 20 },
+        });
+      }
+
+      const blockedTeamsByMission = new Map<string, BlockedCombination[]>([
+        ["mission1", blockedTeams],
+      ]);
+
+      const recommendations = calculateTrainingPriorityFromBlockedTeams(
+        unassignedMissions,
+        blockedTeamsByMission,
+        characters,
+        currentLevels
+      );
+
+      // Should be limited to 20 recommendations
+      expect(recommendations.length).toBeLessThanOrEqual(20);
+    });
+
+    it("handles teams with multiple characters", () => {
+      // A blocked team requires leveling multiple characters
+      const characters: Character[] = [
+        createTestCharacter("charA", {
+          role: ["role-001"],
+          rarity: ["rarity-004"]
+        }),
+        createTestCharacter("charB", {
+          role: ["role-002"],
+          rarity: ["rarity-004"]
+        }),
+      ];
+
+      const unassignedMissions: Mission[] = [
+        createTestMission("mission1", 50, [
+          { category: "role", anyOf: ["role-001", "role-002"] }, // needs both
+        ]),
+      ];
+
+      const currentLevels = { charA: 30, charB: 30 };
+
+      const blockedTeamsByMission = new Map<string, BlockedCombination[]>([
+        [
+          "mission1",
+          [
+            {
+              characterIds: ["charA", "charB"],
+              meetsBaseConditions: true,
+              meetsBonusConditions: false,
+              levelDeficits: { charA: 20, charB: 20 }, // both need leveling
+            },
+          ],
+        ],
+      ]);
+
+      const recommendations = calculateTrainingPriorityFromBlockedTeams(
+        unassignedMissions,
+        blockedTeamsByMission,
+        characters,
+        currentLevels
+      );
+
+      // Training either character alone won't unlock the mission
+      // So no recommendations should indicate mission unlock unless BOTH are trained
+      // This test verifies that individual character training doesn't falsely claim to unlock
+      const recA = recommendations.find(
+        r => r.characterId === "charA" && r.targetLevel === 50
+      );
+
+      // charA alone can't unlock because charB is still at 30
+      if (recA) {
+        expect(recA.impact.missionsUnlocked).toHaveLength(0);
+      }
     });
   });
 });

@@ -13,6 +13,7 @@ import {
   type BitmaskLookup,
   type CategoryBitmasks,
 } from "./bitmask";
+import { calculateTrainingPriorityFromBlockedTeams } from "./scoring";
 
 // Re-export types for convenience
 export type { MultiMissionCombinationResult, MissionCoverage };
@@ -889,6 +890,24 @@ export function findBestMissionAssignment(
     .filter(a => a.team === null)
     .map(a => a.missionId);
 
+  // Phase 5: Calculate training recommendations from blocked teams
+  const unassignedMissions = missions.filter(m => unassignedMissionIds.includes(m.id));
+  const blockedTeamsByMission = new Map<string, import("../types").BlockedCombination[]>();
+
+  for (const mission of unassignedMissions) {
+    const candidates = candidatesByMission.get(mission.id);
+    if (candidates) {
+      blockedTeamsByMission.set(mission.id, candidates.blockedTeams);
+    }
+  }
+
+  const trainingRecommendations = calculateTrainingPriorityFromBlockedTeams(
+    unassignedMissions,
+    blockedTeamsByMission,
+    ownedCharacters,
+    characterLevels
+  );
+
   return {
     assignments,
     stats: {
@@ -899,7 +918,7 @@ export function findBestMissionAssignment(
       totalRarity,
       unassignedMissionIds,
     },
-    trainingRecommendations: [], // Will be filled in Milestone 3
+    trainingRecommendations,
     debug: {
       candidatesGenerated: totalCandidatesGenerated,
       dfsNodesExplored,
