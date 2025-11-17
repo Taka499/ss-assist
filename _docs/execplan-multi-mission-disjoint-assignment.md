@@ -91,6 +91,8 @@ This is correct behavior and important for training recommendations in Milestone
 
 **Incomplete training recommendations**: After implementing disjoint blocked team display, training recommendations only showed suggestions for ONE unassigned mission instead of all of them. This happened because we were passing only the single displayed blocked team to the training algorithm. Fixed by separating concerns: display shows disjoint teams (clear UX), but recommendations use ALL available blocked teams (comprehensive guidance).
 
+**Character tag visibility for equivalence identification**: Users requested visibility of character tags (role, style, element) in training recommendations to identify which characters are functionally equivalent for satisfying mission requirements. Enhanced TrainingRecommendationList component to display color-coded tag pills (role=blue, style=green, element=orange) and group recommendations by role. This helps users make informed decisions when choosing between multiple characters that can unlock the same missions.
+
 
 ## Decision Log
 
@@ -131,6 +133,8 @@ This is correct behavior and important for training recommendations in Milestone
 **D5.3 - Separation of display vs recommendations**: Display shows disjoint blocked teams (no character overlap) for clarity, but training recommendations use ALL available blocked teams for comprehensiveness. This separation acknowledges that UI needs to be unambiguous while recommendations need to be thorough.
 
 **D5.4 - Character availability semantics**: Defined "available" characters as those NOT assigned to any mission (either assigned teams or displayed blocked teams for unassigned missions). This ensures no character appears in multiple places in the UI, preventing user confusion about resource allocation.
+
+**D5.5 - Tag display for character equivalence**: Added character tags (role, style, element) to training recommendations and grouped them by role. This design choice addresses user need to identify functionally equivalent characters when choosing which to train. Role grouping is prioritized because role tags are the primary mission requirement. Style and element tags are shown as secondary information. Faction is omitted to reduce visual clutter as it's rarely used in mission conditions.
 
 
 ## Outcomes & Retrospective
