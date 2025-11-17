@@ -32,7 +32,7 @@ export function RosterManagement({ onNavigate }: RosterManagementProps) {
   return (
     <div className="space-y-6">
       {/* Sticky header with navigation */}
-      <div className="sticky top-0 z-10 bg-white pb-4 border-b border-gray-200 -mx-6 px-6 -mt-6 pt-6">
+      <div className="sticky top-16 z-40 bg-white pb-4 border-b border-gray-200 -mx-6 px-6 -mt-6 pt-6">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold">
