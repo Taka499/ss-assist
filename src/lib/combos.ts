@@ -846,15 +846,19 @@ export function findBestMissionAssignment(
   // Phase 4: Package results
   const assignmentMap = new Map(bestAssignment.map(a => [a.missionId, a.team]));
 
-  // First, collect all assigned characters to filter blocked teams
-  const assignedCharacters = new Set<string>();
+  // Collect all assigned characters to filter blocked teams
+  const usedCharacters = new Set<string>();
   let totalRarity = 0;
 
   for (const { team } of bestAssignment) {
-    team.characterIds.forEach(charId => assignedCharacters.add(charId));
+    team.characterIds.forEach(charId => usedCharacters.add(charId));
   }
 
-  const assignments: import("../types").MissionAssignment[] = missions.map(mission => {
+  // Build assignments array, selecting disjoint blocked teams for unassigned missions
+  const assignments: import("../types").MissionAssignment[] = [];
+
+  // First pass: Create assignments for assigned missions
+  for (const mission of missions) {
     const team = assignmentMap.get(mission.id);
 
     if (team) {
@@ -862,14 +866,13 @@ export function findBestMissionAssignment(
       const teamRarity = team.characterIds.reduce((sum, charId) => {
         const char = ownedCharacters.find(c => c.id === charId);
         const rarityTag = char?.tags.rarity?.[0];
-        // Extract rarity number from tag like "rarity-004" -> 4
         const rarity = rarityTag ? parseInt(rarityTag.split('-')[1], 10) : 0;
         return sum + rarity;
       }, 0);
 
       totalRarity += teamRarity;
 
-      return {
+      assignments.push({
         missionId: mission.id,
         missionValue: getMissionValue(mission),
         team: {
@@ -877,60 +880,105 @@ export function findBestMissionAssignment(
           totalRarity: teamRarity,
           satisfiesBonus: team.meetsBonusConditions,
         },
-      };
-    } else {
-      // Mission is unassigned - find the best blocked team that doesn't use assigned characters
+      });
+    }
+  }
+
+  // Second pass: Select disjoint blocked teams for unassigned missions
+  // Sort unassigned missions by the smallest level gap of their best available blocked team
+  const unassignedMissionsWithCandidates: Array<{
+    mission: Mission;
+    candidates: import("../types").PerMissionCandidates;
+  }> = [];
+
+  for (const mission of missions) {
+    if (!assignmentMap.has(mission.id)) {
       const candidates = candidatesByMission.get(mission.id);
-      let blockedTeam: import("../types").MissionAssignment['blockedTeam'];
-
       if (candidates && candidates.blockedTeams.length > 0) {
-        // Filter out teams that use any already-assigned characters
-        const availableBlockedTeams = candidates.blockedTeams.filter(team =>
-          team.characterIds.every(charId => !assignedCharacters.has(charId))
-        );
-
-        if (availableBlockedTeams.length > 0) {
-          // Sort by total level gap (smallest first) to find the "closest" team
-          const sortedBlocked = [...availableBlockedTeams].sort((a, b) => {
-            const gapA = Object.values(a.levelDeficits).reduce((sum, gap) => sum + gap, 0);
-            const gapB = Object.values(b.levelDeficits).reduce((sum, gap) => sum + gap, 0);
-            return gapA - gapB;
-          });
-
-          const best = sortedBlocked[0];
-          blockedTeam = {
-            characterIds: best.characterIds,
-            levelDeficits: best.levelDeficits,
-            satisfiesBonus: best.meetsBonusConditions,
-          };
-        }
+        unassignedMissionsWithCandidates.push({ mission, candidates });
       }
+    }
+  }
 
-      return {
+  // Sort by smallest available level gap (prioritize easiest to unlock)
+  unassignedMissionsWithCandidates.sort((a, b) => {
+    const getMinGap = (candidates: import("../types").PerMissionCandidates) => {
+      const availableTeams = candidates.blockedTeams.filter(team =>
+        team.characterIds.every(charId => !usedCharacters.has(charId))
+      );
+      if (availableTeams.length === 0) return Infinity;
+      return Math.min(...availableTeams.map(team =>
+        Object.values(team.levelDeficits).reduce((sum, gap) => sum + gap, 0)
+      ));
+    };
+    return getMinGap(a.candidates) - getMinGap(b.candidates);
+  });
+
+  // Select blocked teams in order, avoiding character overlap
+  for (const { mission, candidates } of unassignedMissionsWithCandidates) {
+    const availableBlockedTeams = candidates.blockedTeams.filter(team =>
+      team.characterIds.every(charId => !usedCharacters.has(charId))
+    );
+
+    let blockedTeam: import("../types").MissionAssignment['blockedTeam'];
+
+    if (availableBlockedTeams.length > 0) {
+      // Sort by total level gap (smallest first)
+      const sortedBlocked = [...availableBlockedTeams].sort((a, b) => {
+        const gapA = Object.values(a.levelDeficits).reduce((sum, gap) => sum + gap, 0);
+        const gapB = Object.values(b.levelDeficits).reduce((sum, gap) => sum + gap, 0);
+        return gapA - gapB;
+      });
+
+      const best = sortedBlocked[0];
+      blockedTeam = {
+        characterIds: best.characterIds,
+        levelDeficits: best.levelDeficits,
+        satisfiesBonus: best.meetsBonusConditions,
+      };
+
+      // Mark these characters as used for subsequent missions
+      best.characterIds.forEach(charId => usedCharacters.add(charId));
+    }
+
+    assignments.push({
+      missionId: mission.id,
+      missionValue: getMissionValue(mission),
+      team: null,
+      blockedTeam,
+    });
+  }
+
+  // Add any remaining unassigned missions without blocked teams
+  for (const mission of missions) {
+    if (!assignments.some(a => a.missionId === mission.id)) {
+      assignments.push({
         missionId: mission.id,
         missionValue: getMissionValue(mission),
         team: null,
-        blockedTeam,
-      };
+      });
     }
-  });
+  }
 
   const unassignedMissionIds = assignments
     .filter(a => a.team === null)
     .map(a => a.missionId);
 
   // Phase 5: Calculate training recommendations from blocked teams
+  // Use the same disjoint-filtered blocked teams that we selected for display
   const unassignedMissions = missions.filter(m => unassignedMissionIds.includes(m.id));
   const blockedTeamsByMission = new Map<string, import("../types").BlockedCombination[]>();
 
-  for (const mission of unassignedMissions) {
-    const candidates = candidatesByMission.get(mission.id);
-    if (candidates) {
-      // Filter out blocked teams that use any already-assigned characters
-      const availableBlockedTeams = candidates.blockedTeams.filter(team =>
-        team.characterIds.every(charId => !assignedCharacters.has(charId))
-      );
-      blockedTeamsByMission.set(mission.id, availableBlockedTeams);
+  for (const assignment of assignments) {
+    if (!assignment.team && assignment.blockedTeam) {
+      // Convert back to BlockedCombination format for training priority calculation
+      const blockedComb: import("../types").BlockedCombination = {
+        characterIds: assignment.blockedTeam.characterIds,
+        meetsBaseConditions: true, // Blocked teams always meet base conditions
+        meetsBonusConditions: assignment.blockedTeam.satisfiesBonus,
+        levelDeficits: assignment.blockedTeam.levelDeficits,
+      };
+      blockedTeamsByMission.set(assignment.missionId, [blockedComb]);
     }
   }
 
@@ -947,7 +995,7 @@ export function findBestMissionAssignment(
       totalMissionValue: bestScore.totalMissionValue,
       missionsAssigned: bestAssignment.length,
       missionsTotal: missions.length,
-      totalCharactersUsed: assignedCharacters.size,
+      totalCharactersUsed: bestAssignment.reduce((count, { team }) => count + team.characterIds.length, 0),
       totalRarity,
       unassignedMissionIds,
     },
