@@ -12,14 +12,18 @@ A serverless web application to help players optimize character combinations for
 ss-assist/
 ├── public/
 │   └── assets/
-│       └── characters/          # Character icon images
+│       ├── characters/          # Character icon images
+│       └── items/               # Item icon images
 ├── data/                       # Generated JSON data (do not edit manually)
 │   ├── tags.json              # Tag dictionary with multi-language support
+│   ├── tags.src.json          # Tag dictionary source (committed)
 │   ├── characters.json         # Character data
-│   └── missions.json          # Mission data
+│   ├── missions.json          # Mission data
+│   └── items.json             # Item/reward data
 ├── data-sources/              # Human-editable CSV files
-│   ├── characters.csv
-│   └── missions.csv
+│   ├── stellasora - characters.csv
+│   ├── stellasora - missions.csv
+│   └── stellasora - items.csv
 ├── i18n/                      # Translation files
 │   ├── tags.zh-Hans.json      # Simplified Chinese translations
 │   └── tags.zh-Hant.json      # Traditional Chinese translations
@@ -30,42 +34,74 @@ ss-assist/
 ├── src/
 │   ├── components/            # React components
 │   │   ├── AppLayout.tsx
-│   │   ├── RosterSelector.tsx
+│   │   ├── CharacterAvatar.tsx
+│   │   ├── ComboCard.tsx
 │   │   ├── LevelEditor.tsx
+│   │   ├── MissionAssignmentCard.tsx
+│   │   ├── MissionCoverageIndicator.tsx
 │   │   ├── MissionPicker.tsx
 │   │   ├── ResultsView.tsx
-│   │   ├── ComboCard.tsx
-│   │   ├── TrainHint.tsx
-│   │   ├── TrainRanking.tsx
-│   │   ├── TagPill.tsx
 │   │   ├── RewardChip.tsx
-│   │   └── CharacterAvatar.tsx
-│   ├── lib/                   # Core logic
+│   │   ├── RosterSelector.tsx
+│   │   ├── TagPill.tsx
+│   │   ├── TrainHint.tsx
+│   │   ├── TrainingRecommendationList.tsx
+│   │   └── TrainRanking.tsx
+│   ├── lib/                   # Core logic (with co-located tests)
 │   │   ├── data.ts            # Data loading and initialization
+│   │   ├── data.test.ts
 │   │   ├── combos.ts          # Combination search algorithm
+│   │   ├── combos.test.ts
 │   │   ├── scoring.ts         # Training priority scoring
-│   │   └── bitmask.ts         # Bitmask utilities
+│   │   ├── scoring.test.ts
+│   │   ├── bitmask.ts         # Bitmask utilities
+│   │   ├── bitmask.test.ts
+│   │   └── analytics.ts       # Privacy-friendly analytics (Umami)
 │   ├── pages/                 # Page components
 │   │   ├── Home.tsx
 │   │   ├── RosterManagement.tsx
+│   │   ├── LevelManagement.tsx
 │   │   ├── MissionSelection.tsx
 │   │   └── Results.tsx
-│   ├── store/                 # Zustand state management
+│   ├── store/                 # Zustand state management (with tests)
 │   │   ├── useAppStore.ts
-│   │   └── useLanguageStore.ts
+│   │   ├── useAppStore.test.ts
+│   │   ├── useLanguageStore.ts
+│   │   └── useLanguageStore.test.ts
 │   ├── types/                 # TypeScript type definitions
 │   │   └── index.ts
+│   ├── _examples/             # Example components for testing
+│   │   ├── ComponentTest.tsx
+│   │   ├── FeatureTest.tsx
+│   │   └── README.md
 │   ├── App.tsx
 │   ├── main.tsx
-│   └── index.css
+│   ├── index.css
+│   └── vite-env.d.ts
+├── tests/                     # Additional test files
+│   ├── test-combos.ts
+│   └── test-scoring.ts
+├── tools/                     # Development utilities
+│   ├── icon-cropper/          # Python tool for cropping character icons
+│   └── README.md
+├── _docs/                     # Design documents and ExecPlans
+│   ├── PLANS.md              # ExecPlan methodology
+│   ├── IMPLEMENTATION_ROADMAP.md
+│   ├── execplans/            # ExecPlan archives
+│   └── execplan-*.md         # Phase-by-phase implementation plans
 ├── .github/
 │   └── workflows/
 │       └── pages.yml          # GitHub Actions for deployment
+├── index.html
 ├── package.json
 ├── tsconfig.json
+├── tsconfig.node.json
 ├── vite.config.ts
 ├── tailwind.config.js
-└── postcss.config.js
+├── postcss.config.js
+├── CLAUDE.md                  # AI assistant instructions
+├── LICENSE
+└── README.md
 ```
 
 ## Development
