@@ -220,6 +220,11 @@ export interface MissionAssignment {
     totalRarity: number;        // For display only
     satisfiesBonus: boolean;
   } | null;  // null = unassigned
+  blockedTeam?: {               // Best blocked team (for unassigned missions)
+    characterIds: string[];
+    levelDeficits: Record<string, number>;  // characterId → level gap
+    satisfiesBonus: boolean;
+  };
 }
 
 /**

@@ -868,10 +868,31 @@ export function findBestMissionAssignment(
         },
       };
     } else {
+      // Mission is unassigned - find the best blocked team to show user
+      const candidates = candidatesByMission.get(mission.id);
+      let blockedTeam: import("../types").MissionAssignment['blockedTeam'];
+
+      if (candidates && candidates.blockedTeams.length > 0) {
+        // Sort by total level gap (smallest first) to find the "closest" team
+        const sortedBlocked = [...candidates.blockedTeams].sort((a, b) => {
+          const gapA = Object.values(a.levelDeficits).reduce((sum, gap) => sum + gap, 0);
+          const gapB = Object.values(b.levelDeficits).reduce((sum, gap) => sum + gap, 0);
+          return gapA - gapB;
+        });
+
+        const best = sortedBlocked[0];
+        blockedTeam = {
+          characterIds: best.characterIds,
+          levelDeficits: best.levelDeficits,
+          satisfiesBonus: best.meetsBonusConditions,
+        };
+      }
+
       return {
         missionId: mission.id,
         missionValue: getMissionValue(mission),
         team: null,
+        blockedTeam,
       };
     }
   });

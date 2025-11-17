@@ -366,7 +366,7 @@ export function calculateTrainingPriorityFromBlockedTeams(
     // Determine meaningful level targets for this character
     const levelTargets = new Set<number>();
 
-    // Add mission required levels
+    // Add mission required levels (exact levels needed)
     for (const missionId of potentialMissions) {
       const mission = unassignedMissions.find(m => m.id === missionId);
       if (mission && mission.requiredLevel > currentLevel) {
@@ -374,12 +374,8 @@ export function calculateTrainingPriorityFromBlockedTeams(
       }
     }
 
-    // Add standard milestones above current level
-    for (const milestone of LEVEL_MILESTONES) {
-      if (milestone > currentLevel) {
-        levelTargets.add(milestone);
-      }
-    }
+    // Track best recommendation per unique mission set
+    const impactMap = new Map<string, { targetLevel: number; missionsUnlocked: string[]; bonusesAdded: string[]; priority: number }>();
 
     // For each target level, simulate the upgrade and check impact
     for (const targetLevel of levelTargets) {
@@ -440,19 +436,39 @@ export function calculateTrainingPriorityFromBlockedTeams(
           10.0 * bonusesAdded.length +
           1.0 * rarity;
 
-        recommendations.push({
-          characterId: character.id,
-          characterName: character.name,
-          characterRarity: rarity,
-          currentLevel,
-          targetLevel,
-          impact: {
+        // Create a key based on which missions are unlocked (sorted for consistency)
+        const impactKey = [...missionsUnlocked].sort().join(',') + '|' + [...bonusesAdded].sort().join(',');
+
+        // Only keep the minimum level target for each unique impact
+        const existing = impactMap.get(impactKey);
+        if (!existing || targetLevel < existing.targetLevel) {
+          impactMap.set(impactKey, {
+            targetLevel,
             missionsUnlocked,
             bonusesAdded,
-          },
-          priority,
-        });
+            priority,
+          });
+        }
       }
+    }
+
+    // Add recommendations for this character (only minimum levels for each impact)
+    for (const impact of impactMap.values()) {
+      const rarityTag = character.tags.rarity?.[0];
+      const rarity = rarityTag ? parseInt(rarityTag.split('-')[1], 10) : 0;
+
+      recommendations.push({
+        characterId: character.id,
+        characterName: character.name,
+        characterRarity: rarity,
+        currentLevel,
+        targetLevel: impact.targetLevel,
+        impact: {
+          missionsUnlocked: impact.missionsUnlocked,
+          bonusesAdded: impact.bonusesAdded,
+        },
+        priority: impact.priority,
+      });
     }
   }
 
