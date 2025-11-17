@@ -61,11 +61,17 @@
   "results": {
     "title": "分析结果",
     "analyzing": "分析中...",
-    "summary": "可完成{{fulfilled}}个委托",
-    "assignments": "委托分配",
-    "trainingRecommendations": "培养建议",
-    "noAssignment": "没有可分配给此委托的组合",
-    "unassignedCharacters": "未分配角色: {{count}}个"
+    "summary": "📊 概要",
+    "assigned": "已分配",
+    "missionValue": "任务价值",
+    "charactersUsed": "使用角色数",
+    "totalRarity": "总稀有度",
+    "assignmentsTitle": "🎯 任务分配",
+    "assignmentsDescription": "每个任务分配独立队伍（无角色重复）",
+    "trainingTitle": "💪 培养推荐",
+    "trainingDescription": "培养以下角色可解锁更多任务",
+    "noAssignments": "当前编队无法分配任务",
+    "noAssignmentsHint": "请添加角色或提升等级"
   },
   "training": {
     "unlockMission": "解锁「{{missionName}}」:",

@@ -61,11 +61,17 @@
   "results": {
     "title": "分析結果",
     "analyzing": "分析中...",
-    "summary": "可完成{{fulfilled}}個委託",
-    "assignments": "委託分配",
-    "trainingRecommendations": "培養建議",
-    "noAssignment": "沒有可分配給此委託的組合",
-    "unassignedCharacters": "未分配角色: {{count}}個"
+    "summary": "📊 概要",
+    "assigned": "已分配",
+    "missionValue": "任務價值",
+    "charactersUsed": "使用角色數",
+    "totalRarity": "總稀有度",
+    "assignmentsTitle": "🎯 任務分配",
+    "assignmentsDescription": "每個任務分配獨立隊伍（無角色重複）",
+    "trainingTitle": "💪 培養推薦",
+    "trainingDescription": "培養以下角色可解鎖更多任務",
+    "noAssignments": "當前編隊無法分配任務",
+    "noAssignmentsHint": "請添加角色或提升等級"
   },
   "training": {
     "unlockMission": "解鎖「{{missionName}}」:",

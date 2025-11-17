@@ -61,11 +61,17 @@
   "results": {
     "title": "分析結果",
     "analyzing": "分析中...",
-    "summary": "{{fulfilled}}件の依頼が達成可能です",
-    "assignments": "依頼割り当て",
-    "trainingRecommendations": "育成推奨",
-    "noAssignment": "この依頼に割り当てられる組み合わせがありません",
-    "unassignedCharacters": "未割り当てキャラクター: {{count}}人"
+    "summary": "📊 概要",
+    "assigned": "割り当て済み",
+    "missionValue": "ミッション価値",
+    "charactersUsed": "使用キャラ数",
+    "totalRarity": "合計レア度",
+    "assignmentsTitle": "🎯 ミッション割り当て",
+    "assignmentsDescription": "各ミッションに別々のチームが割り当てられています（キャラの重複なし）",
+    "trainingTitle": "💪 育成推奨",
+    "trainingDescription": "以下のキャラを育成すると、さらにミッションを解放できます",
+    "noAssignments": "現在の編成では依頼を割り当てられません",
+    "noAssignmentsHint": "キャラクターを追加するか、レベルを上げてください"
   },
   "training": {
     "unlockMission": "「{{missionName}}」を解放するには:",

@@ -61,11 +61,17 @@
   "results": {
     "title": "Analysis Results",
     "analyzing": "Analyzing...",
-    "summary": "{{fulfilled}} mission(s) can be fulfilled",
-    "assignments": "Mission Assignments",
-    "trainingRecommendations": "Training Recommendations",
-    "noAssignment": "No valid combination for this mission",
-    "unassignedCharacters": "Unassigned characters: {{count}}"
+    "summary": "📊 Summary",
+    "assigned": "Assigned",
+    "missionValue": "Mission Value",
+    "charactersUsed": "Characters Used",
+    "totalRarity": "Total Rarity",
+    "assignmentsTitle": "🎯 Mission Assignments",
+    "assignmentsDescription": "Each mission is assigned a separate team (no character overlap)",
+    "trainingTitle": "💪 Training Recommendations",
+    "trainingDescription": "Training these characters will unlock more missions",
+    "noAssignments": "No missions can be assigned with current roster",
+    "noAssignmentsHint": "Please add more characters or level them up"
   },
   "training": {
     "unlockMission": "To unlock \"{{missionName}}\":",
