@@ -390,12 +390,18 @@ async function convertMissions(jaToId: Map<string, string>): Promise<void> {
       durations: [],
     };
 
-    // Add optional Chinese names
+    // Add optional translations
     if (row["name_zh-Hans"]) {
       mission.name["zh-Hans"] = row["name_zh-Hans"];
     }
     if (row["name_zh-Hant"]) {
       mission.name["zh-Hant"] = row["name_zh-Hant"];
+    }
+    if (row["name_en"]) {
+      mission.name["en"] = row["name_en"];
+    }
+    if (row["name_kr"]) {
+      mission.name["kr"] = row["name_kr"];
     }
 
     // Parse base conditions
