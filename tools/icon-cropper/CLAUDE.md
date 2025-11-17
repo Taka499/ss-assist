@@ -2,6 +2,15 @@
 
 This file provides guidance for working with the icon-cropper tool.
 
+## Important Notice: Deprecated Files
+
+As of 2025-01-18, the old daemon-based workflow has been deprecated in favor of the workspace-centric GUI approach. Deprecated files have been moved to `_deprecated/`:
+- `cropper.py` - Old hotkey daemon (replaced by `config_editor.py` GUI)
+- `detector.py` - OCR-based page detection (replaced by manual overlay drawing)
+- `gridcrop.py` - Old cropping logic (replaced by `editor/cropper_api.py`)
+
+See `_deprecated/README.md` for migration guide and rationale.
+
 # ExecPlans
 
 When writing complex features or significant refactors, use an ExecPlan (as described in `_docs/PLANS.md`) from design to implementation.
