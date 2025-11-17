@@ -179,8 +179,8 @@ class ConfigEditorApp:
             'enter_grid_edit_mode': self.enter_grid_edit_mode,
             'enter_ocr_edit_mode': self.enter_ocr_edit_mode,
             'enter_pan_mode': self.enter_pan_mode,
-            'on_page_changed': self.on_page_changed,
-            'create_new_page': self.create_new_workspace
+            'on_workspace_changed': self.on_workspace_changed,
+            'create_new_workspace': self.create_new_workspace
         }
 
         ui_builder = UIBuilder(self.root, callbacks)
@@ -211,8 +211,8 @@ class ConfigEditorApp:
             self.workspace_manager.create_workspace("character_select")
             workspaces = ["character_select"]
 
-        ui_builder.page_dropdown['values'] = workspaces
-        ui_builder.page_var.set(self.current_workspace)
+        ui_builder.workspace_dropdown['values'] = workspaces
+        ui_builder.workspace_var.set(self.current_workspace)
 
         # Initialize screenshot list for current workspace
         self._refresh_screenshot_list()
@@ -1347,7 +1347,7 @@ class ConfigEditorApp:
                     self.canvas_controller.clear()
                 self.update_status(f"Deleted {selected}")
 
-    def on_page_changed(self, new_workspace: str):
+    def on_workspace_changed(self, new_workspace: str):
         """Handle workspace selector dropdown change."""
         if new_workspace == self.current_workspace:
             return
@@ -1433,11 +1433,11 @@ class ConfigEditorApp:
 
             # Update dropdown
             workspaces = self.workspace_manager.list_workspaces()
-            self.ui_builder.page_dropdown['values'] = workspaces
+            self.ui_builder.workspace_dropdown['values'] = workspaces
 
             # Switch to new workspace
-            self.ui_builder.page_var.set(workspace_name)
-            self.on_page_changed(workspace_name)
+            self.ui_builder.workspace_var.set(workspace_name)
+            self.on_workspace_changed(workspace_name)
 
             dialog.destroy()
 

@@ -187,26 +187,26 @@ class UIBuilder:
 
         ttk.Label(left_panel, text="Tools", font=("Arial", 12, "bold")).pack(pady=5)
 
-        # Page selector frame (at top of left panel)
-        page_frame = ttk.Frame(left_panel)
-        page_frame.pack(fill=tk.X, padx=5, pady=(5, 5))
+        # Workspace selector frame (at top of left panel)
+        workspace_frame = ttk.Frame(left_panel)
+        workspace_frame.pack(fill=tk.X, padx=5, pady=(5, 5))
 
-        ttk.Label(page_frame, text="Page:").pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Label(workspace_frame, text="Workspace:").pack(side=tk.LEFT, padx=(0, 5))
 
-        # Dropdown showing current page
-        self.page_var = tk.StringVar(value="character_select")
-        self.page_dropdown = ttk.Combobox(page_frame, textvariable=self.page_var, width=18, state='readonly')
-        self.page_dropdown.pack(side=tk.LEFT, padx=5)
-        self.page_dropdown.bind('<<ComboboxSelected>>', lambda e: self.callbacks['on_page_changed'](self.page_var.get()))
+        # Dropdown showing current workspace
+        self.workspace_var = tk.StringVar(value="character_select")
+        self.workspace_dropdown = ttk.Combobox(workspace_frame, textvariable=self.workspace_var, width=18, state='readonly')
+        self.workspace_dropdown.pack(side=tk.LEFT, padx=5)
+        self.workspace_dropdown.bind('<<ComboboxSelected>>', lambda e: self.callbacks['on_workspace_changed'](self.workspace_var.get()))
 
-        # [+] button to create new page
-        add_page_btn = ttk.Button(
-            page_frame,
+        # [+] button to create new workspace
+        add_workspace_btn = ttk.Button(
+            workspace_frame,
             text="+",
-            command=self.callbacks['create_new_page'],
+            command=self.callbacks['create_new_workspace'],
             width=3
         )
-        add_page_btn.pack(side=tk.LEFT, padx=2)
+        add_workspace_btn.pack(side=tk.LEFT, padx=2)
 
         # Separator
         ttk.Separator(left_panel, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=5, pady=5)
