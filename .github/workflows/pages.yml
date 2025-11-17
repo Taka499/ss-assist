@@ -2,8 +2,10 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    tags:
-      - 'v*.*.*'  # Triggers on version tags like v0.1.0, v1.2.3, etc.
+    branches:
+      - main  # Only deploy when pushing to main branch
+    paths:
+      - 'package.json'  # Only trigger when version changes (npm version updates package.json)
   workflow_dispatch:  # Allows manual deployment from Actions tab
 
 permissions:
