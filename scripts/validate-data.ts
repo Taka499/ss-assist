@@ -14,6 +14,7 @@ const multiLangStringSchema = {
     "zh-Hans": { type: "string" },
     "zh-Hant": { type: "string" },
     en: { type: "string" },
+    kr: { type: "string" },
   },
   required: ["ja"],
   additionalProperties: false,

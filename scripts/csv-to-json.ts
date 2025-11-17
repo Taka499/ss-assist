@@ -200,12 +200,18 @@ async function convertCharacters(jaToId: Map<string, string>): Promise<void> {
       tags: {},
     };
 
-    // Add optional Chinese names
+    // Add optional translations
     if (row["name_zh-Hans"]) {
       character.name["zh-Hans"] = row["name_zh-Hans"];
     }
     if (row["name_zh-Hant"]) {
       character.name["zh-Hant"] = row["name_zh-Hant"];
+    }
+    if (row["name_en"]) {
+      character.name["en"] = row["name_en"];
+    }
+    if (row["name_kr"]) {
+      character.name["kr"] = row["name_kr"];
     }
 
     // Convert tag labels to IDs
