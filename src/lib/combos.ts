@@ -965,20 +965,26 @@ export function findBestMissionAssignment(
     .map(a => a.missionId);
 
   // Phase 5: Calculate training recommendations from blocked teams
-  // Use the same disjoint-filtered blocked teams that we selected for display
+  // For training recommendations, use ALL available blocked teams (not just the one shown)
+  // This ensures we suggest training for all viable paths across all unassigned missions
   const unassignedMissions = missions.filter(m => unassignedMissionIds.includes(m.id));
   const blockedTeamsByMission = new Map<string, import("../types").BlockedCombination[]>();
 
-  for (const assignment of assignments) {
-    if (!assignment.team && assignment.blockedTeam) {
-      // Convert back to BlockedCombination format for training priority calculation
-      const blockedComb: import("../types").BlockedCombination = {
-        characterIds: assignment.blockedTeam.characterIds,
-        meetsBaseConditions: true, // Blocked teams always meet base conditions
-        meetsBonusConditions: assignment.blockedTeam.satisfiesBonus,
-        levelDeficits: assignment.blockedTeam.levelDeficits,
-      };
-      blockedTeamsByMission.set(assignment.missionId, [blockedComb]);
+  // Collect only the characters used in assigned missions for filtering
+  const assignedOnlyCharacters = new Set<string>();
+  for (const { team } of bestAssignment) {
+    team.characterIds.forEach(charId => assignedOnlyCharacters.add(charId));
+  }
+
+  // For each unassigned mission, provide ALL blocked teams that don't use assigned characters
+  // (allow overlap between unassigned missions for comprehensive recommendations)
+  for (const mission of unassignedMissions) {
+    const candidates = candidatesByMission.get(mission.id);
+    if (candidates) {
+      const availableBlockedTeams = candidates.blockedTeams.filter(team =>
+        team.characterIds.every(charId => !assignedOnlyCharacters.has(charId))
+      );
+      blockedTeamsByMission.set(mission.id, availableBlockedTeams);
     }
   }
 
