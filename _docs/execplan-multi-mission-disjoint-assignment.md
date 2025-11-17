@@ -149,13 +149,14 @@ This is correct behavior and important for training recommendations in Milestone
 
 **Comprehensive testing caught edge cases early.** The 56 tests in `combos.test.ts` and 28 tests in `scoring.test.ts` covered not just happy paths but also edge cases like empty inputs, partial coverage, and all tiers of the objective function. This gave confidence during refactoring.
 
-**User feedback drove critical UX improvements.** Post-implementation testing revealed four significant UX issues that weren't caught by automated tests:
+**User feedback drove critical UX improvements.** Post-implementation testing revealed five significant UX issues that weren't caught by automated tests:
 1. Training recommendations suggesting unnecessarily high levels (80/90 instead of 70)
 2. Blocked teams showing characters already assigned to other missions
 3. Multiple unassigned missions showing overlapping characters
 4. Incomplete training recommendations (only one mission covered)
+5. Character equivalence not visible - users couldn't identify which characters were functionally identical for mission requirements
 
-All four issues were fixed within the same session, demonstrating the value of immediate user testing.
+All five issues were fixed within the same session, demonstrating the value of immediate user testing. The fifth issue led to a comprehensive UX enhancement: adding character tag visibility (role, style, element), grouping recommendations by role+style combinations, implementing a responsive grid layout, and adding an impact legend. This transformed training recommendations from a simple list into a categorized comparison tool that helps users make strategic training decisions.
 
 ### What Could Be Improved
 
@@ -173,7 +174,9 @@ All four issues were fixed within the same session, demonstrating the value of i
 
 **Greedy algorithms are often sufficient for UX.** The blocked team selection uses a greedy algorithm (prioritize by smallest level gap) rather than globally optimal assignment. This is computationally simple and produces clear, actionable results even if not theoretically optimal.
 
-**User testing is irreplaceable.** Four significant UX issues were discovered through manual testing that automated tests completely missed. This reinforces the need for real-world validation with representative scenarios.
+**User testing is irreplaceable.** Five significant UX issues were discovered through manual testing that automated tests completely missed. This reinforces the need for real-world validation with representative scenarios.
+
+**Visual information architecture matters for strategic decisions.** The character tag visibility enhancement (issue #5) revealed that users need to see functional equivalences to make informed training decisions. When recommendations are presented as a flat list, users can't easily compare "which characters serve the same purpose?" The solution—grouping by role+style with responsive grid layout—transformed the recommendations from a priority-ranked list into a categorized comparison tool. This pattern (grouping + grid + visual tags) should be considered for other strategic decision UIs in the application.
 
 ### Final Status
 
@@ -188,6 +191,7 @@ All four issues were fixed within the same session, demonstrating the value of i
 
 **Commit history:**
 ```
+6da78e8 feat: enhance training recommendations with role+style grouping and grid layout
 a30d9a2 fix: include all unassigned missions in training recommendations
 06e2ea1 fix: ensure disjoint blocked teams across unassigned missions
 3b659d9 fix: exclude already-assigned characters from blocked teams
