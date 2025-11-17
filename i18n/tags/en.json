@@ -1,0 +1,44 @@
+{
+  "role": {
+    "role-001": "Versatile",
+    "role-002": "Vanguard",
+    "role-003": "Support"
+  },
+  "style": {
+    "style-001": "Adventurous",
+    "style-002": "Creative",
+    "style-003": "Steady",
+    "style-004": "Collector",
+    "style-005": "Inquisitive"
+  },
+  "faction": {
+    "faction-001": "Yunji Studio",
+    "faction-002": "Moonaworks",
+    "faction-003": "Scarlet Sights Media",
+    "faction-004": "Grace Imperium",
+    "faction-005": "New Star Guild",
+    "faction-006": "Petal Bloom",
+    "faction-007": "Imperial Guard",
+    "faction-008": "Ashwind Clan",
+    "faction-009": "Post Haste",
+    "faction-010": "Baize Bureau",
+    "faction-011": "United Harvest",
+    "faction-012": "Freelance Trekker",
+    "faction-013": "Geography Society",
+    "faction-014": "Goodwind Homecare",
+    "faction-015": "Fenghuang Diner",
+    "faction-016": "White Cat Troupe"
+  },
+  "element": {
+    "element-001": "Aqua",
+    "element-002": "Ignis",
+    "element-003": "Terra",
+    "element-004": "Ventus",
+    "element-005": "Lux",
+    "element-006": "Umbra"
+  },
+  "rarity": {
+    "rarity-004": "4",
+    "rarity-005": "5"
+  }
+}

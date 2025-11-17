@@ -1,4 +1,5 @@
 import { useLanguageStore } from '../store/useLanguageStore';
+import { useTranslation } from '../../i18n';
 import { getCharacterById, getMissions } from '../lib/data';
 import { CharacterAvatar } from './CharacterAvatar';
 import type { TrainingRecommendation } from '../types';
@@ -10,19 +11,19 @@ interface TrainHintProps {
 
 export function TrainHint({ missionId, recommendations }: TrainHintProps) {
   const lang = useLanguageStore((state) => state.lang);
+  const { t } = useTranslation(lang);
 
   const mission = getMissions().find((m) => m.id === missionId);
   if (!mission || recommendations.length === 0) return null;
 
   // Show top 3 recommendations for this mission
   const topRecs = recommendations.slice(0, 3);
+  const missionName = mission.name[lang] || mission.name.ja;
 
   return (
     <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
       <h4 className="font-semibold text-yellow-900 mb-3">
-        {lang === 'ja' && `「${mission.name.ja}」を解放するには:`}
-        {lang === 'zh-Hans' && `解锁「${mission.name['zh-Hans'] || mission.name.ja}」:`}
-        {lang === 'zh-Hant' && `解鎖「${mission.name['zh-Hant'] || mission.name.ja}」:`}
+        {t('training.unlockMission', { missionName })}
       </h4>
 
       <ul className="space-y-2">
@@ -40,13 +41,11 @@ export function TrainHint({ missionId, recommendations }: TrainHintProps) {
               <div className="text-sm">
                 <span className="font-medium">{charName}</span>
                 {' '}
-                {lang === 'ja' && `を Lv${rec.targetLevel} まで上げる`}
-                {lang === 'zh-Hans' && `升至 Lv${rec.targetLevel}`}
-                {lang === 'zh-Hant' && `升至 Lv${rec.targetLevel}`}
+                {t('training.levelUpTo', { level: rec.targetLevel })}
                 {rec.impact.bonusConditionsAdded > 0 && (
                   <span className="text-green-600">
                     {' → '}
-                    {lang === 'ja' ? '追加報酬達成' : lang === 'zh-Hans' ? '额外奖励' : '額外獎勵'}
+                    {t('training.bonusReward')}
                   </span>
                 )}
               </div>

@@ -1,4 +1,5 @@
 import { useLanguageStore } from '../store/useLanguageStore';
+import { useTranslation } from '../../i18n';
 import { CharacterAvatar } from './CharacterAvatar';
 import type { Combo, Mission } from '../types';
 
@@ -10,6 +11,7 @@ interface ComboCardProps {
 
 export function ComboCard({ combo, mission, characterLevels }: ComboCardProps) {
   const lang = useLanguageStore((state) => state.lang);
+  const { t } = useTranslation(lang);
 
   return (
     <div className="p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
@@ -34,12 +36,12 @@ export function ComboCard({ combo, mission, characterLevels }: ComboCardProps) {
       <div className="flex justify-center gap-2">
         {combo.satisfiesBase && (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-            {lang === 'ja' ? '✅ 受注達成' : lang === 'zh-Hans' ? '✅ 可接受' : '✅ 可接受'}
+            ✅ {t('status.canAccept')}
           </span>
         )}
         {combo.satisfiesBonus && (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-            {lang === 'ja' ? '✅ 追加報酬達成' : lang === 'zh-Hans' ? '✅ 额外奖励' : '✅ 額外獎勵'}
+            ✅ {t('status.bonusAchieved')}
           </span>
         )}
       </div>

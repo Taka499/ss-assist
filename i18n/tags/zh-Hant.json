@@ -1,0 +1,44 @@
+{
+  "role": {
+    "role-001": "均衡",
+    "role-002": "先鋒",
+    "role-003": "輔助"
+  },
+  "style": {
+    "style-001": "冒險家",
+    "style-002": "奇思妙想",
+    "style-003": "穩紮穩打",
+    "style-004": "收集控",
+    "style-005": "求知心切"
+  },
+  "faction": {
+    "faction-001": "雲笈道場",
+    "faction-002": "月神工坊",
+    "faction-003": "緋瞳傳訊",
+    "faction-004": "恩賜意志",
+    "faction-005": "空白旅團",
+    "faction-006": "花令旅團",
+    "faction-007": "帝國衛隊",
+    "faction-008": "灰風俱樂部",
+    "faction-009": "萬送屋",
+    "faction-010": "龍裔",
+    "faction-011": "聯合種業",
+    "faction-012": "自由旅人",
+    "faction-013": "地理協會",
+    "faction-014": "谷風家政",
+    "faction-015": "鳳凰炒蛋",
+    "faction-016": "白貓劇團"
+  },
+  "element": {
+    "element-001": "水",
+    "element-002": "火",
+    "element-003": "地",
+    "element-004": "風",
+    "element-005": "光",
+    "element-006": "暗"
+  },
+  "rarity": {
+    "rarity-004": "4",
+    "rarity-005": "5"
+  }
+}

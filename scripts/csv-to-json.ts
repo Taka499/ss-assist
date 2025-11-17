@@ -75,12 +75,15 @@ async function convertTags(): Promise<Map<string, string>> {
     }
   }
 
-  // Load translation files
-  const zhHansPath = resolve(I18N_DIR, "tags.zh-Hans.json");
-  const zhHantPath = resolve(I18N_DIR, "tags.zh-Hant.json");
+  // Load translation files from i18n/tags/ directory
+  const tagsI18nDir = resolve(I18N_DIR, "tags");
+  const zhHansPath = resolve(tagsI18nDir, "zh-Hans.json");
+  const zhHantPath = resolve(tagsI18nDir, "zh-Hant.json");
+  const enPath = resolve(tagsI18nDir, "en.json");
 
   const zhHans = existsSync(zhHansPath) ? loadJSON(zhHansPath) : {};
   const zhHant = existsSync(zhHantPath) ? loadJSON(zhHantPath) : {};
+  const en = existsSync(enPath) ? loadJSON(enPath) : {};
 
   // Build output with translations and create reverse mapping (Japanese → ID)
   const output: TagDict = {
@@ -95,6 +98,7 @@ async function convertTags(): Promise<Map<string, string>> {
   let totalTags = 0;
   let translatedZhHans = 0;
   let translatedZhHant = 0;
+  let translatedEn = 0;
 
   for (const category of categories) {
     for (const tag of srcTags[category]) {
@@ -132,15 +136,20 @@ async function convertTags(): Promise<Map<string, string>> {
         ja: tag.ja,
       };
 
-      // Add Chinese translations if available
-      if (zhHans[category] && zhHans[category][tag.ja]) {
-        entry["zh-Hans"] = zhHans[category][tag.ja];
+      // Add translations if available (using ID-based lookup)
+      if (zhHans[category] && zhHans[category][tag.id]) {
+        entry["zh-Hans"] = zhHans[category][tag.id];
         translatedZhHans++;
       }
 
-      if (zhHant[category] && zhHant[category][tag.ja]) {
-        entry["zh-Hant"] = zhHant[category][tag.ja];
+      if (zhHant[category] && zhHant[category][tag.id]) {
+        entry["zh-Hant"] = zhHant[category][tag.id];
         translatedZhHant++;
+      }
+
+      if (en[category] && en[category][tag.id]) {
+        entry["en"] = en[category][tag.id];
+        translatedEn++;
       }
 
       output[category].push(entry);
@@ -154,6 +163,7 @@ async function convertTags(): Promise<Map<string, string>> {
   console.log(`  ✓ Validated ${totalTags} tag IDs across ${categories.length} categories`);
   console.log(`  ✓ Merged ${translatedZhHans} zh-Hans translations`);
   console.log(`  ✓ Merged ${translatedZhHant} zh-Hant translations`);
+  console.log(`  ✓ Merged ${translatedEn} English translations`);
   console.log(`  ✓ Wrote ${outPath}`);
   console.log();
 
@@ -190,12 +200,18 @@ async function convertCharacters(jaToId: Map<string, string>): Promise<void> {
       tags: {},
     };
 
-    // Add optional Chinese names
+    // Add optional translations
     if (row["name_zh-Hans"]) {
       character.name["zh-Hans"] = row["name_zh-Hans"];
     }
     if (row["name_zh-Hant"]) {
       character.name["zh-Hant"] = row["name_zh-Hant"];
+    }
+    if (row["name_en"]) {
+      character.name["en"] = row["name_en"];
+    }
+    if (row["name_kr"]) {
+      character.name["kr"] = row["name_kr"];
     }
 
     // Convert tag labels to IDs
@@ -374,12 +390,18 @@ async function convertMissions(jaToId: Map<string, string>): Promise<void> {
       durations: [],
     };
 
-    // Add optional Chinese names
+    // Add optional translations
     if (row["name_zh-Hans"]) {
       mission.name["zh-Hans"] = row["name_zh-Hans"];
     }
     if (row["name_zh-Hant"]) {
       mission.name["zh-Hant"] = row["name_zh-Hant"];
+    }
+    if (row["name_en"]) {
+      mission.name["en"] = row["name_en"];
+    }
+    if (row["name_kr"]) {
+      mission.name["kr"] = row["name_kr"];
     }
 
     // Parse base conditions
