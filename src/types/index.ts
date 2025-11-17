@@ -208,3 +208,55 @@ export interface PerMissionCandidates {
   }>;
   blockedTeams: BlockedCombination[];
 }
+
+/**
+ * Assignment of a team to a mission (or indication that mission is unassigned)
+ */
+export interface MissionAssignment {
+  missionId: string;
+  missionValue: number;         // Number of base conditions (1-3)
+  team: {
+    characterIds: string[];
+    totalRarity: number;        // For display only
+    satisfiesBonus: boolean;
+  } | null;  // null = unassigned
+}
+
+/**
+ * Result of multi-mission disjoint assignment
+ */
+export interface MultiMissionAssignmentResult {
+  assignments: MissionAssignment[];
+
+  stats: {
+    totalMissionValue: number;    // Sum of assigned mission values
+    missionsAssigned: number;
+    missionsTotal: number;
+    totalCharactersUsed: number;
+    totalRarity: number;          // For display only
+    unassignedMissionIds: string[];
+  };
+
+  trainingRecommendations: TrainingRecommendationNew[];  // Filled in Milestone 3
+
+  debug: {
+    candidatesGenerated: number;
+    dfsNodesExplored: number;
+  };
+}
+
+/**
+ * Training recommendation (new structure for multi-mission disjoint assignment)
+ */
+export interface TrainingRecommendationNew {
+  characterId: string;
+  characterName: MultiLangString;
+  characterRarity: number;
+  currentLevel: number;
+  targetLevel: number;
+  impact: {
+    missionsUnlocked: string[];
+    bonusesAdded: string[];
+  };
+  priority: number;
+}

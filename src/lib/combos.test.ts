@@ -9,6 +9,7 @@ import {
   findCombinations,
   findCombinationsForMultipleMissions,
   findPerMissionCandidates,
+  findBestMissionAssignment,
   type Combination,
 } from "./combos";
 import { buildBitmaskLookup, characterToBitmask } from "./bitmask";
@@ -1294,6 +1295,338 @@ describe("Combination Search", () => {
         );
         expect(matchingMultiCombo).toBeDefined();
       }
+    });
+  });
+
+  describe("findBestMissionAssignment", () => {
+    let lookup: ReturnType<typeof buildBitmaskLookup>;
+
+    beforeEach(() => {
+      const tags = createTestTagDict();
+      lookup = buildBitmaskLookup(tags);
+    });
+
+    it("assigns disjoint teams with no character reuse", () => {
+      // Setup: 2 missions, 6 characters with different roles
+      const characters = [
+        createTestCharacter("char1", { role: ["role-001"] }),
+        createTestCharacter("char2", { role: ["role-001"] }),
+        createTestCharacter("char3", { role: ["role-002"] }),
+        createTestCharacter("char4", { role: ["role-002"] }),
+        createTestCharacter("char5", { role: ["role-003"] }),
+        createTestCharacter("char6", { role: ["role-003"] }),
+      ];
+
+      const mission1 = createTestMission("mission1", 10, [
+        { category: "role", anyOf: ["role-001"] },
+      ]);
+
+      const mission2 = createTestMission("mission2", 10, [
+        { category: "role", anyOf: ["role-002"] },
+      ]);
+
+      const levels = {
+        char1: 20,
+        char2: 20,
+        char3: 20,
+        char4: 20,
+        char5: 20,
+        char6: 20,
+      };
+
+      const result = findBestMissionAssignment(
+        [mission1, mission2],
+        characters,
+        levels,
+        lookup
+      );
+
+      // Both missions should be assigned
+      expect(result.stats.missionsAssigned).toBe(2);
+      expect(result.stats.unassignedMissionIds).toHaveLength(0);
+
+      // Find the assignments
+      const assignment1 = result.assignments.find(a => a.missionId === "mission1");
+      const assignment2 = result.assignments.find(a => a.missionId === "mission2");
+
+      expect(assignment1?.team).not.toBeNull();
+      expect(assignment2?.team).not.toBeNull();
+
+      // Verify no character reuse
+      const chars1 = assignment1?.team?.characterIds || [];
+      const chars2 = assignment2?.team?.characterIds || [];
+
+      const overlap = chars1.filter(id => chars2.includes(id));
+      expect(overlap).toHaveLength(0);
+    });
+
+    it("prioritizes high-value missions (more base conditions)", () => {
+      // Mission A has 3 base conditions (value 3)
+      // Mission B has 1 base condition (value 1)
+      // Only enough characters to assign one mission
+      const characters = [
+        createTestCharacter("char1", {
+          role: ["role-001"],
+          style: ["style-001"],
+        }),
+        createTestCharacter("char2", {
+          role: ["role-002"],
+          faction: ["faction-001"],
+        }),
+      ];
+
+      const missionA = createTestMission("missionA", 10, [
+        { category: "role", anyOf: ["role-001"] },
+        { category: "role", anyOf: ["role-002"] },
+        { category: "style", anyOf: ["style-001"] },
+      ]);
+
+      const missionB = createTestMission("missionB", 10, [
+        { category: "role", anyOf: ["role-001"] },
+      ]);
+
+      const levels = { char1: 20, char2: 20 };
+
+      const result = findBestMissionAssignment(
+        [missionA, missionB],
+        characters,
+        levels,
+        lookup
+      );
+
+      // Mission A (higher value) should be assigned
+      const assignmentA = result.assignments.find(a => a.missionId === "missionA");
+
+      expect(assignmentA?.team).not.toBeNull();
+      expect(result.stats.totalMissionValue).toBeGreaterThan(0);
+    });
+
+    it("minimizes total characters when mission values are equal", () => {
+      // Two missions with same value (1 base condition each)
+      // Multiple ways to assign, prefer using fewer total characters
+      const characters = [
+        createTestCharacter("char1", { role: ["role-001"] }),
+        createTestCharacter("char2", { role: ["role-001"] }),
+        createTestCharacter("char3", { role: ["role-002"] }),
+        createTestCharacter("char4", { role: ["role-002"] }),
+      ];
+
+      const mission1 = createTestMission("mission1", 10, [
+        { category: "role", anyOf: ["role-001"] },
+      ]);
+
+      const mission2 = createTestMission("mission2", 10, [
+        { category: "role", anyOf: ["role-002"] },
+      ]);
+
+      const levels = { char1: 20, char2: 20, char3: 20, char4: 20 };
+
+      const result = findBestMissionAssignment(
+        [mission1, mission2],
+        characters,
+        levels,
+        lookup
+      );
+
+      // Should assign both missions
+      expect(result.stats.missionsAssigned).toBe(2);
+
+      // Should use 2 characters total (1 per mission), not more
+      expect(result.stats.totalCharactersUsed).toBe(2);
+    });
+
+    it("prefers smaller teams per mission", () => {
+      // Mission can be satisfied by 1 character or 2 characters
+      // Should prefer 1-character team
+      const characters = [
+        createTestCharacter("char1", { role: ["role-001"] }),
+        createTestCharacter("char2", { role: ["role-001"] }),
+      ];
+
+      const mission = createTestMission("mission1", 10, [
+        { category: "role", anyOf: ["role-001"] },
+      ]);
+
+      const levels = { char1: 20, char2: 20 };
+
+      const result = findBestMissionAssignment(
+        [mission],
+        characters,
+        levels,
+        lookup
+      );
+
+      const assignment = result.assignments.find(a => a.missionId === "mission1");
+      expect(assignment?.team).not.toBeNull();
+
+      // Should use only 1 character
+      expect(assignment?.team?.characterIds.length).toBe(1);
+    });
+
+    it("handles partial coverage when resources insufficient", () => {
+      // 4 missions, only enough chars for 2
+      // Should assign the highest value missions
+      const characters = [
+        createTestCharacter("char1", { role: ["role-001"] }),
+        createTestCharacter("char2", { role: ["role-002"] }),
+      ];
+
+      const mission1 = createTestMission("mission1", 10, [
+        { category: "role", anyOf: ["role-001"] },
+        { category: "role", anyOf: ["role-002"] },
+      ], [
+        { category: "role", anyOf: ["role-001"] },
+        { category: "role", anyOf: ["role-002"] },
+      ]);
+
+      const mission2 = createTestMission("mission2", 10, [
+        { category: "role", anyOf: ["role-001"] },
+        { category: "role", anyOf: ["role-002"] },
+      ]);
+
+      const mission3 = createTestMission("mission3", 10, [
+        { category: "role", anyOf: ["role-001"] },
+      ]);
+
+      const mission4 = createTestMission("mission4", 10, [
+        { category: "role", anyOf: ["role-002"] },
+      ]);
+
+      const levels = { char1: 20, char2: 20 };
+
+      const result = findBestMissionAssignment(
+        [mission1, mission2, mission3, mission4],
+        characters,
+        levels,
+        lookup
+      );
+
+      // Should assign at least one mission
+      expect(result.stats.missionsAssigned).toBeGreaterThan(0);
+      expect(result.stats.missionsAssigned).toBeLessThan(4);
+
+      // Should have unassigned missions
+      expect(result.stats.unassignedMissionIds.length).toBeGreaterThan(0);
+    });
+
+    it("tracks unassigned missions correctly", () => {
+      // 3 missions, but mission3 cannot be satisfied
+      const characters = [
+        createTestCharacter("char1", { role: ["role-001"] }),
+        createTestCharacter("char2", { role: ["role-002"] }),
+      ];
+
+      const mission1 = createTestMission("mission1", 10, [
+        { category: "role", anyOf: ["role-001"] },
+      ]);
+
+      const mission2 = createTestMission("mission2", 10, [
+        { category: "role", anyOf: ["role-002"] },
+      ]);
+
+      const mission3 = createTestMission("mission3", 10, [
+        { category: "role", anyOf: ["role-003"] }, // No character has role-003
+      ]);
+
+      const levels = { char1: 20, char2: 20 };
+
+      const result = findBestMissionAssignment(
+        [mission1, mission2, mission3],
+        characters,
+        levels,
+        lookup
+      );
+
+      // Should assign mission1 and mission2
+      expect(result.stats.missionsAssigned).toBe(2);
+
+      // mission3 should be unassigned
+      expect(result.stats.unassignedMissionIds).toContain("mission3");
+    });
+
+    it("calculates mission value correctly", () => {
+      const characters = [
+        createTestCharacter("char1", {
+          role: ["role-001"],
+          style: ["style-001"],
+        }),
+      ];
+
+      // Mission with 2 base conditions = value 2
+      const mission = createTestMission("mission1", 10, [
+        { category: "role", anyOf: ["role-001"] },
+        { category: "style", anyOf: ["style-001"] },
+      ]);
+
+      const levels = { char1: 20 };
+
+      const result = findBestMissionAssignment(
+        [mission],
+        characters,
+        levels,
+        lookup
+      );
+
+      const assignment = result.assignments.find(a => a.missionId === "mission1");
+      expect(assignment?.missionValue).toBe(2);
+      expect(result.stats.totalMissionValue).toBe(2);
+    });
+
+    it("prefers bonus-satisfying teams as tiebreaker", () => {
+      // Mission with base and bonus conditions
+      // Two possible teams: one satisfies bonus, one doesn't
+      const characters = [
+        createTestCharacter("char1", { role: ["role-001"] }),
+        createTestCharacter("char2", {
+          role: ["role-001"],
+          style: ["style-001"], // This enables bonus
+        }),
+      ];
+
+      const mission = createTestMission(
+        "mission1",
+        10,
+        [{ category: "role", anyOf: ["role-001"] }],
+        [{ category: "style", anyOf: ["style-001"] }]
+      );
+
+      const levels = { char1: 20, char2: 20 };
+
+      const result = findBestMissionAssignment(
+        [mission],
+        characters,
+        levels,
+        lookup
+      );
+
+      const assignment = result.assignments.find(a => a.missionId === "mission1");
+      expect(assignment?.team).not.toBeNull();
+
+      // Should prefer char2 because it satisfies bonus
+      expect(assignment?.team?.satisfiesBonus).toBe(true);
+    });
+
+    it("returns empty assignment for no missions", () => {
+      const characters = [createTestCharacter("char1", { role: ["role-001"] })];
+      const levels = { char1: 20 };
+
+      const result = findBestMissionAssignment([], characters, levels, lookup);
+
+      expect(result.assignments).toHaveLength(0);
+      expect(result.stats.missionsAssigned).toBe(0);
+      expect(result.stats.missionsTotal).toBe(0);
+      expect(result.stats.totalCharactersUsed).toBe(0);
+    });
+
+    it("returns empty assignment for no characters", () => {
+      const mission = createTestMission("mission1", 10, [
+        { category: "role", anyOf: ["role-001"] },
+      ]);
+
+      const result = findBestMissionAssignment([mission], [], {}, lookup);
+
+      expect(result.stats.missionsAssigned).toBe(0);
+      expect(result.stats.unassignedMissionIds).toContain("mission1");
     });
   });
 });

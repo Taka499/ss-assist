@@ -20,9 +20,9 @@ You can verify success by selecting 4 missions with different requirements, mark
 - [x] Design data structures for ready teams vs blocked teams
 - [x] Implement `findPerMissionCandidates()` to separate ready and blocked teams
 - [x] Write tests for ready vs blocked team separation
-- [ ] Implement mission value calculation based on base condition count
-- [ ] Implement DFS assignment algorithm with mission value objective
-- [ ] Write tests for DFS assignment optimality
+- [x] Implement mission value calculation based on base condition count
+- [x] Implement DFS assignment algorithm with mission value objective
+- [x] Write tests for DFS assignment optimality
 - [ ] Update training priority calculation to use blocked teams and rarity
 - [ ] Write tests for training priority scoring
 - [ ] Update Results.tsx to display mission-by-mission assignments
@@ -45,6 +45,14 @@ This is correct behavior and important for training recommendations in Milestone
 
 **Type imports**: Used `import("../types").PerMissionCandidates` inline type imports to avoid circular dependency issues between `combos.ts` and `types/index.ts`. This pattern works well with TypeScript's module resolution.
 
+### Milestone 2 (2025-11-17)
+
+**DFS exploration strategy**: The DFS algorithm explores assignments in two modes at each step: (1) skip the mission entirely, or (2) try each ready team. This ensures we find optimal partial coverage when resources are insufficient. Without the "skip" option, the algorithm would fail to find good solutions when some missions cannot be assigned.
+
+**Score comparison semantics**: Implemented `compareScores()` to return positive when first argument is better. This follows the natural comparison pattern (a > b returns positive) and makes the DFS logic clearer when checking `if (compareScores(score, bestScore) > 0)` to update the best solution.
+
+**Test coverage breadth**: Wrote 11 comprehensive test cases covering not just happy paths but edge cases (no missions, no characters), partial coverage scenarios, and all three tiers of the lexicographic objective function. This caught several potential issues early, including proper handling of empty inputs.
+
 
 ## Decision Log
 
@@ -55,6 +63,16 @@ This is correct behavior and important for training recommendations in Milestone
 **D1.2 - Sorting priorities**: For ready teams, prioritized size (ascending) then bonus satisfaction (descending). This matches user expectations: prefer smaller, efficient teams, with bonus-satisfying teams ranked higher among same-size options. For blocked teams, prioritized total level gap (ascending) then size (ascending), surfacing the "easiest to fix" teams first.
 
 **D1.3 - Reuse existing validation**: Chose to reuse `satisfiesAllConditionsWithCounts()` from existing `findCombinations()` rather than reimplementing validation logic. This ensures consistency and reduces code duplication.
+
+### Milestone 2 (2025-11-17)
+
+**D2.1 - Mission difficulty sorting**: Sort missions by number of ready teams (ascending) before DFS. This prioritizes hard-to-satisfy missions, reducing the search space by eliminating dead ends early. If we assigned easy missions first, we might use up characters needed for harder missions that have fewer valid teams.
+
+**D2.2 - Lexicographic objective order**: Chose mission value > character count > bonuses, in that order. Mission value is primary because unlocking high-complexity missions is the user's main goal. Character count is secondary to encourage efficient resource usage. Bonuses are tertiary as they're nice-to-have but not essential.
+
+**D2.3 - Rarity in display only**: Decided NOT to use character rarity during team assignment (Milestone 2). Rarity only matters for training recommendations (Milestone 3). This keeps the assignment algorithm focused on mission coverage optimization, not character value judgments. The user cares about "which missions can I complete?" not "which rare characters should I use?"
+
+**D2.4 - DFS without pruning**: Implemented full exhaustive DFS without alpha-beta pruning or branch-and-bound optimizations. For typical use cases (2-4 missions, 10-50 characters), the search space is small enough (<10,000 nodes) that optimization isn't needed. This keeps the code simple and the results easy to reason about.
 
 
 ## Outcomes & Retrospective

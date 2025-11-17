@@ -670,3 +670,239 @@ export function findCombinationsForMultipleMissions(
     },
   };
 }
+
+// ============================================================================
+// Multi-Mission Disjoint Assignment (Milestone 2)
+// ============================================================================
+
+/**
+ * Calculate mission value based on number of base conditions
+ * Missions requiring more roles are more valuable
+ */
+function getMissionValue(mission: Mission): number {
+  return mission.baseConditions.length;
+}
+
+/**
+ * Score for comparing assignments lexicographically
+ */
+interface AssignmentScore {
+  totalMissionValue: number;   // Primary: sum of assigned mission values
+  totalCharacters: number;      // Secondary: negative (prefer fewer)
+  bonusesSatisfied: number;     // Tertiary: count of bonuses met
+}
+
+/**
+ * Compare two assignment scores lexicographically
+ * Returns positive if a is better, negative if b is better, 0 if equal
+ */
+function compareScores(a: AssignmentScore, b: AssignmentScore): number {
+  // Primary: higher mission value is better
+  if (a.totalMissionValue !== b.totalMissionValue) {
+    return a.totalMissionValue - b.totalMissionValue;
+  }
+  // Secondary: fewer characters is better (so negate the comparison)
+  if (a.totalCharacters !== b.totalCharacters) {
+    return b.totalCharacters - a.totalCharacters;
+  }
+  // Tertiary: more bonuses is better
+  return a.bonusesSatisfied - b.bonusesSatisfied;
+}
+
+/**
+ * Assign disjoint character teams to missions, maximizing mission value
+ *
+ * Uses depth-first search with backtracking to explore all possible assignments.
+ * Ensures no character is used in multiple missions (disjoint constraint).
+ *
+ * Objective function (lexicographic priority):
+ * 1. Maximize total mission value (sum of base condition counts)
+ * 2. Minimize total characters used
+ * 3. Maximize bonuses satisfied
+ *
+ * @param missions Array of missions to assign teams to
+ * @param ownedCharacters Characters the player owns
+ * @param characterLevels Map of character ID to current level
+ * @param bitmaskLookup Bitmask lookup table
+ * @returns Multi-mission assignment result with disjoint teams
+ */
+export function findBestMissionAssignment(
+  missions: Mission[],
+  ownedCharacters: Character[],
+  characterLevels: Record<string, number>,
+  bitmaskLookup: BitmaskLookup
+): import("../types").MultiMissionAssignmentResult {
+  // Phase 1: Generate candidates for each mission
+  const candidatesByMission = new Map<string, import("../types").PerMissionCandidates>();
+  let totalCandidatesGenerated = 0;
+
+  for (const mission of missions) {
+    const candidates = findPerMissionCandidates(
+      mission,
+      ownedCharacters,
+      characterLevels,
+      bitmaskLookup
+    );
+    candidatesByMission.set(mission.id, candidates);
+    totalCandidatesGenerated += candidates.readyTeams.length + candidates.blockedTeams.length;
+  }
+
+  // Phase 2: Sort missions by difficulty (fewest ready teams first)
+  // This ensures hard-to-satisfy missions are assigned first, reducing dead ends
+  const sortedMissions = [...missions].sort((a, b) => {
+    const aReady = candidatesByMission.get(a.id)?.readyTeams.length || 0;
+    const bReady = candidatesByMission.get(b.id)?.readyTeams.length || 0;
+    return aReady - bReady;
+  });
+
+  // Phase 3: DFS to find best assignment
+  interface Assignment {
+    missionId: string;
+    team: import("../types").PerMissionCandidates["readyTeams"][0];
+  }
+
+  let bestAssignment: Assignment[] = [];
+  let bestScore: AssignmentScore = {
+    totalMissionValue: 0,
+    totalCharacters: 0,
+    bonusesSatisfied: 0,
+  };
+  let dfsNodesExplored = 0;
+
+  function dfs(
+    missionIndex: number,
+    currentAssignment: Assignment[],
+    usedCharacters: Set<string>
+  ): void {
+    dfsNodesExplored++;
+
+    // Base case: all missions considered
+    if (missionIndex === sortedMissions.length) {
+      // Evaluate this assignment
+      const score = evaluateAssignment(currentAssignment);
+
+      if (compareScores(score, bestScore) > 0) {
+        bestScore = score;
+        bestAssignment = [...currentAssignment];
+      }
+      return;
+    }
+
+    const mission = sortedMissions[missionIndex];
+    const candidates = candidatesByMission.get(mission.id);
+    if (!candidates) {
+      // Skip this mission if no candidates
+      dfs(missionIndex + 1, currentAssignment, usedCharacters);
+      return;
+    }
+
+    // Option 1: Skip this mission (explore partial coverage)
+    dfs(missionIndex + 1, currentAssignment, usedCharacters);
+
+    // Option 2: Try each ready team
+    for (const team of candidates.readyTeams) {
+      // Check if any character in this team is already used
+      const hasConflict = team.characterIds.some(charId => usedCharacters.has(charId));
+
+      if (!hasConflict) {
+        // Make assignment
+        const newAssignment = [...currentAssignment, { missionId: mission.id, team }];
+        const newUsed = new Set(usedCharacters);
+        team.characterIds.forEach(charId => newUsed.add(charId));
+
+        // Recurse
+        dfs(missionIndex + 1, newAssignment, newUsed);
+      }
+    }
+  }
+
+  function evaluateAssignment(assignment: Assignment[]): AssignmentScore {
+    let totalMissionValue = 0;
+    const allUsedCharacters = new Set<string>();
+    let bonusesSatisfied = 0;
+
+    for (const { missionId, team } of assignment) {
+      const mission = missions.find(m => m.id === missionId);
+      if (mission) {
+        totalMissionValue += getMissionValue(mission);
+      }
+      team.characterIds.forEach(charId => allUsedCharacters.add(charId));
+      if (team.meetsBonusConditions) {
+        bonusesSatisfied++;
+      }
+    }
+
+    return {
+      totalMissionValue,
+      totalCharacters: allUsedCharacters.size,
+      bonusesSatisfied,
+    };
+  }
+
+  // Start DFS
+  dfs(0, [], new Set());
+
+  // Phase 4: Package results
+  const assignmentMap = new Map(bestAssignment.map(a => [a.missionId, a.team]));
+  const assignments: import("../types").MissionAssignment[] = missions.map(mission => {
+    const team = assignmentMap.get(mission.id);
+
+    if (team) {
+      // Calculate total rarity for display
+      const totalRarity = team.characterIds.reduce((sum, charId) => {
+        const char = ownedCharacters.find(c => c.id === charId);
+        const rarityTag = char?.tags.rarity?.[0];
+        // Extract rarity number from tag like "rarity-004" -> 4
+        const rarity = rarityTag ? parseInt(rarityTag.split('-')[1], 10) : 0;
+        return sum + rarity;
+      }, 0);
+
+      return {
+        missionId: mission.id,
+        missionValue: getMissionValue(mission),
+        team: {
+          characterIds: team.characterIds,
+          totalRarity,
+          satisfiesBonus: team.meetsBonusConditions,
+        },
+      };
+    } else {
+      return {
+        missionId: mission.id,
+        missionValue: getMissionValue(mission),
+        team: null,
+      };
+    }
+  });
+
+  const assignedCharacters = new Set<string>();
+  let totalRarity = 0;
+
+  for (const assignment of assignments) {
+    if (assignment.team) {
+      assignment.team.characterIds.forEach(charId => assignedCharacters.add(charId));
+      totalRarity += assignment.team.totalRarity;
+    }
+  }
+
+  const unassignedMissionIds = assignments
+    .filter(a => a.team === null)
+    .map(a => a.missionId);
+
+  return {
+    assignments,
+    stats: {
+      totalMissionValue: bestScore.totalMissionValue,
+      missionsAssigned: bestAssignment.length,
+      missionsTotal: missions.length,
+      totalCharactersUsed: assignedCharacters.size,
+      totalRarity,
+      unassignedMissionIds,
+    },
+    trainingRecommendations: [], // Will be filled in Milestone 3
+    debug: {
+      candidatesGenerated: totalCandidatesGenerated,
+      dfsNodesExplored,
+    },
+  };
+}
