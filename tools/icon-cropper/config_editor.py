@@ -49,6 +49,9 @@ from editor.draw_ocr_tool import DrawOCRTool
 from editor.cropper_api import batch_crop_workspace
 from editor.crop_preview_dialog import show_crop_preview_dialog
 
+# Import annotation dialog
+from editor.annotation_dialog import show_annotation_dialog
+
 
 class ConfigEditorApp:
     """Main application for the Config Editor GUI."""
@@ -171,6 +174,7 @@ class ConfigEditorApp:
             'delete_screenshot': self.delete_screenshot,
             'preview_icons': self.preview_icons,
             'batch_crop_all': self.batch_crop_all,
+            'annotate_icons': self._on_annotate_icons,
             'quit_app': self.quit_app,
             'zoom_in': lambda: self.canvas_controller.zoom_in() if hasattr(self, 'canvas_controller') else None,
             'zoom_out': lambda: self.canvas_controller.zoom_out() if hasattr(self, 'canvas_controller') else None,
@@ -235,6 +239,7 @@ class ConfigEditorApp:
         self.root.bind('<Control-g>', lambda e: self.capture_screenshot())
         self.root.bind('<Control-p>', lambda e: self.preview_icons())
         self.root.bind('<Control-b>', lambda e: self.batch_crop_all())
+        self.root.bind('<Control-a>', lambda e: self._on_annotate_icons())
         self.root.bind('<Control-q>', lambda e: self.quit_app())
 
     def _on_display_complete(self):
@@ -997,6 +1002,47 @@ class ConfigEditorApp:
                 f"An error occurred during batch cropping:\n\n{str(e)}"
             )
             self.update_status("Batch crop failed")
+
+    def _on_annotate_icons(self):
+        """Launch annotation dialog to assign names to cropped icons."""
+        try:
+            # Validate workspace
+            if not self.current_workspace:
+                messagebox.showwarning(
+                    "No Workspace",
+                    "Please select a workspace first."
+                )
+                return
+
+            # Check if workspace has cropped icons
+            cropped_dir = self.workspace_manager.workspaces_root / self.current_workspace / "cropped"
+            if not cropped_dir.exists() or not any(cropped_dir.iterdir()):
+                messagebox.showinfo(
+                    "No Cropped Icons",
+                    "No cropped icons found. Run batch crop first.\n\n"
+                    "Click Tools → Batch Crop All to extract icons from screenshots."
+                )
+                return
+
+            # Launch annotation dialog
+            self.update_status("Opening annotation dialog...")
+            success = show_annotation_dialog(
+                self.root,
+                self.current_workspace,
+                self.workspace_manager.workspaces_root
+            )
+
+            if success:
+                self.update_status("Icons annotated and saved successfully")
+            else:
+                self.update_status("Annotation cancelled")
+
+        except Exception as e:
+            messagebox.showerror(
+                "Annotation Error",
+                f"An error occurred while annotating icons:\n\n{str(e)}"
+            )
+            self.update_status("Annotation failed")
 
     # ========== Workspace Management ==========
 

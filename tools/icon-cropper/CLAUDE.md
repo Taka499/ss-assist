@@ -57,6 +57,49 @@ All workspace.json files are validated using Pydantic models on every load and s
 
 See `editor/schema/__init__.py` for the full Pydantic model hierarchy.
 
+### Complete Workflow
+
+The typical workflow for extracting and naming icons:
+
+1. **Create/Select Workspace**
+   - Use workspace dropdown or [+] button to create new workspace
+   - Each workspace is self-contained with its own screenshots and overlays
+
+2. **Capture/Load Screenshots**
+   - Click "📷 Capture" to capture from game window, or
+   - Click "📂 Open Screenshot" to load from file
+   - Add multiple screenshots for scrolling/paginated UIs
+
+3. **Draw Grid Overlays**
+   - Click "🔲 Draw Grid Layout" to enter drawing mode
+   - Click to set start position, drag to define cell size
+   - Adjust parameters (columns, rows, spacing, crop padding) in parameter panel
+   - Can create multiple grids per workspace
+
+4. **Preview Icons**
+   - Click "👁️ Preview Icons" to verify grid alignment
+   - Shows extracted icons in preview window
+
+5. **Batch Crop All**
+   - Click "✂️ Batch Crop All" to extract all icons
+   - Preview dialog shows what will be cropped
+   - Icons saved to `workspaces/{workspace}/cropped/{screenshot}/{overlay}/`
+   - Organized as 001.png, 002.png, 003.png, etc.
+
+6. **Annotate Icons** (NEW)
+   - Click "🏷️ Annotate Icons" to assign names to cropped icons
+   - Choose input mode:
+     - **Manual Input**: Type names one per line (e.g., char-001, char-002, ...)
+     - **CSV Import**: Import CSV and select column with names
+   - Assign names to each icon from dropdowns
+   - Select output directory
+   - Click "Save" to export icons with proper filenames (e.g., `char-001.png`, `Seina.png`)
+
+**Key Integration Points:**
+- All three workflow actions available in left panel "Actions" section
+- Also accessible via Tools menu and keyboard shortcuts (Ctrl+P, Ctrl+B, Ctrl+A)
+- Pre-flight validation prevents errors (checks for cropped icons before annotation)
+
 ### Tool-Based UX (Photoshop-like)
 
 Replaced mode-based workflow with tool selection system:
@@ -152,6 +195,25 @@ canvas_controller.set_overlay('ocr', ocr_config, index=0)    # First OCR region
   - Scrollable content with mousewheel support
   - Fixed Cancel/Proceed buttons at bottom
 - **Returns:** Boolean (True if user clicked "Proceed")
+
+**`editor/annotation_dialog.py`**
+- Dialog for assigning names to cropped icons and saving to output directory
+- **Features:**
+  - **Dual input modes:**
+    - **Manual Input (default)**: Type names one per line, click "Load Names"
+    - **CSV Import**: Import CSV file, select column containing names
+  - Icon grid display (4 columns) with thumbnails
+  - Name selection dropdowns for each icon
+  - Output directory selector (user-chosen location)
+  - Comprehensive validation (names loaded, output dir selected, all icons assigned)
+  - Duplicate name warnings (allows but warns)
+  - Overwrite confirmation for existing files
+- **Saves icons with selected names** (e.g., `char-001.png`, `Seina.png`)
+- **Integration:**
+  - Menu: Tools → Annotate Icons (Ctrl+A)
+  - Left panel: "Actions" section button
+  - Pre-flight check: Validates cropped icons exist before opening
+- **Returns:** Boolean (True if icons saved, False if cancelled)
 
 **Why separate cropping API?**
 - Decouples icon extraction from GUI
@@ -555,13 +617,19 @@ def _on_grid_param_changed(self, *args):
 
 After making changes, test:
 
-1. **Workspace creation**: Create new workspace, verify config.yaml created
+1. **Workspace creation**: Create new workspace, verify workspace.json created
 2. **Screenshot management**: Capture multiple, select, delete, verify list updates
 3. **Workspace switching**: Switch workspaces, verify overlays clear/load correctly
 4. **Multi-overlay**: Draw 2+ grids, verify independent configs and positions
 5. **Tool switching**: Draw → auto-switch to Select → handles visible
 6. **Handle resize**: Verify Ctrl/Shift modifiers work
-7. **Config save/load**: Save config, reload, verify persistence
+7. **Batch crop workflow**: Preview → Batch Crop → verify output in cropped/
+8. **Annotation workflow**:
+   - Try manual input mode (type names, assign to icons)
+   - Try CSV import mode (import CSV, select column, assign names)
+   - Verify output filenames match selected names (not sequential numbers)
+   - Test duplicate name warnings and overwrite confirmation
+9. **Config save/load**: Save config, reload, verify persistence
 
 ### Regression Testing
 
@@ -612,6 +680,7 @@ Watch for these common bugs:
 
 ## References
 
+- **ExecPlan (Annotator Integration)**: See `_docs/execplan-annotator-integration.md`
 - **ExecPlan (Unified Overlay List)**: See `_docs/execplan-unified-overlay-list.md`
 - **ExecPlan (Multipage Workspace)**: See `_docs/execplan-icon-cropper-multipage-workspace.md`
 - **PLANS.md**: See `_docs/PLANS.md` for ExecPlan methodology

@@ -157,6 +157,11 @@ class UIBuilder:
             command=self.callbacks['batch_crop_all'],
             accelerator="Ctrl+B"
         )
+        tools_menu.add_command(
+            label="🏷️ Annotate Icons...",
+            command=self.callbacks['annotate_icons'],
+            accelerator="Ctrl+A"
+        )
 
         # Help menu
         help_menu = tk.Menu(menubar, tearoff=0)
@@ -284,14 +289,26 @@ class UIBuilder:
             command=self.callbacks['enter_pan_mode']
         ).pack(fill=tk.X, pady=2)
 
-        # Preview button
-        preview_frame = ttk.LabelFrame(left_panel, text="Preview", padding=10)
-        preview_frame.pack(fill=tk.X, pady=5)
+        # Actions section
+        actions_frame = ttk.LabelFrame(left_panel, text="Actions", padding=10)
+        actions_frame.pack(fill=tk.X, pady=5)
 
         ttk.Button(
-            preview_frame,
+            actions_frame,
             text="👁️ Preview Icons (Ctrl+P)",
             command=self.callbacks['preview_icons']
+        ).pack(fill=tk.X, pady=2)
+
+        ttk.Button(
+            actions_frame,
+            text="✂️ Batch Crop All (Ctrl+B)",
+            command=self.callbacks['batch_crop_all']
+        ).pack(fill=tk.X, pady=2)
+
+        ttk.Button(
+            actions_frame,
+            text="🏷️ Annotate Icons (Ctrl+A)",
+            command=self.callbacks['annotate_icons']
         ).pack(fill=tk.X, pady=2)
 
         # Instructions label (shared between tabs)
