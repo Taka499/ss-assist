@@ -76,6 +76,16 @@ export type ItemCategory =
   | "skill_piece";        // skill_piece_t1
 
 /**
+ * Item data structure
+ */
+export interface Item {
+  id: string;
+  name: MultiLangString;
+  tier: number;
+  icon: string;
+}
+
+/**
  * Reward types (discriminated union)
  * All rewards use the same structure with an item ID and amount range
  */
@@ -152,4 +162,116 @@ export interface TrainingRecommendation {
 export interface BitmaskLookup {
   tagToBit: Record<string, number>;
   categoryBitRanges: Record<Category, { start: number; count: number }>;
+}
+
+/**
+ * Mission coverage for a single combination
+ * Tracks which missions a combination satisfies and to what degree
+ */
+export interface MissionCoverage {
+  missionId: string;
+  satisfiesBase: boolean;
+  satisfiesBonus: boolean;
+  meetsLevelRequirement: boolean;
+}
+
+/**
+ * Multi-mission combination search result
+ * Contains combinations that are validated against multiple missions simultaneously
+ */
+export interface MultiMissionCombinationResult {
+  combinations: Array<{
+    characterIds: string[];
+    missionCoverage: MissionCoverage[];
+    score: number; // Overall score based on coverage breadth and depth
+    contributingTags: string[]; // Tag IDs that satisfied conditions
+  }>;
+  totalCandidatesGenerated: number;
+  totalCandidatesValidated: number;
+  pruningStats: {
+    charactersPruned: number;
+    charactersRemaining: number;
+  };
+}
+
+/**
+ * A combination that is blocked only by level requirements
+ * Must satisfy all tag/role conditions but have at least one character below required level
+ */
+export interface BlockedCombination {
+  characterIds: string[];
+  meetsBaseConditions: boolean;    // Always true for blocked teams
+  meetsBonusConditions: boolean;   // May be true or false
+  levelDeficits: Record<string, number>;  // characterId → (requiredLevel - currentLevel)
+}
+
+/**
+ * Candidate teams for a single mission, separated by level sufficiency
+ */
+export interface PerMissionCandidates {
+  missionId: string;
+  readyTeams: Array<{
+    characterIds: string[];
+    meetsBaseConditions: boolean;
+    meetsBonusConditions: boolean;
+    contributingTags: string[];
+  }>;
+  blockedTeams: BlockedCombination[];
+}
+
+/**
+ * Assignment of a team to a mission (or indication that mission is unassigned)
+ */
+export interface MissionAssignment {
+  missionId: string;
+  missionValue: number;         // Number of base conditions (1-3)
+  team: {
+    characterIds: string[];
+    totalRarity: number;        // For display only
+    satisfiesBonus: boolean;
+  } | null;  // null = unassigned
+  blockedTeam?: {               // Best blocked team (for unassigned missions)
+    characterIds: string[];
+    levelDeficits: Record<string, number>;  // characterId → level gap
+    satisfiesBonus: boolean;
+  };
+}
+
+/**
+ * Result of multi-mission disjoint assignment
+ */
+export interface MultiMissionAssignmentResult {
+  assignments: MissionAssignment[];
+
+  stats: {
+    totalMissionValue: number;    // Sum of assigned mission values
+    missionsAssigned: number;
+    missionsTotal: number;
+    totalCharactersUsed: number;
+    totalRarity: number;          // For display only
+    unassignedMissionIds: string[];
+  };
+
+  trainingRecommendations: TrainingRecommendationNew[];  // Filled in Milestone 3
+
+  debug: {
+    candidatesGenerated: number;
+    dfsNodesExplored: number;
+  };
+}
+
+/**
+ * Training recommendation (new structure for multi-mission disjoint assignment)
+ */
+export interface TrainingRecommendationNew {
+  characterId: string;
+  characterName: MultiLangString;
+  characterRarity: number;
+  currentLevel: number;
+  targetLevel: number;
+  impact: {
+    missionsUnlocked: string[];
+    bonusesAdded: string[];
+  };
+  priority: number;
 }
