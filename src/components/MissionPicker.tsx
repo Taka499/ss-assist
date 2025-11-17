@@ -1,5 +1,6 @@
 import { useAppStore } from '../store/useAppStore';
 import { useLanguageStore } from '../store/useLanguageStore';
+import { useTranslation } from '../../i18n';
 import { getMissions } from '../lib/data';
 import { TagPill } from './TagPill';
 import { RewardChip } from './RewardChip';
@@ -8,6 +9,7 @@ const MAX_MISSIONS = 4;
 
 export function MissionPicker() {
   const lang = useLanguageStore((state) => state.lang);
+  const { t } = useTranslation(lang);
   const { selectedMissionIds, toggleMissionSelection } = useAppStore();
 
   const missions = getMissions();
@@ -17,10 +19,7 @@ export function MissionPicker() {
     const isAtLimit = selectedMissionIds.length >= MAX_MISSIONS;
 
     if (!isSelected && isAtLimit) {
-      alert(
-        lang === 'ja' ? '最大4件まで選択できます' :
-          lang === 'zh-Hans' ? '最多只能选择4个委托' : '最多只能選擇4個委託'
-      );
+      alert(t('missions.maxSelectAlert'));
       return;
     }
 
@@ -31,7 +30,7 @@ export function MissionPicker() {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">
-          {lang === 'ja' ? '依頼選択' : lang === 'zh-Hans' ? '选择委托' : '選擇委託'}
+          {t('missions.title')}
         </h3>
         <span className="text-sm text-gray-500">
           {selectedMissionIds.length} / {MAX_MISSIONS}
@@ -71,7 +70,7 @@ export function MissionPicker() {
               {/* Base Conditions */}
               <div className="mb-1.5">
                 <div className="text-xs text-gray-500 mb-0.5">
-                  {lang === 'ja' ? '受注条件' : lang === 'zh-Hans' ? '接受条件' : '接受條件'}
+                  {t('missions.baseConditions')}
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {mission.baseConditions.map((cond, idx) => (
@@ -88,7 +87,7 @@ export function MissionPicker() {
               {mission.bonusConditions && mission.bonusConditions.length > 0 && (
                 <div className="mb-1.5">
                   <div className="text-xs text-gray-500 mb-0.5">
-                    {lang === 'ja' ? '追加報酬条件' : lang === 'zh-Hans' ? '额外奖励条件' : '額外獎勵條件'}
+                    {t('missions.bonusConditions')}
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {mission.bonusConditions.map((cond, idx) => (
@@ -105,7 +104,7 @@ export function MissionPicker() {
               {/* Rewards (show first duration only for preview) */}
               <div>
                 <div className="text-xs text-gray-500 mb-0.5">
-                  {lang === 'ja' ? '報酬' : lang === 'zh-Hans' ? '奖励' : '獎勵'}
+                  {t('missions.rewards')}
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {mission.durations[0]?.rewards.slice(0, 3).map((reward, idx) => (

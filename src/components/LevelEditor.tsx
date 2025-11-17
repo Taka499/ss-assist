@@ -1,5 +1,6 @@
 import { useAppStore } from '../store/useAppStore';
 import { useLanguageStore } from '../store/useLanguageStore';
+import { useTranslation } from '../../i18n';
 import { getCharacterById } from '../lib/data';
 import { CharacterAvatar } from './CharacterAvatar';
 
@@ -7,13 +8,13 @@ const LEVEL_OPTIONS = [1, 10, 20, 30, 40, 50, 60, 70, 80, 90];
 
 export function LevelEditor() {
   const lang = useLanguageStore((state) => state.lang);
+  const { t } = useTranslation(lang);
   const { ownedCharacterIds, characterLevels, setCharacterLevel } = useAppStore();
 
   if (ownedCharacterIds.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
-        {lang === 'ja' ? 'キャラクターを選択してください' :
-          lang === 'zh-Hans' ? '请先选择角色' : '請先選擇角色'}
+        {t('levels.noCharacters')}
       </div>
     );
   }
@@ -21,7 +22,7 @@ export function LevelEditor() {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">
-        {lang === 'ja' ? 'レベル設定' : lang === 'zh-Hans' ? '设置等级' : '設置等級'}
+        {t('levels.title')}
       </h3>
 
       <div className="space-y-3">

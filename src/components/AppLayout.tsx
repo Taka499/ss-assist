@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLanguageStore } from '../store/useLanguageStore';
+import { useTranslation } from '../../i18n';
 import type { Language } from '../types';
 
 interface AppLayoutProps {
@@ -10,20 +11,22 @@ interface AppLayoutProps {
 
 export function AppLayout({ children, currentPage, onNavigate }: AppLayoutProps) {
   const { lang, setLanguage } = useLanguageStore();
+  const { t } = useTranslation(lang);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const pages = [
-    { id: 'home', label: { ja: 'ホーム', 'zh-Hans': '首页', 'zh-Hant': '首頁' } },
-    { id: 'roster', label: { ja: 'キャラ選択', 'zh-Hans': '选择角色', 'zh-Hant': '選擇角色' } },
-    { id: 'levels', label: { ja: 'レベル設定', 'zh-Hans': '设置等级', 'zh-Hant': '設置等級' } },
-    { id: 'missions', label: { ja: '依頼選択', 'zh-Hans': '选择委托', 'zh-Hant': '選擇委託' } },
-    { id: 'results', label: { ja: '結果', 'zh-Hans': '结果', 'zh-Hant': '結果' } },
+    { id: 'home', label: t('nav.home') },
+    { id: 'roster', label: t('nav.roster') },
+    { id: 'levels', label: t('nav.levels') },
+    { id: 'missions', label: t('nav.missions') },
+    { id: 'results', label: t('nav.results') },
   ];
 
   const languages: { value: Language; label: string }[] = [
     { value: 'ja', label: '日本語' },
     { value: 'zh-Hans', label: '简体中文' },
     { value: 'zh-Hant', label: '繁體中文' },
+    { value: 'en', label: 'English' },
   ];
 
   return (
@@ -37,8 +40,7 @@ export function AppLayout({ children, currentPage, onNavigate }: AppLayoutProps)
               onClick={() => onNavigate('home')}
               className="text-xl font-bold text-blue-600 hover:text-blue-700"
             >
-              {lang === 'ja' ? 'ステラソラ依頼アシスト' :
-                lang === 'zh-Hans' ? 'Stella Sora 委托助手' : 'Stella Sora 委託助手'}
+              {t('app.title')}
             </button>
 
             {/* Desktop Navigation */}
@@ -52,7 +54,7 @@ export function AppLayout({ children, currentPage, onNavigate }: AppLayoutProps)
                     : 'text-gray-700 hover:bg-gray-100'
                     }`}
                 >
-                  {page.label[lang] || page.label.ja}
+                  {page.label}
                 </button>
               ))}
             </nav>
@@ -107,7 +109,7 @@ export function AppLayout({ children, currentPage, onNavigate }: AppLayoutProps)
                       : 'text-gray-700 hover:bg-gray-100'
                       }`}
                   >
-                    {page.label[lang] || page.label.ja}
+                    {page.label}
                   </button>
                 ))}
               </nav>
@@ -143,8 +145,7 @@ export function AppLayout({ children, currentPage, onNavigate }: AppLayoutProps)
         <div className="container mx-auto px-4 py-6">
           <div className="text-center text-sm text-gray-600">
             <p>
-              {lang === 'ja' ? 'ステラソラ依頼アシスト' :
-                lang === 'zh-Hans' ? 'Stella Sora 委托助手' : 'Stella Sora 委託助手'}
+              {t('app.title')}
               {' | '}
               <a
                 href="https://github.com/Taka499/ss-assist"
@@ -156,8 +157,7 @@ export function AppLayout({ children, currentPage, onNavigate }: AppLayoutProps)
               </a>
             </p>
             <p className="mt-1 text-xs text-gray-500">
-              {lang === 'ja' ? '非公式ファンツール' :
-                lang === 'zh-Hans' ? '非官方粉丝工具' : '非官方粉絲工具'}
+              {t('app.subtitle')}
             </p>
           </div>
         </div>

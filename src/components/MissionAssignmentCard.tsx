@@ -1,4 +1,5 @@
 import { useLanguageStore } from '../store/useLanguageStore';
+import { useTranslation } from '../../i18n';
 import type { MissionAssignment, Mission } from '../types';
 import { getCharacterById } from '../lib/data';
 
@@ -10,6 +11,7 @@ interface MissionAssignmentCardProps {
 
 export function MissionAssignmentCard({ assignment, mission, characterLevels }: MissionAssignmentCardProps) {
   const lang = useLanguageStore((state) => state.lang);
+  const { t } = useTranslation(lang);
 
   const missionName = mission.name[lang] || mission.name.ja;
 
@@ -20,9 +22,9 @@ export function MissionAssignmentCard({ assignment, mission, characterLevels }: 
         <div>
           <h3 className="font-semibold text-lg">{missionName}</h3>
           <p className="text-xs text-gray-500">
-            {lang === 'ja' ? 'ミッション価値' : lang === 'zh-Hans' ? '任务价值' : '任務價值'}: {assignment.missionValue}
+            {t('results.missionValue')}: {assignment.missionValue}
             {' • '}
-            {lang === 'ja' ? '必要レベル' : lang === 'zh-Hans' ? '所需等级' : '所需等級'}: {mission.requiredLevel}
+            {t('missions.requiredLevel')}: {mission.requiredLevel}
           </p>
         </div>
       </div>
@@ -75,11 +77,11 @@ export function MissionAssignmentCard({ assignment, mission, characterLevels }: 
           <div className="flex gap-2 justify-center">
             {assignment.team.satisfiesBonus ? (
               <span className="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-green-100 text-green-700 border border-green-300">
-                ✅ {lang === 'ja' ? '基本 + 追加報酬' : lang === 'zh-Hans' ? '基础 + 额外奖励' : '基礎 + 額外獎勵'}
+                ✅ {t('status.basePlusBonus')}
               </span>
             ) : (
               <span className="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-700 border border-blue-300">
-                ✓ {lang === 'ja' ? '基本条件のみ' : lang === 'zh-Hans' ? '仅基础条件' : '僅基礎條件'}
+                ✓ {t('status.baseOnly')}
               </span>
             )}
           </div>
@@ -88,7 +90,7 @@ export function MissionAssignmentCard({ assignment, mission, characterLevels }: 
         <div>
           <div className="text-center py-2 mb-3">
             <p className="text-amber-600 font-medium">
-              ⚠️ {lang === 'ja' ? '割り当て不可' : lang === 'zh-Hans' ? '无法分配' : '無法分配'}
+              ⚠️ {t('status.cannotAssign')}
             </p>
           </div>
 
@@ -96,7 +98,7 @@ export function MissionAssignmentCard({ assignment, mission, characterLevels }: 
           {assignment.blockedTeam ? (
             <div>
               <p className="text-xs text-gray-600 mb-2 text-center">
-                {lang === 'ja' ? '育成が必要なキャラ:' : lang === 'zh-Hans' ? '需要培养的角色:' : '需要培養的角色:'}
+                {t('missions.charactersNeedTraining')}
               </p>
               <div className="flex justify-center gap-4 mb-2">
                 {assignment.blockedTeam.characterIds.map(charId => {
@@ -139,14 +141,12 @@ export function MissionAssignmentCard({ assignment, mission, characterLevels }: 
                 })}
               </div>
               <p className="text-xs text-center text-gray-500">
-                {lang === 'ja' ? 'レベルを上げると割り当て可能になります' :
-                  lang === 'zh-Hans' ? '提升等级后可分配' :
-                    '提升等級後可分配'}
+                {t('missions.canAssignAfterLeveling')}
               </p>
             </div>
           ) : (
             <p className="text-xs text-gray-500 mt-1 text-center">
-              {lang === 'ja' ? 'キャラクターが不足しています' : lang === 'zh-Hans' ? '角色不足' : '角色不足'}
+              {t('missions.notEnoughCharacters')}
             </p>
           )}
         </div>

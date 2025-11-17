@@ -1,0 +1,100 @@
+{
+  "app": {
+    "title": "Stella Sora Mission Assistant",
+    "subtitle": "Unofficial Fan Tool"
+  },
+  "nav": {
+    "home": "Home",
+    "roster": "Characters",
+    "levels": "Levels",
+    "missions": "Missions",
+    "results": "Results"
+  },
+  "buttons": {
+    "start": "Get Started",
+    "next": "Next",
+    "back": "Back",
+    "analyze": "Analyze",
+    "reAnalyze": "Re-analyze",
+    "clear": "Clear Selection",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All"
+  },
+  "common": {
+    "loading": "Loading...",
+    "level": "Level",
+    "count": "{{count}}",
+    "missionCount": "{{count}}"
+  },
+  "home": {
+    "description": "Find optimal character combinations for missions and get training priority recommendations.",
+    "howToUse": "How to Use",
+    "step1": "Select your characters",
+    "step2": "Set character levels",
+    "step3": "Choose up to 4 missions to analyze",
+    "step4": "View optimal combinations and training recommendations"
+  },
+  "roster": {
+    "title": "Select Characters",
+    "selected": "Selected: {{count}}",
+    "filter": "Filter",
+    "characterSelection": "Character Selection",
+    "noMatchingCharacters": "No characters match the selected filters"
+  },
+  "levels": {
+    "title": "Set Levels",
+    "description": "Set character levels",
+    "noCharacters": "Please select characters first",
+    "goToRoster": "Go to Character Selection"
+  },
+  "missions": {
+    "title": "Select Missions",
+    "selected": "Selected: {{count}}/4",
+    "warning": "Please select at least one mission",
+    "noMissions": "Please select missions",
+    "goToMissions": "Go to Mission Selection",
+    "maxSelectAlert": "You can select up to 4 missions",
+    "baseConditions": "Base Conditions",
+    "bonusConditions": "Bonus Conditions",
+    "rewards": "Rewards",
+    "requiredLevel": "Required Level",
+    "charactersNeedTraining": "Characters need training:",
+    "canAssignAfterLeveling": "Can assign after leveling up",
+    "notEnoughCharacters": "Not enough characters"
+  },
+  "results": {
+    "title": "Analysis Results",
+    "analyzing": "Analyzing...",
+    "summary": "📊 Summary",
+    "assigned": "Assigned",
+    "missionValue": "Mission Value",
+    "charactersUsed": "Characters Used",
+    "totalRarity": "Total Rarity",
+    "assignmentsTitle": "🎯 Mission Assignments",
+    "assignmentsDescription": "Each mission is assigned a separate team (no character overlap)",
+    "trainingTitle": "💪 Training Recommendations",
+    "trainingDescription": "Training these characters will unlock more missions",
+    "noAssignments": "No missions can be assigned with current roster",
+    "noAssignmentsHint": "Please add more characters or level them up"
+  },
+  "training": {
+    "unlockMission": "To unlock \"{{missionName}}\":",
+    "levelUpTo": "to Lv{{level}}",
+    "bonusReward": "Bonus Reward",
+    "noRecommendations": "No training recommendations",
+    "priorityRanking": "Training Priority Ranking",
+    "unlockSummary": "Unlock {{base}} mission(s), {{bonus}} bonus(es)",
+    "score": "Score",
+    "detailsPlaceholder": "Details (Coming Soon)"
+  },
+  "status": {
+    "missionUnlock": "Mission Unlock",
+    "bonusAchieved": "Bonus Achieved",
+    "canAccept": "Can Accept",
+    "baseOnly": "Base Only",
+    "basePlusBonus": "Base + Bonus",
+    "cannotAssign": "Cannot Assign",
+    "notSatisfied": "Not Satisfied",
+    "levelDeficit": "Insufficient Level"
+  }
+}
