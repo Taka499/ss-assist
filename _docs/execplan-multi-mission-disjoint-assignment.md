@@ -25,11 +25,13 @@ You can verify success by selecting 4 missions with different requirements, mark
 - [x] Write tests for DFS assignment optimality
 - [x] Update training priority calculation to use blocked teams and rarity
 - [x] Write tests for training priority scoring
-- [ ] Update Results.tsx to display mission-by-mission assignments
-- [ ] Add UI for training recommendations
-- [ ] Run end-to-end tests with multiple missions
-- [ ] Run full test suite and type checking
+- [x] Update Results.tsx to display mission-by-mission assignments (2025-11-17)
+- [x] Add UI for training recommendations (2025-11-17)
+- [x] Create MissionAssignmentCard and TrainingRecommendationList components (2025-11-17)
+- [x] Run full test suite and type checking - 156 tests pass (2025-11-17)
+- [x] Dev server running for manual testing (2025-11-17)
 - [ ] Performance validation with realistic datasets
+- [ ] End-to-end manual testing with multiple scenarios
 
 
 ## Surprises & Discoveries
@@ -61,6 +63,18 @@ This is correct behavior and important for training recommendations in Milestone
 
 **Scoring weight validation**: The 1000× weight for mission unlocks vs 10× for bonuses vs 1× for rarity is clearly visible in test results. A character unlocking 1 mission scores ~1004 (1000 + rarity), vastly higher than a character adding 2 bonuses scoring ~24 (20 + rarity). This ensures training recommendations prioritize mission unlocks as intended.
 
+### Milestone 4 (2025-11-17)
+
+**Type system organization**: The new types (`MultiMissionAssignmentResult`, `MissionAssignment`, `TrainingRecommendationNew`) are defined in `src/types/index.ts` rather than being inline exported from `combos.ts`. This separation keeps the algorithm library pure and the type definitions centralized. Initially attempted to import types from combos.ts which caused compilation errors until corrected to import from types.
+
+**Component composition strategy**: Created two standalone components (`MissionAssignmentCard`, `TrainingRecommendationList`) that handle their own internal layout and styling rather than passing complex render props. This makes the Results page cleaner and components more reusable. Each component handles its own null checks and edge cases (e.g., character not found, mission not found).
+
+**UI state simplification**: The new UI is significantly simpler than the old universal/partial team grouping. By eliminating the `groupCombinations()` helper and `missions` state variable, the code is more straightforward. The assignment result already contains all necessary data in a ready-to-render format, reducing transformation logic in the view layer.
+
+**Visual feedback for level deficits**: The MissionAssignmentCard component uses both opacity (60%) and a red warning badge to indicate characters below required level. The level deficit is shown as "+X" to clearly communicate how many levels are needed. This visual language makes it immediately obvious which characters need training.
+
+**Grid layout responsiveness**: Mission assignments use a responsive grid (1 column on mobile, 2 on desktop) which scales well from 1-6 missions. Training recommendations use a single-column list regardless of screen size since the detailed impact information needs horizontal space.
+
 
 ## Decision Log
 
@@ -81,6 +95,16 @@ This is correct behavior and important for training recommendations in Milestone
 **D2.3 - Rarity in display only**: Decided NOT to use character rarity during team assignment (Milestone 2). Rarity only matters for training recommendations (Milestone 3). This keeps the assignment algorithm focused on mission coverage optimization, not character value judgments. The user cares about "which missions can I complete?" not "which rare characters should I use?"
 
 **D2.4 - DFS without pruning**: Implemented full exhaustive DFS without alpha-beta pruning or branch-and-bound optimizations. For typical use cases (2-4 missions, 10-50 characters), the search space is small enough (<10,000 nodes) that optimization isn't needed. This keeps the code simple and the results easy to reason about.
+
+### Milestone 4 (2025-11-17)
+
+**D4.1 - Component granularity**: Chose to create two focused components (MissionAssignmentCard, TrainingRecommendationList) rather than one large ResultsDisplay component. This separation mirrors the data structure (assignments vs recommendations) and makes each component independently testable and reusable.
+
+**D4.2 - Summary stats placement**: Placed the summary stats section at the top of the results page (above mission assignments) rather than at the bottom. This gives users an immediate overview of the quality of the solution (missions assigned, total value, characters used) before diving into the details.
+
+**D4.3 - Training recommendations limit**: Display top 10 training recommendations by default (sliced in Results.tsx) rather than showing all or implementing pagination. For most scenarios, users only need to see the highest-impact training targets. This keeps the UI focused and prevents overwhelming users with marginal recommendations.
+
+**D4.4 - Removed old components**: Did not delete the old `MissionCoverageIndicator` component even though it's no longer used by Results.tsx. This preserves the component for potential future use or reference. The old `findCombinationsForMultipleMissions()` function also remains in combos.ts for similar reasons (backward compatibility, potential alternative use cases).
 
 
 ## Outcomes & Retrospective
