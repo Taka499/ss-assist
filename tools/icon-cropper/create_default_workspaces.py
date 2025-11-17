@@ -1,7 +1,7 @@
 """Create default workspaces for icon-cropper."""
 
 from pathlib import Path
-from editor.workspace_manager import WorkspaceManager
+from editor.workspace_manager import WorkspaceManager, DEFAULT_WORKSPACE
 
 
 def main():
@@ -9,13 +9,13 @@ def main():
     workspaces_root = Path(__file__).parent / "workspaces"
     manager = WorkspaceManager(workspaces_root)
 
-    # Create character_select workspace
-    print("Creating character_select workspace...")
-    if not manager.workspace_exists("character_select"):
-        manager.create_workspace("character_select")
-        print("[OK] Created character_select workspace")
+    # Create default workspace
+    print(f"Creating {DEFAULT_WORKSPACE} workspace...")
+    if not manager.workspace_exists(DEFAULT_WORKSPACE):
+        manager.create_workspace(DEFAULT_WORKSPACE)
+        print(f"[OK] Created {DEFAULT_WORKSPACE} workspace")
     else:
-        print("[SKIP] character_select workspace already exists")
+        print(f"[SKIP] {DEFAULT_WORKSPACE} workspace already exists")
 
     # Create item_inventory workspace
     print("Creating item_inventory workspace...")

@@ -37,7 +37,7 @@ from editor.ocr_resize_controller import OCRResizeController
 from editor.ui_builder import UIBuilder
 from editor.preview_controller import PreviewController
 from editor.preview_window import PreviewWindow
-from editor.workspace_manager import WorkspaceManager
+from editor.workspace_manager import WorkspaceManager, DEFAULT_WORKSPACE
 
 # Import tool system
 from editor.tool_manager import ToolManager
@@ -72,11 +72,11 @@ class ConfigEditorApp:
 
         # Load preferences (last workspace)
         prefs = self._load_preferences()
-        self.current_workspace = prefs.get("last_workspace", "character_select")
+        self.current_workspace = prefs.get("last_workspace", DEFAULT_WORKSPACE)
 
         # Ensure current workspace exists
         if not self.workspace_manager.workspace_exists(self.current_workspace):
-            self.current_workspace = "character_select"
+            self.current_workspace = DEFAULT_WORKSPACE
 
         # Create workspace (this will create workspace.json if it doesn't exist)
         self.workspace_manager.create_workspace(self.current_workspace)
@@ -212,8 +212,8 @@ class ConfigEditorApp:
         workspaces = self.workspace_manager.list_workspaces()
         if not workspaces:
             # Create default workspace
-            self.workspace_manager.create_workspace("character_select")
-            workspaces = ["character_select"]
+            self.workspace_manager.create_workspace(DEFAULT_WORKSPACE)
+            workspaces = [DEFAULT_WORKSPACE]
 
         ui_builder.workspace_dropdown['values'] = workspaces
         ui_builder.workspace_var.set(self.current_workspace)
@@ -1056,7 +1056,7 @@ class ConfigEditorApp:
                     return prefs
             except:
                 pass
-        return {"last_workspace": "character_select"}
+        return {"last_workspace": DEFAULT_WORKSPACE}
 
     def _save_preferences(self):
         """Save user preferences."""
