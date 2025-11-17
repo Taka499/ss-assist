@@ -15,11 +15,15 @@ dist
 dist-ssr
 *.local
 
+# Vite cache
+.vite
+
 # Generated data files (auto-generated from CSV/source files)
 # DO NOT commit these - they are built by scripts
 data/tags.json
 data/characters.json
 data/missions.json
+data/items.json
 
 # Keep source data files (human-editable)
 !data/tags.src.json
@@ -66,3 +70,15 @@ Desktop.ini
 
 # Debug
 *.tsbuildinfo
+
+# Tools - Screenshot Cropper
+tools/screenshot-cropper/temp/
+tools/screenshot-cropper/test_*.png
+tools/screenshot-cropper/test_output/
+tools/screenshot-cropper/debug_*.png
+tools/screenshot-cropper/.venv/
+tools/screenshot-cropper/__pycache__/
+tools/screenshot-cropper/*.pyc
+tools/screenshot-cropper/dist/
+tools/screenshot-cropper/build/
+tools/screenshot-cropper/*.spec

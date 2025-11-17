@@ -1,0 +1,32 @@
+# Screenshot Cropper Configuration
+# This is a test configuration file
+
+# Window detection settings
+window:
+  auto_detect: true
+  title_pattern: "StellaSora"
+
+# OCR settings for page detection
+ocr:
+  detection_region: [140, 50, 300, 50]  # [x, y, width, height]
+  lang: ["ja"]
+
+# Page definitions
+pages:
+  character_select:
+    ocr_match: "ホーム画面設定"
+    # Grid layout for icon cropping
+    grid:
+      columns: 3
+      rows: 4
+      start_x: 963
+      start_y: 151
+      cell_width: 146
+      cell_height: 146
+      spacing_x: 4
+      spacing_y: 4
+      crop_padding: 8
+    output:
+      category: "characters"
+      target_dir: "public/assets/characters"
+      filename_pattern: "{number:03d}.png"

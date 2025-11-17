@@ -1,0 +1,85 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+.virtualenv/
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+# Note: cropper.spec is intentionally tracked for build reproducibility
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Project-specific
+output/
+outputs/
+processed/
+screenshots/
+crops/
+temp/
+tmp/
+*.png
+*.jpg
+*.jpeg
+*.bmp
+!README_assets/*.png
+!README_assets/*.jpg
+
+# Config overrides
+config.local.yaml
+config.override.yaml
+*.local.yaml
+
+# Logs
+*.log
+logs/
+*.backup
+*.backup.*
+
+# Workspace test data
+workspaces/

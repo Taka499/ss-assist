@@ -1,0 +1,24 @@
+# Workspace configuration template
+# This file is copied when creating new workspaces
+
+workspace_name: "WORKSPACE_NAME"  # Will be replaced
+ocr_match: "WORKSPACE_NAME_identifier"  # Will be replaced
+
+grid:
+  columns: 3
+  rows: 4
+  start_x: 0
+  start_y: 0
+  cell_width: 100
+  cell_height: 100
+  spacing_x: 0
+  spacing_y: 0
+  crop_padding: 0
+
+output:
+  category: "WORKSPACE_NAME"  # Will be replaced
+  target_dir: "output/WORKSPACE_NAME"  # Will be replaced
+  filename_pattern: "{number:03d}.png"
+
+ocr:
+  detection_region: [0, 0, 0, 0]  # User will configure
