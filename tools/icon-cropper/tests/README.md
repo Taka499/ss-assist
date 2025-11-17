@@ -12,12 +12,12 @@ Comprehensive test suite for the icon-cropper configuration editor.
 - Round-trip conversion verification
 - Edge cases with various zoom levels and offsets
 
-**`test_config_serializer.py`** (34 tests)
-- YAML loading and saving with comment preservation
-- Automatic backup creation with timestamps
-- Grid configuration validation (bounds, dimensions, padding)
-- OCR region validation (size, position, bounds)
-- Error handling for missing/invalid data
+**`test_cropper_api.py`** (10 tests)
+- Grid-based icon cropping (crop_grid)
+- Crop padding application and boundary clipping
+- Workspace batch cropping with multiple screenshots and overlays
+- Preview generation for overlays
+- Crop statistics calculation (counts, breakdown by screenshot/overlay)
 
 **`test_preview_controller.py`** (24 tests)
 - Icon extraction from grid configurations
@@ -26,7 +26,15 @@ Comprehensive test suite for the icon-cropper configuration editor.
 - Grid validation before preview
 - Edge cases (large grids, float coordinates, zero-size cells)
 
-**Total: 83 tests**
+**`test_workspace_schema.py`** (26 tests)
+- Pydantic schema validation for workspace.json
+- GridConfig and OCRConfig validation (bounds, dimensions, constraints)
+- OverlayData and ScreenshotMetadata validation
+- WorkspaceMetadata cross-field validation (overlay references, selected screenshot)
+- Invalid data rejection with clear error messages
+- Edge cases (empty workspaces, missing fields, duplicate IDs)
+
+**Total: 85 tests**
 
 ## Running Tests
 
@@ -41,7 +49,8 @@ uv run pytest
 
 ```bash
 uv run pytest tests/test_coordinate_system.py
-uv run pytest tests/test_config_serializer.py -v
+uv run pytest tests/test_workspace_schema.py -v
+uv run pytest tests/test_cropper_api.py -v
 ```
 
 ### Run with coverage (if pytest-cov is installed)
@@ -65,25 +74,25 @@ tests/
 ├── README.md                       # This file
 ├── pytest.ini                      # Pytest configuration
 ├── fixtures/
-│   └── test_config.yaml           # Sample config for testing
+│   └── test_config.yaml           # Sample config for testing (legacy)
 ├── test_coordinate_system.py      # Coordinate transformation tests
-├── test_config_serializer.py      # YAML serialization tests
-└── test_preview_controller.py     # Icon extraction tests
+├── test_cropper_api.py            # Cropping API tests
+├── test_preview_controller.py     # Icon extraction tests
+└── test_workspace_schema.py       # Pydantic schema validation tests
 ```
 
 ## Fixtures
 
-**`test_config.yaml`**
-- Sample configuration file used for testing serialization
+**`test_config.yaml`** (legacy)
+- Sample configuration file used for older tests
 - Contains all sections: window, ocr, pages
-- Includes comments to verify preservation
+- Preserved for compatibility with preview_controller tests
 
 **Pytest Fixtures:**
-- `temp_config_dir`: Temporary directory with test config file
-- `serializer`: ConfigSerializer instance
+- `temp_workspace`: Temporary workspace directory with workspace.json
 - `controller`: PreviewController instance
 - `test_image`: 800x600 test image with colored grid pattern
-- `valid_grid`: Valid grid configuration dict
+- `valid_grid`: Valid GridConfig instance (Pydantic model)
 - `canvas` (mocked): Mock Canvas for coordinate tests
 
 ## What's Not Tested
@@ -102,8 +111,8 @@ These modules have been manually tested during development and work reliably in 
 ## Test Coverage Summary
 
 - **Coordinate transformations**: ✅ Fully tested (100%)
-- **Configuration persistence**: ✅ Fully tested (100%)
-- **Validation logic**: ✅ Fully tested (100%)
+- **Schema validation (Pydantic)**: ✅ Fully tested (100%)
+- **Cropping API (batch, preview, stats)**: ✅ Fully tested (100%)
 - **Icon extraction**: ✅ Fully tested (100%)
 - **UI state machines**: ⏳ Manual testing only
 - **Integration workflows**: ⏳ Could be added if needed

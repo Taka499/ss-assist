@@ -15,6 +15,9 @@ from pydantic import ValidationError
 from editor.overlay_model import Overlay
 from editor.schema import WorkspaceMetadata
 
+# Default workspace name used for initial setup
+DEFAULT_WORKSPACE = "new_workspace"
+
 class WorkspaceManager:
     """Manages workspace directories and metadata for page configurations."""
 

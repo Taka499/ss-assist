@@ -6,33 +6,37 @@ This document tracks remaining tasks for the icon-cropper configuration editor G
 
 ## High Priority Tasks (Milestone 6)
 
-### 1. Comprehensive Grid Validation
+### 1. Enhanced Grid Validation
 
-**Current State**: Basic bounds checking exists in `config_serializer.py`
+**Current State**: Basic Pydantic validation exists in `editor/schema/__init__.py` (positive dimensions, reasonable ranges)
 
 **Needed**:
-- Validate all grid cells fit within image bounds (not just first cell)
-- Check for reasonable spacing values (detect negative or excessive spacing)
-- Prevent cell overlap due to negative spacing
-- Validate crop padding doesn't exceed cell dimensions
+- Validate all grid cells fit within image bounds (not just first cell) - requires image context
 - Warning for grids that extend beyond visible area
-- Prevent saving configurations with zero or negative cell dimensions
+- Validate crop padding doesn't exceed cell dimensions (already checked: ge=0)
+- Runtime validation during overlay drawing/adjustment
 
-**Implementation Location**: `editor/config_serializer.py` - enhance `validate_grid_config()`
+**Implementation Location**:
+- `editor/schema/__init__.py` - Add custom validators for cross-field checks
+- `editor/workspace_manager.py` - Add image-aware validation methods
 
 **Impact**: Prevents user from saving invalid configurations that would cause cropping failures
+
+**Note**: Basic constraints (positive dimensions, spacing ≥ 0, crop_padding ≥ 0) already enforced by Pydantic
 
 ---
 
 ### 2. Comprehensive Test Suite
 
-**Unit Tests Needed**:
-- `test_coordinate_system.py`: Canvas ↔ image coordinate transformations with zoom/pan/scroll
-- `test_grid_editor.py`: State machine transitions, spinbox synchronization, mode switching
-- `test_ocr_editor.py`: State machine transitions, drag/resize operations
-- `test_config_serializer.py`: YAML round-trip, comment preservation, validation logic
-- `test_grid_renderer.py`: Overlay rendering at various zoom levels
-- `test_resize_controller.py`: Handle detection, modifier key behavior, edge cases
+**Unit Tests Needed** (or expand existing):
+- ✅ `test_coordinate_system.py`: Canvas ↔ image coordinate transformations (25 tests - DONE)
+- ✅ `test_workspace_schema.py`: Pydantic validation for workspace.json (26 tests - DONE)
+- ✅ `test_cropper_api.py`: Batch cropping, preview, statistics (10 tests - DONE)
+- ✅ `test_preview_controller.py`: Icon extraction logic (24 tests - DONE)
+- ⏳ `test_grid_editor.py`: State machine transitions, spinbox synchronization, mode switching
+- ⏳ `test_ocr_editor.py`: State machine transitions, drag/resize operations
+- ⏳ `test_grid_renderer.py`: Overlay rendering at various zoom levels
+- ⏳ `test_resize_controller.py`: Handle detection, modifier key behavior, edge cases
 
 **Integration Tests Needed**:
 - Full workflow: Open image → Draw grid → Adjust → Preview → Save
@@ -94,41 +98,27 @@ This document tracks remaining tasks for the icon-cropper configuration editor G
 
 ---
 
-### 6. Corrupted YAML Recovery
+### 6. Extract DEFAULT_WORKSPACE Constant
 
-**Issue**: No graceful handling if `ruamel.yaml` fails to parse corrupted config
+**Issue**: "character_select" hardcoded as default workspace in multiple places (6+ locations)
 
 **Fix**:
-- Wrap YAML parsing in try/except in `config_serializer.py`
-- Detect corruption and show user-friendly error dialog
-- Offer to restore from backup (timestamped backups already exist)
-- Offer to create fresh config from defaults
+- Extract to constant: `DEFAULT_WORKSPACE = "character_select"`
+- Use constant throughout codebase for easier modification
+- Improves maintainability if default needs to change
 
-**Implementation Location**: `editor/config_serializer.py` - enhance `load()` method
+**Implementation Locations**:
+- `config_editor.py` (lines 75, 79, 215, 216, 1059)
+- `create_default_workspaces.py` (lines 13-18)
+- `annotator.py` (line 248)
 
-**Effort**: 1-2 hours
+**Effort**: 30 minutes
+
+**Note**: Multi-workspace support already implemented via workspace dropdown + [+] button
 
 ---
 
-### 7. Multi-Page Support in Load From Config
-
-**Issue**: Currently hardcoded to `character_select` page in multiple places
-
-**Fix**:
-- Add page selector dropdown in UI (before or after Load From Config button)
-- Update `load_from_config()` to accept page parameter
-- Update `save_config()` to save to selected page
-- Allow creating new page definitions
-
-**Implementation Location**:
-- `config_editor.py` - update `load_from_config()` and `save_config()`
-- `editor/ui_builder.py` - add page selector widget
-
-**Effort**: 3-4 hours
-
----
-
-### 8. Documentation Enhancements
+### 7. Documentation Enhancements
 
 **Needed**:
 - Add config editor section to `README.md` with screenshots
@@ -146,32 +136,30 @@ This document tracks remaining tasks for the icon-cropper configuration editor G
 ## Summary by Effort
 
 **Quick Wins (< 1 hour)**:
-- Remove debug code
-- Add cropper.py integration text
+- Remove debug code (Task 4)
+- Extract DEFAULT_WORKSPACE constant (Task 6)
+- Add cropper.py integration text (Task 3)
 
 **Medium Effort (1-4 hours)**:
-- Comprehensive validation
-- Corrupted YAML recovery
-- Multi-page support
-- Documentation enhancements
+- Enhanced grid validation (Task 1)
+- Preview window pagination (Task 5, if needed)
+- Documentation enhancements (Task 7)
 
 **Large Effort (> 4 hours)**:
-- Comprehensive test suite
-- Preview window pagination (if needed)
+- Comprehensive test suite (Task 2)
 
 ---
 
 ## Recommended Priority Order
 
-1. **Comprehensive validation** (prevent data corruption)
-2. **Remove debug code** (clean up)
-3. **Main cropper integration** (improve UX)
-4. **Comprehensive tests** (ensure reliability)
-5. **Documentation enhancements** (help users)
-6. **Multi-page support** (feature enhancement)
-7. **Corrupted YAML recovery** (edge case handling)
-8. **Preview pagination** (only if performance issues arise)
+1. **Remove debug code** (Task 4) - Quick cleanup
+2. **Extract DEFAULT_WORKSPACE constant** (Task 6) - Quick maintainability win
+3. **Enhanced grid validation** (Task 1) - Prevent data corruption
+4. **Main cropper integration** (Task 3) - Improve UX and discoverability
+5. **Comprehensive tests** (Task 2) - Ensure reliability (85 tests done, UI tests remaining)
+6. **Documentation enhancements** (Task 7) - Help users understand workflow
+7. **Preview pagination** (Task 5) - Only if performance issues arise
 
 ---
 
-*Last Updated: 2025-11-14*
+*Last Updated: 2025-11-18*
