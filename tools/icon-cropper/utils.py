@@ -47,27 +47,6 @@ def get_temp_session_dir(config: Dict[str, Any]) -> Path:
     return session_dir
 
 
-def show_notification(title: str, message: str, config: Dict[str, Any]) -> None:
-    """Show desktop notification if enabled."""
-    if not config['notifications']['enabled']:
-        return
-
-    try:
-        # Try to use plyer for cross-platform notifications
-        from plyer import notification
-        notification.notify(
-            title=title,
-            message=message,
-            app_name="Screenshot Cropper",
-            timeout=config['notifications']['duration']
-        )
-    except ImportError:
-        # Fallback: print to console
-        print(f"[{title}] {message}")
-    except Exception as e:
-        print(f"Notification error: {e}")
-
-
 def extract_character_number(char_id: str) -> str:
     """Extract the number portion from a character ID.
 
