@@ -8,6 +8,7 @@ import {
   rankCombinations,
   findCombinations,
   findCombinationsForMultipleMissions,
+  findPerMissionCandidates,
   type Combination,
 } from "./combos";
 import { buildBitmaskLookup, characterToBitmask } from "./bitmask";
@@ -618,6 +619,299 @@ describe("Combination Search", () => {
           c.characterIds.includes("char1") && c.characterIds.includes("char2")
       );
       expect(comboWithBoth).toBeUndefined();
+    });
+  });
+
+  describe("findPerMissionCandidates", () => {
+    let tags: TagDict;
+    let lookup: ReturnType<typeof buildBitmaskLookup>;
+
+    beforeEach(() => {
+      tags = createTestTagDict();
+      lookup = buildBitmaskLookup(tags);
+    });
+
+    it("separates ready teams from blocked teams", () => {
+      // Setup: Mission requires 2 Attackers, Level 30
+      // Characters: A (Attacker, Lv25), B (Attacker, Lv35), C (Attacker, Lv40)
+      const characters = [
+        createTestCharacter("charA", { role: ["role-002"] }), // Attacker
+        createTestCharacter("charB", { role: ["role-002"] }), // Attacker
+        createTestCharacter("charC", { role: ["role-002"] }), // Attacker
+      ];
+
+      const mission = createTestMission("mission1", 30, [
+        { category: "role", anyOf: ["role-002", "role-002"] }, // Need 2 Attackers
+      ]);
+
+      const levels = {
+        charA: 25,
+        charB: 35,
+        charC: 40,
+      };
+
+      const result = findPerMissionCandidates(
+        mission,
+        characters,
+        levels,
+        lookup
+      );
+
+      // Ready teams: [B,C] (both at level 30+)
+      expect(result.readyTeams).toHaveLength(1);
+      expect(result.readyTeams[0].characterIds).toContain("charB");
+      expect(result.readyTeams[0].characterIds).toContain("charC");
+
+      // Blocked teams: [A,B], [A,C], and [A,B,C] (A is below level 30)
+      expect(result.blockedTeams).toHaveLength(3);
+
+      const blockedAB = result.blockedTeams.find(
+        (t) =>
+          t.characterIds.includes("charA") && t.characterIds.includes("charB")
+      );
+      expect(blockedAB).toBeDefined();
+      expect(blockedAB?.levelDeficits).toEqual({ charA: 5 });
+
+      const blockedAC = result.blockedTeams.find(
+        (t) =>
+          t.characterIds.includes("charA") && t.characterIds.includes("charC")
+      );
+      expect(blockedAC).toBeDefined();
+      expect(blockedAC?.levelDeficits).toEqual({ charA: 5 });
+    });
+
+    it("does not include teams with missing tags as blocked", () => {
+      // Setup: Mission requires 2 Attackers
+      // Characters: A (Attacker, Lv25), B (Supporter, Lv40)
+      const characters = [
+        createTestCharacter("charA", { role: ["role-002"] }), // Attacker
+        createTestCharacter("charB", { role: ["role-003"] }), // Supporter
+      ];
+
+      const mission = createTestMission("mission1", 30, [
+        { category: "role", anyOf: ["role-002", "role-002"] }, // Need 2 Attackers
+      ]);
+
+      const levels = {
+        charA: 25,
+        charB: 40,
+      };
+
+      const result = findPerMissionCandidates(
+        mission,
+        characters,
+        levels,
+        lookup
+      );
+
+      // Ready teams: none (can't make 2 Attackers)
+      expect(result.readyTeams).toHaveLength(0);
+
+      // Blocked teams: none (A+B fails tag requirement, not just level)
+      expect(result.blockedTeams).toHaveLength(0);
+    });
+
+    it("handles missions where bonus conditions affect blocking status", () => {
+      // Setup: Mission with base (1 Attacker) and bonus (1 Supporter) conditions
+      const characters = [
+        createTestCharacter("charA", { role: ["role-002"] }), // Attacker, Lv25
+        createTestCharacter("charB", { role: ["role-003"] }), // Supporter, Lv40
+      ];
+
+      const mission = createTestMission(
+        "mission1",
+        30,
+        [{ category: "role", anyOf: ["role-002"] }], // Base: 1 Attacker
+        [{ category: "role", anyOf: ["role-003"] }]  // Bonus: 1 Supporter
+      );
+
+      const levels = {
+        charA: 25,
+        charB: 40,
+      };
+
+      const result = findPerMissionCandidates(
+        mission,
+        characters,
+        levels,
+        lookup
+      );
+
+      // Ready teams: none (charA below level, charB doesn't meet base)
+      expect(result.readyTeams).toHaveLength(0);
+
+      // Blocked teams: [charA] alone (meets base, blocked by level)
+      // and [charA, charB] (meets base + bonus, blocked by charA's level)
+      expect(result.blockedTeams).toHaveLength(2);
+
+      const blockedCharAOnly = result.blockedTeams.find(
+        (t) => t.characterIds.length === 1 && t.characterIds.includes("charA")
+      );
+      expect(blockedCharAOnly).toBeDefined();
+      expect(blockedCharAOnly?.meetsBaseConditions).toBe(true);
+      expect(blockedCharAOnly?.meetsBonusConditions).toBe(false);
+
+      // Test combo: [charA, charB] should meet both base and bonus, but blocked by charA's level
+      const comboAB = result.blockedTeams.find(
+        (t) =>
+          t.characterIds.includes("charA") && t.characterIds.includes("charB")
+      );
+      expect(comboAB).toBeDefined();
+      expect(comboAB?.meetsBaseConditions).toBe(true);
+      expect(comboAB?.meetsBonusConditions).toBe(true);
+      expect(comboAB?.levelDeficits).toEqual({ charA: 5 });
+    });
+
+    it("populates levelDeficits correctly for multiple characters", () => {
+      // Setup: Mission requires Lv50, team with chars at Lv30 and Lv40
+      const characters = [
+        createTestCharacter("char1", { role: ["role-002"] }), // Attacker
+        createTestCharacter("char2", { role: ["role-001"] }), // Balancer
+      ];
+
+      const mission = createTestMission("mission1", 50, [
+        { category: "role", anyOf: ["role-002"] }, // Attacker
+        { category: "role", anyOf: ["role-001"] }, // Balancer
+      ]);
+
+      const levels = {
+        char1: 30,
+        char2: 40,
+      };
+
+      const result = findPerMissionCandidates(
+        mission,
+        characters,
+        levels,
+        lookup
+      );
+
+      // Ready teams: none (both below Lv50)
+      expect(result.readyTeams).toHaveLength(0);
+
+      // Blocked teams: [char1, char2] with both having deficits
+      expect(result.blockedTeams).toHaveLength(1);
+      expect(result.blockedTeams[0].characterIds).toContain("char1");
+      expect(result.blockedTeams[0].characterIds).toContain("char2");
+      expect(result.blockedTeams[0].levelDeficits).toEqual({
+        char1: 20,
+        char2: 10,
+      });
+    });
+
+    it("handles missions with 1-character requirements", () => {
+      // Setup: Mission requires 1 role
+      const characters = [
+        createTestCharacter("char1", { role: ["role-001"] }), // Lv20
+        createTestCharacter("char2", { role: ["role-001"] }), // Lv30
+        createTestCharacter("char3", { role: ["role-001"] }), // Lv50
+      ];
+
+      const mission = createTestMission("mission1", 30, [
+        { category: "role", anyOf: ["role-001"] }, // 1 Balancer
+      ]);
+
+      const levels = {
+        char1: 20,
+        char2: 30,
+        char3: 50,
+      };
+
+      const result = findPerMissionCandidates(
+        mission,
+        characters,
+        levels,
+        lookup
+      );
+
+      // Ready teams: [char2] and [char3] (both at Lv30+)
+      expect(result.readyTeams.length).toBeGreaterThanOrEqual(2);
+      const readyChar2 = result.readyTeams.find(
+        (t) => t.characterIds.length === 1 && t.characterIds.includes("char2")
+      );
+      const readyChar3 = result.readyTeams.find(
+        (t) => t.characterIds.length === 1 && t.characterIds.includes("char3")
+      );
+      expect(readyChar2).toBeDefined();
+      expect(readyChar3).toBeDefined();
+
+      // Blocked teams: [char1] and any combo including char1
+      const blockedChar1 = result.blockedTeams.find(
+        (t) => t.characterIds.length === 1 && t.characterIds.includes("char1")
+      );
+      expect(blockedChar1).toBeDefined();
+      expect(blockedChar1?.levelDeficits).toEqual({ char1: 10 });
+    });
+
+    it("sorts ready teams by size then bonus satisfaction", () => {
+      const characters = [
+        createTestCharacter("char1", { role: ["role-002"] }), // Attacker
+        createTestCharacter("char2", { role: ["role-002"] }), // Attacker
+        createTestCharacter("char3", { role: ["role-002"] }), // Attacker
+      ];
+
+      // Mission: 1 Attacker base, 2 Attackers bonus
+      const mission = createTestMission(
+        "mission1",
+        30,
+        [{ category: "role", anyOf: ["role-002"] }], // 1 Attacker
+        [{ category: "role", anyOf: ["role-002", "role-002"] }] // 2 Attackers
+      );
+
+      const levels = { char1: 50, char2: 50, char3: 50 };
+
+      const result = findPerMissionCandidates(
+        mission,
+        characters,
+        levels,
+        lookup
+      );
+
+      // Should have 1-char teams (base only) and 2-char teams (base + bonus)
+      // 1-char teams should come first (smaller size preferred)
+      const firstTeam = result.readyTeams[0];
+      expect(firstTeam.characterIds.length).toBe(1);
+
+      // Among 2-char teams, those with bonus should rank higher
+      // But since all 2-char teams satisfy bonus in this case, order doesn't matter much
+    });
+
+    it("sorts blocked teams by total level gap then size", () => {
+      const characters = [
+        createTestCharacter("char1", { role: ["role-002"] }), // Lv10 -> gap 40
+        createTestCharacter("char2", { role: ["role-002"] }), // Lv30 -> gap 20
+        createTestCharacter("char3", { role: ["role-002"] }), // Lv45 -> gap 5
+      ];
+
+      const mission = createTestMission("mission1", 50, [
+        { category: "role", anyOf: ["role-002", "role-002"] }, // 2 Attackers
+      ]);
+
+      const levels = { char1: 10, char2: 30, char3: 45 };
+
+      const result = findPerMissionCandidates(
+        mission,
+        characters,
+        levels,
+        lookup
+      );
+
+      // All teams are blocked (none have 2 chars at Lv50+)
+      expect(result.readyTeams).toHaveLength(0);
+
+      // Blocked teams should be sorted by total gap
+      // [char2, char3] gap = 20 + 5 = 25 (smallest)
+      // [char1, char3] gap = 40 + 5 = 45
+      // [char1, char2] gap = 40 + 20 = 60 (largest)
+      const firstBlocked = result.blockedTeams[0];
+      expect(firstBlocked.characterIds).toContain("char2");
+      expect(firstBlocked.characterIds).toContain("char3");
+
+      const totalGap = Object.values(firstBlocked.levelDeficits).reduce(
+        (sum, d) => sum + d,
+        0
+      );
+      expect(totalGap).toBe(25);
     });
   });
 

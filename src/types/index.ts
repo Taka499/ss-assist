@@ -183,3 +183,28 @@ export interface MultiMissionCombinationResult {
     charactersRemaining: number;
   };
 }
+
+/**
+ * A combination that is blocked only by level requirements
+ * Must satisfy all tag/role conditions but have at least one character below required level
+ */
+export interface BlockedCombination {
+  characterIds: string[];
+  meetsBaseConditions: boolean;    // Always true for blocked teams
+  meetsBonusConditions: boolean;   // May be true or false
+  levelDeficits: Record<string, number>;  // characterId → (requiredLevel - currentLevel)
+}
+
+/**
+ * Candidate teams for a single mission, separated by level sufficiency
+ */
+export interface PerMissionCandidates {
+  missionId: string;
+  readyTeams: Array<{
+    characterIds: string[];
+    meetsBaseConditions: boolean;
+    meetsBonusConditions: boolean;
+    contributingTags: string[];
+  }>;
+  blockedTeams: BlockedCombination[];
+}

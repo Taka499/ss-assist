@@ -14,6 +14,9 @@ import {
   type CategoryBitmasks,
 } from "./bitmask";
 
+// Re-export types for convenience
+export type { MultiMissionCombinationResult, MissionCoverage };
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -351,6 +354,149 @@ export function findCombinations(
     bestCombinations,
     missingForBase,
     missingForBonus,
+  };
+}
+
+// ============================================================================
+// Per-Mission Candidate Generation (Milestone 1)
+// ============================================================================
+
+/**
+ * Find candidate teams for a single mission, separated by level sufficiency
+ *
+ * This function generates two types of teams:
+ * - Ready teams: Satisfy all requirements including level
+ * - Blocked teams: Satisfy tag/role requirements but fail level check
+ *
+ * Algorithm:
+ * 1. Prune characters using bitmask interactsWith check
+ * 2. Generate all 1-3 character combinations
+ * 3. Validate each using count-based checking
+ * 4. Separate into ready vs blocked based on level requirements
+ * 5. Sort each category appropriately
+ *
+ * @param mission The mission to find candidates for
+ * @param ownedCharacters Characters the player owns
+ * @param characterLevels Map of character ID to current level
+ * @param bitmaskLookup Bitmask lookup table
+ * @returns Per-mission candidates separated by level sufficiency
+ */
+export function findPerMissionCandidates(
+  mission: Mission,
+  ownedCharacters: Character[],
+  characterLevels: Record<string, number>,
+  bitmaskLookup: BitmaskLookup
+): import("../types").PerMissionCandidates {
+  // Step 1: Compute character bitmasks
+  const characterBitmasks = new Map<string, CategoryBitmasks>();
+  for (const char of ownedCharacters) {
+    characterBitmasks.set(char.id, characterToBitmask(char, bitmaskLookup));
+  }
+
+  // Step 2: Pruning - filter characters that interact with mission conditions
+  const relevantCharacters = ownedCharacters.filter((char) => {
+    const mask = characterBitmasks.get(char.id);
+    if (!mask) return false;
+    return interactsWith(
+      mask,
+      mission.baseConditions,
+      mission.bonusConditions,
+      bitmaskLookup
+    );
+  });
+
+  // Step 3: Generate all combinations (up to 3 characters)
+  const candidateCombos = generateCombinations(relevantCharacters, 3);
+
+  // Step 4 & 5: Validate and categorize
+  const readyTeams: import("../types").PerMissionCandidates["readyTeams"] = [];
+  const blockedTeams: import("../types").BlockedCombination[] = [];
+
+  for (const combo of candidateCombos) {
+    // Phase 1: Tag/role validation
+    const meetsBase = satisfiesAllConditionsWithCounts(
+      combo,
+      mission.baseConditions
+    );
+
+    // If doesn't meet base conditions, discard (not ready, not blocked, just invalid)
+    if (!meetsBase) continue;
+
+    // Check bonus conditions
+    const meetsBonus = mission.bonusConditions
+      ? satisfiesAllConditionsWithCounts(combo, mission.bonusConditions)
+      : false;
+
+    // Phase 2: Level validation
+    const levelDeficits = checkLevelRequirements(
+      combo.map((c) => c.id),
+      mission.requiredLevel,
+      characterLevels
+    );
+
+    const meetsLevelRequirement = Object.keys(levelDeficits).length === 0;
+
+    // Extract contributing tags
+    const contributingTags = extractContributingTags(combo);
+
+    // Categorize: ready or blocked
+    if (meetsLevelRequirement) {
+      // Ready team
+      readyTeams.push({
+        characterIds: combo.map((c) => c.id),
+        meetsBaseConditions: true,
+        meetsBonusConditions: meetsBonus,
+        contributingTags,
+      });
+    } else {
+      // Blocked team (satisfies tag/role but not level)
+      blockedTeams.push({
+        characterIds: combo.map((c) => c.id),
+        meetsBaseConditions: true,
+        meetsBonusConditions: meetsBonus,
+        levelDeficits,
+      });
+    }
+  }
+
+  // Step 6: Sort ready teams by size (ascending), then bonus satisfaction (descending)
+  readyTeams.sort((a, b) => {
+    // Prefer smaller teams
+    if (a.characterIds.length !== b.characterIds.length) {
+      return a.characterIds.length - b.characterIds.length;
+    }
+
+    // Prefer teams that satisfy bonus
+    if (a.meetsBonusConditions !== b.meetsBonusConditions) {
+      return a.meetsBonusConditions ? -1 : 1;
+    }
+
+    // Lexicographic by character IDs (deterministic)
+    return a.characterIds.join(",").localeCompare(b.characterIds.join(","));
+  });
+
+  // Step 7: Sort blocked teams by total level gap (ascending), then size (ascending)
+  blockedTeams.sort((a, b) => {
+    // Prefer smaller total level gap
+    const gapA = Object.values(a.levelDeficits).reduce((sum, d) => sum + d, 0);
+    const gapB = Object.values(b.levelDeficits).reduce((sum, d) => sum + d, 0);
+    if (gapA !== gapB) {
+      return gapA - gapB;
+    }
+
+    // Prefer smaller teams
+    if (a.characterIds.length !== b.characterIds.length) {
+      return a.characterIds.length - b.characterIds.length;
+    }
+
+    // Lexicographic by character IDs (deterministic)
+    return a.characterIds.join(",").localeCompare(b.characterIds.join(","));
+  });
+
+  return {
+    missionId: mission.id,
+    readyTeams,
+    blockedTeams,
   };
 }
 
