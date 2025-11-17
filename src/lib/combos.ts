@@ -845,12 +845,21 @@ export function findBestMissionAssignment(
 
   // Phase 4: Package results
   const assignmentMap = new Map(bestAssignment.map(a => [a.missionId, a.team]));
+
+  // First, collect all assigned characters to filter blocked teams
+  const assignedCharacters = new Set<string>();
+  let totalRarity = 0;
+
+  for (const { team } of bestAssignment) {
+    team.characterIds.forEach(charId => assignedCharacters.add(charId));
+  }
+
   const assignments: import("../types").MissionAssignment[] = missions.map(mission => {
     const team = assignmentMap.get(mission.id);
 
     if (team) {
       // Calculate total rarity for display
-      const totalRarity = team.characterIds.reduce((sum, charId) => {
+      const teamRarity = team.characterIds.reduce((sum, charId) => {
         const char = ownedCharacters.find(c => c.id === charId);
         const rarityTag = char?.tags.rarity?.[0];
         // Extract rarity number from tag like "rarity-004" -> 4
@@ -858,34 +867,43 @@ export function findBestMissionAssignment(
         return sum + rarity;
       }, 0);
 
+      totalRarity += teamRarity;
+
       return {
         missionId: mission.id,
         missionValue: getMissionValue(mission),
         team: {
           characterIds: team.characterIds,
-          totalRarity,
+          totalRarity: teamRarity,
           satisfiesBonus: team.meetsBonusConditions,
         },
       };
     } else {
-      // Mission is unassigned - find the best blocked team to show user
+      // Mission is unassigned - find the best blocked team that doesn't use assigned characters
       const candidates = candidatesByMission.get(mission.id);
       let blockedTeam: import("../types").MissionAssignment['blockedTeam'];
 
       if (candidates && candidates.blockedTeams.length > 0) {
-        // Sort by total level gap (smallest first) to find the "closest" team
-        const sortedBlocked = [...candidates.blockedTeams].sort((a, b) => {
-          const gapA = Object.values(a.levelDeficits).reduce((sum, gap) => sum + gap, 0);
-          const gapB = Object.values(b.levelDeficits).reduce((sum, gap) => sum + gap, 0);
-          return gapA - gapB;
-        });
+        // Filter out teams that use any already-assigned characters
+        const availableBlockedTeams = candidates.blockedTeams.filter(team =>
+          team.characterIds.every(charId => !assignedCharacters.has(charId))
+        );
 
-        const best = sortedBlocked[0];
-        blockedTeam = {
-          characterIds: best.characterIds,
-          levelDeficits: best.levelDeficits,
-          satisfiesBonus: best.meetsBonusConditions,
-        };
+        if (availableBlockedTeams.length > 0) {
+          // Sort by total level gap (smallest first) to find the "closest" team
+          const sortedBlocked = [...availableBlockedTeams].sort((a, b) => {
+            const gapA = Object.values(a.levelDeficits).reduce((sum, gap) => sum + gap, 0);
+            const gapB = Object.values(b.levelDeficits).reduce((sum, gap) => sum + gap, 0);
+            return gapA - gapB;
+          });
+
+          const best = sortedBlocked[0];
+          blockedTeam = {
+            characterIds: best.characterIds,
+            levelDeficits: best.levelDeficits,
+            satisfiesBonus: best.meetsBonusConditions,
+          };
+        }
       }
 
       return {
@@ -896,16 +914,6 @@ export function findBestMissionAssignment(
       };
     }
   });
-
-  const assignedCharacters = new Set<string>();
-  let totalRarity = 0;
-
-  for (const assignment of assignments) {
-    if (assignment.team) {
-      assignment.team.characterIds.forEach(charId => assignedCharacters.add(charId));
-      totalRarity += assignment.team.totalRarity;
-    }
-  }
 
   const unassignedMissionIds = assignments
     .filter(a => a.team === null)
@@ -918,7 +926,11 @@ export function findBestMissionAssignment(
   for (const mission of unassignedMissions) {
     const candidates = candidatesByMission.get(mission.id);
     if (candidates) {
-      blockedTeamsByMission.set(mission.id, candidates.blockedTeams);
+      // Filter out blocked teams that use any already-assigned characters
+      const availableBlockedTeams = candidates.blockedTeams.filter(team =>
+        team.characterIds.every(charId => !assignedCharacters.has(charId))
+      );
+      blockedTeamsByMission.set(mission.id, availableBlockedTeams);
     }
   }
 
