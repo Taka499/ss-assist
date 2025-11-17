@@ -1,41 +1,41 @@
 {
   "role": {
-    "role-001": "Balancer",
-    "role-002": "Attacker",
-    "role-003": "Supporter"
+    "role-001": "Versatile",
+    "role-002": "Vanguard",
+    "role-003": "Support"
   },
   "style": {
-    "style-001": "Adventurer",
+    "style-001": "Adventurous",
     "style-002": "Creative",
-    "style-003": "Reliable",
+    "style-003": "Steady",
     "style-004": "Collector",
-    "style-005": "Curious"
+    "style-005": "Inquisitive"
   },
   "faction": {
-    "faction-001": "Unjiku Culture",
+    "faction-001": "Yunji Studio",
     "faction-002": "Moonaworks",
-    "faction-003": "Red Eyes",
-    "faction-004": "Grace Will",
-    "faction-005": "Blank Brigade",
-    "faction-006": "Hanasaki Brigade",
+    "faction-003": "Scarlet Sights Media",
+    "faction-004": "Grace Imperium",
+    "faction-005": "New Star Guild",
+    "faction-006": "Petal Bloom",
     "faction-007": "Imperial Guard",
-    "faction-008": "Wind Ash",
-    "faction-009": "Yorozu Delivery",
-    "faction-010": "Hakutaku Bureau",
-    "faction-011": "Agri Union",
-    "faction-012": "Freelancer",
+    "faction-008": "Ashwind Clan",
+    "faction-009": "Post Haste",
+    "faction-010": "Baize Bureau",
+    "faction-011": "United Harvest",
+    "faction-012": "Freelance Trekker",
     "faction-013": "Geography Society",
-    "faction-014": "Tanikaze Housekeeping",
-    "faction-015": "Phoenix Fried Rice",
-    "faction-016": "White Cat Theater"
+    "faction-014": "Goodwind Homecare",
+    "faction-015": "Fenghuang Diner",
+    "faction-016": "White Cat Troupe"
   },
   "element": {
-    "element-001": "Water",
-    "element-002": "Fire",
-    "element-003": "Earth",
-    "element-004": "Wind",
-    "element-005": "Light",
-    "element-006": "Dark"
+    "element-001": "Aqua",
+    "element-002": "Ignis",
+    "element-003": "Terra",
+    "element-004": "Ventus",
+    "element-005": "Lux",
+    "element-006": "Umbra"
   },
   "rarity": {
     "rarity-004": "4",

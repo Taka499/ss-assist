@@ -36,7 +36,10 @@
   },
   "roster": {
     "title": "选择角色",
-    "selected": "已选择: {{count}}个"
+    "selected": "已选择: {{count}}个",
+    "filter": "筛选",
+    "characterSelection": "选择角色",
+    "noMatchingCharacters": "没有符合筛选条件的角色"
   },
   "levels": {
     "title": "设置等级",
@@ -49,7 +52,11 @@
     "selected": "已选择: {{count}}/4个",
     "warning": "请至少选择一个委托",
     "noMissions": "请先选择委托",
-    "goToMissions": "前往选择委托"
+    "goToMissions": "前往选择委托",
+    "maxSelectAlert": "最多只能选择4个委托",
+    "baseConditions": "接受条件",
+    "bonusConditions": "额外奖励条件",
+    "rewards": "奖励"
   },
   "results": {
     "title": "分析结果",
@@ -59,5 +66,15 @@
     "trainingRecommendations": "培养建议",
     "noAssignment": "没有可分配给此委托的组合",
     "unassignedCharacters": "未分配角色: {{count}}个"
+  },
+  "training": {
+    "unlockMission": "解锁「{{missionName}}」:",
+    "levelUpTo": "升至 Lv{{level}}",
+    "bonusReward": "额外奖励",
+    "noRecommendations": "没有培养推荐",
+    "priorityRanking": "优先培养排名",
+    "unlockSummary": "解锁{{base}}个委托，{{bonus}}个额外奖励",
+    "score": "分数",
+    "detailsPlaceholder": "详细信息（计划实现）"
   }
 }

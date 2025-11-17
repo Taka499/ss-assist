@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLanguageStore } from '../store/useLanguageStore';
+import { useTranslation } from '../../i18n';
 import { getCharacterById } from '../lib/data';
 import { CharacterAvatar } from './CharacterAvatar';
 import type { TrainingRecommendation } from '../types';
@@ -10,13 +11,13 @@ interface TrainRankingProps {
 
 export function TrainRanking({ recommendations }: TrainRankingProps) {
   const lang = useLanguageStore((state) => state.lang);
+  const { t } = useTranslation(lang);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   if (recommendations.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
-        {lang === 'ja' ? '育成の推奨はありません' :
-          lang === 'zh-Hans' ? '没有培养推荐' : '沒有培養推薦'}
+        {t('training.noRecommendations')}
       </div>
     );
   }
@@ -24,8 +25,7 @@ export function TrainRanking({ recommendations }: TrainRankingProps) {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">
-        {lang === 'ja' ? '優先育成ランキング' :
-          lang === 'zh-Hans' ? '优先培养排名' : '優先培養排名'}
+        {t('training.priorityRanking')}
       </h3>
 
       <div className="space-y-3">
@@ -67,9 +67,10 @@ export function TrainRanking({ recommendations }: TrainRankingProps) {
                     Lv{rec.currentLevel} → Lv{rec.targetLevel}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
-                    {lang === 'ja' && `${rec.impact.baseConditionsUnlocked}件解放、${rec.impact.bonusConditionsAdded}件追加報酬`}
-                    {lang === 'zh-Hans' && `解锁${rec.impact.baseConditionsUnlocked}个委托，${rec.impact.bonusConditionsAdded}个额外奖励`}
-                    {lang === 'zh-Hant' && `解鎖${rec.impact.baseConditionsUnlocked}個委託，${rec.impact.bonusConditionsAdded}個額外獎勵`}
+                    {t('training.unlockSummary', {
+                      base: rec.impact.baseConditionsUnlocked,
+                      bonus: rec.impact.bonusConditionsAdded
+                    })}
                   </div>
                 </div>
 
@@ -77,7 +78,7 @@ export function TrainRanking({ recommendations }: TrainRankingProps) {
                 <div className="flex-shrink-0 text-right">
                   <div className="text-lg font-bold text-blue-600">{rec.score.toFixed(1)}</div>
                   <div className="text-xs text-gray-500">
-                    {lang === 'ja' ? 'スコア' : lang === 'zh-Hans' ? '分数' : '分數'}
+                    {t('training.score')}
                   </div>
                 </div>
 
@@ -90,8 +91,7 @@ export function TrainRanking({ recommendations }: TrainRankingProps) {
               {/* Expanded Details (placeholder for future enhancement) */}
               {isExpanded && (
                 <div className="mt-3 pt-3 border-t border-gray-200 text-sm text-gray-600">
-                  {lang === 'ja' ? '詳細情報（実装予定）' :
-                    lang === 'zh-Hans' ? '详细信息（计划实现）' : '詳細資訊（計劃實現）'}
+                  {t('training.detailsPlaceholder')}
                 </div>
               )}
             </div>

@@ -36,7 +36,10 @@
   },
   "roster": {
     "title": "キャラクター選択",
-    "selected": "選択中: {{count}}人"
+    "selected": "選択中: {{count}}人",
+    "filter": "フィルタ",
+    "characterSelection": "キャラクター選択",
+    "noMatchingCharacters": "フィルタに一致するキャラクターがありません"
   },
   "levels": {
     "title": "レベル設定",
@@ -49,7 +52,11 @@
     "selected": "選択中: {{count}}/4件",
     "warning": "少なくとも1件の依頼を選択してください",
     "noMissions": "依頼を選択してください",
-    "goToMissions": "依頼選択へ"
+    "goToMissions": "依頼選択へ",
+    "maxSelectAlert": "最大4件まで選択できます",
+    "baseConditions": "受注条件",
+    "bonusConditions": "追加報酬条件",
+    "rewards": "報酬"
   },
   "results": {
     "title": "分析結果",
@@ -59,5 +66,15 @@
     "trainingRecommendations": "育成推奨",
     "noAssignment": "この依頼に割り当てられる組み合わせがありません",
     "unassignedCharacters": "未割り当てキャラクター: {{count}}人"
+  },
+  "training": {
+    "unlockMission": "「{{missionName}}」を解放するには:",
+    "levelUpTo": "を Lv{{level}} まで上げる",
+    "bonusReward": "追加報酬達成",
+    "noRecommendations": "育成の推奨はありません",
+    "priorityRanking": "優先育成ランキング",
+    "unlockSummary": "{{base}}件解放、{{bonus}}件追加報酬",
+    "score": "スコア",
+    "detailsPlaceholder": "詳細情報（実装予定）"
   }
 }

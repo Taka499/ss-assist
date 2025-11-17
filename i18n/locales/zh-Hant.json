@@ -36,7 +36,10 @@
   },
   "roster": {
     "title": "選擇角色",
-    "selected": "已選擇: {{count}}個"
+    "selected": "已選擇: {{count}}個",
+    "filter": "篩選",
+    "characterSelection": "選擇角色",
+    "noMatchingCharacters": "沒有符合篩選條件的角色"
   },
   "levels": {
     "title": "設置等級",
@@ -49,7 +52,11 @@
     "selected": "已選擇: {{count}}/4個",
     "warning": "請至少選擇一個委託",
     "noMissions": "請先選擇委託",
-    "goToMissions": "前往選擇委託"
+    "goToMissions": "前往選擇委託",
+    "maxSelectAlert": "最多只能選擇4個委託",
+    "baseConditions": "接受條件",
+    "bonusConditions": "額外獎勵條件",
+    "rewards": "獎勵"
   },
   "results": {
     "title": "分析結果",
@@ -59,5 +66,15 @@
     "trainingRecommendations": "培養建議",
     "noAssignment": "沒有可分配給此委託的組合",
     "unassignedCharacters": "未分配角色: {{count}}個"
+  },
+  "training": {
+    "unlockMission": "解鎖「{{missionName}}」:",
+    "levelUpTo": "升至 Lv{{level}}",
+    "bonusReward": "額外獎勵",
+    "noRecommendations": "沒有培養推薦",
+    "priorityRanking": "優先培養排名",
+    "unlockSummary": "解鎖{{base}}個委託，{{bonus}}個額外獎勵",
+    "score": "分數",
+    "detailsPlaceholder": "詳細資訊（計劃實現）"
   }
 }

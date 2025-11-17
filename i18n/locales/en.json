@@ -36,7 +36,10 @@
   },
   "roster": {
     "title": "Select Characters",
-    "selected": "Selected: {{count}}"
+    "selected": "Selected: {{count}}",
+    "filter": "Filter",
+    "characterSelection": "Character Selection",
+    "noMatchingCharacters": "No characters match the selected filters"
   },
   "levels": {
     "title": "Set Levels",
@@ -49,7 +52,11 @@
     "selected": "Selected: {{count}}/4",
     "warning": "Please select at least one mission",
     "noMissions": "Please select missions",
-    "goToMissions": "Go to Mission Selection"
+    "goToMissions": "Go to Mission Selection",
+    "maxSelectAlert": "You can select up to 4 missions",
+    "baseConditions": "Base Conditions",
+    "bonusConditions": "Bonus Conditions",
+    "rewards": "Rewards"
   },
   "results": {
     "title": "Analysis Results",
@@ -59,5 +66,15 @@
     "trainingRecommendations": "Training Recommendations",
     "noAssignment": "No valid combination for this mission",
     "unassignedCharacters": "Unassigned characters: {{count}}"
+  },
+  "training": {
+    "unlockMission": "To unlock \"{{missionName}}\":",
+    "levelUpTo": "to Lv{{level}}",
+    "bonusReward": "Bonus Reward",
+    "noRecommendations": "No training recommendations",
+    "priorityRanking": "Training Priority Ranking",
+    "unlockSummary": "Unlock {{base}} mission(s), {{bonus}} bonus(es)",
+    "score": "Score",
+    "detailsPlaceholder": "Details (Coming Soon)"
   }
 }
