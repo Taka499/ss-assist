@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Reward } from '../types';
 import { getItemById } from '../lib/data';
 import { useLanguageStore } from '../store/useLanguageStore';
@@ -9,6 +10,7 @@ interface RewardChipProps {
 export function RewardChip({ reward }: RewardChipProps) {
   const lang = useLanguageStore((state) => state.lang);
   const { itemId, amount } = reward;
+  const [showTooltip, setShowTooltip] = useState(false);
 
   // Format amount
   const formattedAmount =
@@ -27,16 +29,29 @@ export function RewardChip({ reward }: RewardChipProps) {
 
   return (
     <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-gray-100 text-gray-700">
-      {iconUrl ? (
-        <img
-          src={iconUrl}
-          alt={itemName}
-          title={itemName}
-          className="w-4 h-4 object-contain cursor-help"
-        />
-      ) : (
-        <span className="text-base" title={itemName}>🎁</span>
-      )}
+      <span
+        className="relative inline-block"
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+      >
+        {iconUrl ? (
+          <img
+            src={iconUrl}
+            alt={itemName}
+            className="w-6 h-6 object-contain cursor-pointer"
+          />
+        ) : (
+          <span className="text-lg cursor-pointer">🎁</span>
+        )}
+
+        {/* Custom tooltip */}
+        {showTooltip && (
+          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded whitespace-nowrap z-10 pointer-events-none">
+            {itemName}
+            <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></span>
+          </span>
+        )}
+      </span>
       <span className="font-medium">{formattedAmount}</span>
     </span>
   );
