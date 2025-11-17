@@ -5,6 +5,7 @@ import { useAppStore } from '../store/useAppStore';
 import { findBestMissionAssignment } from '../lib/combos';
 import { MissionAssignmentCard } from '../components/MissionAssignmentCard';
 import { TrainingRecommendationList } from '../components/TrainingRecommendationList';
+import { analytics } from '../lib/analytics';
 import type { Mission, MultiMissionAssignmentResult, MissionAssignment } from '../types';
 
 interface ResultsProps {
@@ -58,6 +59,9 @@ export function Results({ onNavigate }: ResultsProps) {
       );
 
       setAssignmentResult(result);
+
+      // Track roster composition (which characters users actually use)
+      analytics.trackRosterComposition(ownedCharacterIds);
     } catch (error) {
       console.error('Error analyzing results:', error);
     } finally {

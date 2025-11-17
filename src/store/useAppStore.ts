@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { analytics } from '../lib/analytics';
 
 interface AppStore {
   // State
@@ -67,6 +68,7 @@ export const useAppStore = create<AppStore>()(
           const isSelected = state.selectedMissionIds.includes(missionId);
           if (isSelected) {
             // Remove mission
+            analytics.trackMissionDeselected(missionId);
             return {
               selectedMissionIds: state.selectedMissionIds.filter(id => id !== missionId),
             };
@@ -76,6 +78,7 @@ export const useAppStore = create<AppStore>()(
               // Ignore - already at max
               return state;
             }
+            analytics.trackMissionSelected(missionId);
             return {
               selectedMissionIds: [...state.selectedMissionIds, missionId],
             };

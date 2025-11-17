@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { analytics } from '../lib/analytics';
 import type { Language } from '../types';
 
 interface LanguageStore {
@@ -28,7 +29,10 @@ export const useLanguageStore = create<LanguageStore>()(
     (set) => ({
       lang: detectBrowserLanguage(),
 
-      setLanguage: (lang: Language) => set({ lang }),
+      setLanguage: (lang: Language) => {
+        analytics.trackLanguageChange(lang);
+        set({ lang });
+      },
 
       // Simple translation helper - returns key or fallback
       // Full translation loading will be implemented in Phase 4
