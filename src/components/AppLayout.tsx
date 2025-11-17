@@ -147,7 +147,7 @@ export function AppLayout({ children, currentPage, onNavigate }: AppLayoutProps)
                 lang === 'zh-Hans' ? 'Stella Sora 委托助手' : 'Stella Sora 委託助手'}
               {' | '}
               <a
-                href="https://github.com/ghensk/ss-assist"
+                href="https://github.com/Taka499/ss-assist"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:underline"
