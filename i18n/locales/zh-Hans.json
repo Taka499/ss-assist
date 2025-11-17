@@ -56,7 +56,11 @@
     "maxSelectAlert": "最多只能选择4个委托",
     "baseConditions": "接受条件",
     "bonusConditions": "额外奖励条件",
-    "rewards": "奖励"
+    "rewards": "奖励",
+    "requiredLevel": "所需等级",
+    "charactersNeedTraining": "需要培养的角色:",
+    "canAssignAfterLeveling": "提升等级后可分配",
+    "notEnoughCharacters": "角色不足"
   },
   "results": {
     "title": "分析结果",
@@ -82,5 +86,15 @@
     "unlockSummary": "解锁{{base}}个委托，{{bonus}}个额外奖励",
     "score": "分数",
     "detailsPlaceholder": "详细信息（计划实现）"
+  },
+  "status": {
+    "missionUnlock": "解锁任务",
+    "bonusAchieved": "额外奖励",
+    "canAccept": "可接受",
+    "baseOnly": "仅基础条件",
+    "basePlusBonus": "基础 + 额外奖励",
+    "cannotAssign": "无法分配",
+    "notSatisfied": "未满足",
+    "levelDeficit": "等级不足"
   }
 }

@@ -56,7 +56,11 @@
     "maxSelectAlert": "最多只能選擇4個委託",
     "baseConditions": "接受條件",
     "bonusConditions": "額外獎勵條件",
-    "rewards": "獎勵"
+    "rewards": "獎勵",
+    "requiredLevel": "所需等級",
+    "charactersNeedTraining": "需要培養的角色:",
+    "canAssignAfterLeveling": "提升等級後可分配",
+    "notEnoughCharacters": "角色不足"
   },
   "results": {
     "title": "分析結果",
@@ -82,5 +86,15 @@
     "unlockSummary": "解鎖{{base}}個委託，{{bonus}}個額外獎勵",
     "score": "分數",
     "detailsPlaceholder": "詳細資訊（計劃實現）"
+  },
+  "status": {
+    "missionUnlock": "解鎖任務",
+    "bonusAchieved": "額外獎勵",
+    "canAccept": "可接受",
+    "baseOnly": "僅基礎條件",
+    "basePlusBonus": "基礎 + 額外獎勵",
+    "cannotAssign": "無法分配",
+    "notSatisfied": "未滿足",
+    "levelDeficit": "等級不足"
   }
 }

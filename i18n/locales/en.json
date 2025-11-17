@@ -56,7 +56,11 @@
     "maxSelectAlert": "You can select up to 4 missions",
     "baseConditions": "Base Conditions",
     "bonusConditions": "Bonus Conditions",
-    "rewards": "Rewards"
+    "rewards": "Rewards",
+    "requiredLevel": "Required Level",
+    "charactersNeedTraining": "Characters need training:",
+    "canAssignAfterLeveling": "Can assign after leveling up",
+    "notEnoughCharacters": "Not enough characters"
   },
   "results": {
     "title": "Analysis Results",
@@ -82,5 +86,15 @@
     "unlockSummary": "Unlock {{base}} mission(s), {{bonus}} bonus(es)",
     "score": "Score",
     "detailsPlaceholder": "Details (Coming Soon)"
+  },
+  "status": {
+    "missionUnlock": "Mission Unlock",
+    "bonusAchieved": "Bonus Achieved",
+    "canAccept": "Can Accept",
+    "baseOnly": "Base Only",
+    "basePlusBonus": "Base + Bonus",
+    "cannotAssign": "Cannot Assign",
+    "notSatisfied": "Not Satisfied",
+    "levelDeficit": "Insufficient Level"
   }
 }

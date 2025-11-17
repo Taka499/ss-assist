@@ -56,7 +56,11 @@
     "maxSelectAlert": "最大4件まで選択できます",
     "baseConditions": "受注条件",
     "bonusConditions": "追加報酬条件",
-    "rewards": "報酬"
+    "rewards": "報酬",
+    "requiredLevel": "必要レベル",
+    "charactersNeedTraining": "育成が必要なキャラ:",
+    "canAssignAfterLeveling": "レベルを上げると割り当て可能になります",
+    "notEnoughCharacters": "キャラクターが不足しています"
   },
   "results": {
     "title": "分析結果",
@@ -82,5 +86,15 @@
     "unlockSummary": "{{base}}件解放、{{bonus}}件追加報酬",
     "score": "スコア",
     "detailsPlaceholder": "詳細情報（実装予定）"
+  },
+  "status": {
+    "missionUnlock": "ミッション解放",
+    "bonusAchieved": "追加報酬達成",
+    "canAccept": "受注達成",
+    "baseOnly": "基本条件のみ",
+    "basePlusBonus": "基本 + 追加報酬",
+    "cannotAssign": "割り当て不可",
+    "notSatisfied": "未達成",
+    "levelDeficit": "レベル不足"
   }
 }

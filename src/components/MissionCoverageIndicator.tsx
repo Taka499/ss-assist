@@ -1,4 +1,5 @@
 import { useLanguageStore } from '../store/useLanguageStore';
+import { useTranslation } from '../../i18n';
 import type { MissionCoverage, Mission } from '../types';
 
 interface MissionCoverageIndicatorProps {
@@ -8,6 +9,7 @@ interface MissionCoverageIndicatorProps {
 
 export function MissionCoverageIndicator({ missionCoverage, missions }: MissionCoverageIndicatorProps) {
   const lang = useLanguageStore((state) => state.lang);
+  const { t } = useTranslation(lang);
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -25,22 +27,22 @@ export function MissionCoverageIndicator({ missionCoverage, missions }: MissionC
           // Red: Level requirement not met
           badgeClass = 'bg-red-100 text-red-700 border-red-300';
           icon = '⚠️';
-          statusText = lang === 'ja' ? 'レベル不足' : lang === 'zh-Hans' ? '等级不足' : '等級不足';
+          statusText = t('status.levelDeficit');
         } else if (coverage.satisfiesBase && coverage.satisfiesBonus) {
           // Green: Full coverage (base + bonus)
           badgeClass = 'bg-green-100 text-green-700 border-green-300';
           icon = '✅';
-          statusText = lang === 'ja' ? '追加報酬達成' : lang === 'zh-Hans' ? '额外奖励' : '額外獎勵';
+          statusText = t('status.bonusAchieved');
         } else if (coverage.satisfiesBase) {
           // Blue: Base only
           badgeClass = 'bg-blue-100 text-blue-700 border-blue-300';
           icon = '✓';
-          statusText = lang === 'ja' ? '受注達成' : lang === 'zh-Hans' ? '可接受' : '可接受';
+          statusText = t('status.canAccept');
         } else {
           // Gray: Not satisfied
           badgeClass = 'bg-gray-100 text-gray-700 border-gray-300';
           icon = '✗';
-          statusText = lang === 'ja' ? '未達成' : lang === 'zh-Hans' ? '未满足' : '未滿足';
+          statusText = t('status.notSatisfied');
         }
 
         const missionName = mission.name[lang] || mission.name.ja;

@@ -1,4 +1,5 @@
 import { useLanguageStore } from '../store/useLanguageStore';
+import { useTranslation } from '../../i18n';
 import { getCharacterById } from '../lib/data';
 import { TagPill } from './TagPill';
 import type { TrainingRecommendationNew } from '../types';
@@ -9,12 +10,13 @@ interface TrainingRecommendationListProps {
 
 export function TrainingRecommendationList({ recommendations }: TrainingRecommendationListProps) {
   const lang = useLanguageStore((state) => state.lang);
+  const { t } = useTranslation(lang);
 
   if (recommendations.length === 0) {
     return (
       <div className="text-center py-4 text-gray-500">
         <p>
-          {lang === 'ja' ? '育成推奨はありません' : lang === 'zh-Hans' ? '无培养建议' : '無培養建議'}
+          {t('training.noRecommendations')}
         </p>
       </div>
     );
@@ -49,11 +51,11 @@ export function TrainingRecommendationList({ recommendations }: TrainingRecommen
       <div className="mb-4 flex gap-4 text-xs text-gray-600">
         <div className="flex items-center gap-1">
           <span className="text-green-700">✅</span>
-          <span>{lang === 'ja' ? 'ミッション解放' : lang === 'zh-Hans' ? '解锁任务' : '解鎖任務'}</span>
+          <span>{t('status.missionUnlock')}</span>
         </div>
         <div className="flex items-center gap-1">
           <span className="text-blue-700">⭐</span>
-          <span>{lang === 'ja' ? '追加報酬達成' : lang === 'zh-Hans' ? '额外奖励' : '額外獎勵'}</span>
+          <span>{t('status.bonusAchieved')}</span>
         </div>
       </div>
 
