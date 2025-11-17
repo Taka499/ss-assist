@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { loadData, isDataLoaded, getMissionById, getCharacters, getBitmaskLookup } from '../lib/data';
 import { useLanguageStore } from '../store/useLanguageStore';
+import { useTranslation } from '../../i18n';
 import { useAppStore } from '../store/useAppStore';
 import { findBestMissionAssignment } from '../lib/combos';
 import { MissionAssignmentCard } from '../components/MissionAssignmentCard';
@@ -14,6 +15,7 @@ interface ResultsProps {
 
 export function Results({ onNavigate }: ResultsProps) {
   const lang = useLanguageStore((state) => state.lang);
+  const { t } = useTranslation(lang);
   const { selectedMissionIds, ownedCharacterIds, characterLevels } = useAppStore();
 
   const [assignmentResult, setAssignmentResult] = useState<MultiMissionAssignmentResult | null>(null);
@@ -75,7 +77,7 @@ export function Results({ onNavigate }: ResultsProps) {
       <div className="text-center py-12">
         <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
         <p className="mt-4 text-gray-600">
-          {lang === 'ja' ? '読み込み中...' : lang === 'zh-Hans' ? '加载中...' : '載入中...'}
+          {t('common.loading')}
         </p>
       </div>
     );
@@ -85,15 +87,13 @@ export function Results({ onNavigate }: ResultsProps) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-600 mb-4">
-          {lang === 'ja' ? '依頼を選択してください' :
-            lang === 'zh-Hans' ? '请先选择委托' : '請先選擇委託'}
+          {t('missions.noMissions')}
         </p>
         <button
           onClick={() => onNavigate('missions')}
           className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
         >
-          {lang === 'ja' ? '依頼選択へ' :
-            lang === 'zh-Hans' ? '前往选择委托' : '前往選擇委託'}
+          {t('missions.goToMissions')}
         </button>
       </div>
     );

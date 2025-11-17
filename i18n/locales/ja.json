@@ -1,0 +1,63 @@
+{
+  "app": {
+    "title": "ステラソラ依頼アシスト",
+    "subtitle": "非公式ファンツール"
+  },
+  "nav": {
+    "home": "ホーム",
+    "roster": "キャラ選択",
+    "levels": "レベル設定",
+    "missions": "依頼選択",
+    "results": "結果"
+  },
+  "buttons": {
+    "start": "始める",
+    "next": "次へ",
+    "back": "戻る",
+    "analyze": "分析",
+    "reAnalyze": "再分析",
+    "clear": "選択解除",
+    "selectAll": "全て選択",
+    "deselectAll": "全て解除"
+  },
+  "common": {
+    "loading": "読み込み中...",
+    "level": "レベル",
+    "count": "{{count}}人",
+    "missionCount": "{{count}}件"
+  },
+  "home": {
+    "description": "所持キャラクターから依頼の最適な組み合わせを見つけ、育成の優先度を提案します。",
+    "howToUse": "使い方",
+    "step1": "所持キャラクターを選択",
+    "step2": "各キャラクターのレベルを設定",
+    "step3": "分析したい依頼を最大4件選択",
+    "step4": "最適な組み合わせと育成推奨を確認"
+  },
+  "roster": {
+    "title": "キャラクター選択",
+    "selected": "選択中: {{count}}人"
+  },
+  "levels": {
+    "title": "レベル設定",
+    "description": "キャラクターのレベルを設定してください",
+    "noCharacters": "キャラクターを選択してください",
+    "goToRoster": "キャラクター選択へ"
+  },
+  "missions": {
+    "title": "依頼選択",
+    "selected": "選択中: {{count}}/4件",
+    "warning": "少なくとも1件の依頼を選択してください",
+    "noMissions": "依頼を選択してください",
+    "goToMissions": "依頼選択へ"
+  },
+  "results": {
+    "title": "分析結果",
+    "analyzing": "分析中...",
+    "summary": "{{fulfilled}}件の依頼が達成可能です",
+    "assignments": "依頼割り当て",
+    "trainingRecommendations": "育成推奨",
+    "noAssignment": "この依頼に割り当てられる組み合わせがありません",
+    "unassignedCharacters": "未割り当てキャラクター: {{count}}人"
+  }
+}

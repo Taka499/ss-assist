@@ -6,12 +6,13 @@
 export type Category = "role" | "style" | "faction" | "element" | "rarity";
 
 /**
- * Multi-language string support for Japanese, Simplified Chinese, and Traditional Chinese
+ * Multi-language string support for Japanese, Simplified Chinese, Traditional Chinese, and English
  */
 export interface MultiLangString {
   ja: string;
   "zh-Hans"?: string;
   "zh-Hant"?: string;
+  en?: string;
 }
 
 /**
@@ -22,6 +23,7 @@ export interface TagEntry {
   ja: string;
   "zh-Hans"?: string;
   "zh-Hant"?: string;
+  en?: string;
 }
 
 /**
@@ -128,7 +130,7 @@ export interface AppState {
 /**
  * Language options
  */
-export type Language = "ja" | "zh-Hans" | "zh-Hant";
+export type Language = "ja" | "zh-Hans" | "zh-Hant" | "en";
 
 /**
  * Character combination result

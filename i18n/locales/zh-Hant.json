@@ -1,0 +1,63 @@
+{
+  "app": {
+    "title": "Stella Sora 委託助手",
+    "subtitle": "非官方粉絲工具"
+  },
+  "nav": {
+    "home": "首頁",
+    "roster": "選擇角色",
+    "levels": "設置等級",
+    "missions": "選擇委託",
+    "results": "結果"
+  },
+  "buttons": {
+    "start": "開始",
+    "next": "下一步",
+    "back": "返回",
+    "analyze": "分析",
+    "reAnalyze": "重新分析",
+    "clear": "清除選擇",
+    "selectAll": "全選",
+    "deselectAll": "全部取消"
+  },
+  "common": {
+    "loading": "載入中...",
+    "level": "等級",
+    "count": "{{count}}個",
+    "missionCount": "{{count}}個"
+  },
+  "home": {
+    "description": "從您的角色中找到委託的最佳組合，並提供培養優先級建議。",
+    "howToUse": "使用方法",
+    "step1": "選擇您擁有的角色",
+    "step2": "設置每個角色的等級",
+    "step3": "選擇最多4個要分析的委託",
+    "step4": "查看最佳組合和培養建議"
+  },
+  "roster": {
+    "title": "選擇角色",
+    "selected": "已選擇: {{count}}個"
+  },
+  "levels": {
+    "title": "設置等級",
+    "description": "請設置角色等級",
+    "noCharacters": "請先選擇角色",
+    "goToRoster": "前往選擇角色"
+  },
+  "missions": {
+    "title": "選擇委託",
+    "selected": "已選擇: {{count}}/4個",
+    "warning": "請至少選擇一個委託",
+    "noMissions": "請先選擇委託",
+    "goToMissions": "前往選擇委託"
+  },
+  "results": {
+    "title": "分析結果",
+    "analyzing": "分析中...",
+    "summary": "可完成{{fulfilled}}個委託",
+    "assignments": "委託分配",
+    "trainingRecommendations": "培養建議",
+    "noAssignment": "沒有可分配給此委託的組合",
+    "unassignedCharacters": "未分配角色: {{count}}個"
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "app": {
+    "title": "Stella Sora 委托助手",
+    "subtitle": "非官方粉丝工具"
+  },
+  "nav": {
+    "home": "首页",
+    "roster": "选择角色",
+    "levels": "设置等级",
+    "missions": "选择委托",
+    "results": "结果"
+  },
+  "buttons": {
+    "start": "开始",
+    "next": "下一步",
+    "back": "返回",
+    "analyze": "分析",
+    "reAnalyze": "重新分析",
+    "clear": "清除选择",
+    "selectAll": "全选",
+    "deselectAll": "全部取消"
+  },
+  "common": {
+    "loading": "加载中...",
+    "level": "等级",
+    "count": "{{count}}个",
+    "missionCount": "{{count}}个"
+  },
+  "home": {
+    "description": "从您的角色中找到委托的最佳组合，并提供培养优先级建议。",
+    "howToUse": "使用方法",
+    "step1": "选择您拥有的角色",
+    "step2": "设置每个角色的等级",
+    "step3": "选择最多4个要分析的委托",
+    "step4": "查看最佳组合和培养建议"
+  },
+  "roster": {
+    "title": "选择角色",
+    "selected": "已选择: {{count}}个"
+  },
+  "levels": {
+    "title": "设置等级",
+    "description": "请设置角色等级",
+    "noCharacters": "请先选择角色",
+    "goToRoster": "前往选择角色"
+  },
+  "missions": {
+    "title": "选择委托",
+    "selected": "已选择: {{count}}/4个",
+    "warning": "请至少选择一个委托",
+    "noMissions": "请先选择委托",
+    "goToMissions": "前往选择委托"
+  },
+  "results": {
+    "title": "分析结果",
+    "analyzing": "分析中...",
+    "summary": "可完成{{fulfilled}}个委托",
+    "assignments": "委托分配",
+    "trainingRecommendations": "培养建议",
+    "noAssignment": "没有可分配给此委托的组合",
+    "unassignedCharacters": "未分配角色: {{count}}个"
+  }
+}

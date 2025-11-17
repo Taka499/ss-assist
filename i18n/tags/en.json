@@ -1,0 +1,44 @@
+{
+  "role": {
+    "role-001": "Balancer",
+    "role-002": "Attacker",
+    "role-003": "Supporter"
+  },
+  "style": {
+    "style-001": "Adventurer",
+    "style-002": "Creative",
+    "style-003": "Reliable",
+    "style-004": "Collector",
+    "style-005": "Curious"
+  },
+  "faction": {
+    "faction-001": "Unjiku Culture",
+    "faction-002": "Moonaworks",
+    "faction-003": "Red Eyes",
+    "faction-004": "Grace Will",
+    "faction-005": "Blank Brigade",
+    "faction-006": "Hanasaki Brigade",
+    "faction-007": "Imperial Guard",
+    "faction-008": "Wind Ash",
+    "faction-009": "Yorozu Delivery",
+    "faction-010": "Hakutaku Bureau",
+    "faction-011": "Agri Union",
+    "faction-012": "Freelancer",
+    "faction-013": "Geography Society",
+    "faction-014": "Tanikaze Housekeeping",
+    "faction-015": "Phoenix Fried Rice",
+    "faction-016": "White Cat Theater"
+  },
+  "element": {
+    "element-001": "Water",
+    "element-002": "Fire",
+    "element-003": "Earth",
+    "element-004": "Wind",
+    "element-005": "Light",
+    "element-006": "Dark"
+  },
+  "rarity": {
+    "rarity-004": "4",
+    "rarity-005": "5"
+  }
+}
