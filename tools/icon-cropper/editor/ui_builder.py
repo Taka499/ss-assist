@@ -45,6 +45,27 @@ class UIBuilder:
         self.grid_input_vars = {}
         self.ocr_input_vars = {}
 
+    def _enable_mousewheel_scrolling(self, canvas: tk.Canvas):
+        """Enable mousewheel scrolling for a canvas when mouse hovers over it.
+
+        This binds mousewheel events to the canvas on Enter and unbinds on Leave,
+        preventing conflicts with other scrollable areas.
+
+        Args:
+            canvas: Canvas widget to enable mousewheel scrolling for
+        """
+        def on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        def bind_mousewheel(event):
+            canvas.bind("<MouseWheel>", on_mousewheel)
+
+        def unbind_mousewheel(event):
+            canvas.unbind("<MouseWheel>")
+
+        canvas.bind("<Enter>", bind_mousewheel)
+        canvas.bind("<Leave>", unbind_mousewheel)
+
     def _create_scrollable_frame(self, parent: ttk.Frame) -> ttk.Frame:
         """Create a scrollable frame inside a parent frame.
 
@@ -75,18 +96,8 @@ class UIBuilder:
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Enable mousewheel scrolling when mouse is over this canvas
-        def on_mousewheel(event):
-            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-
-        def bind_mousewheel(event):
-            canvas.bind("<MouseWheel>", on_mousewheel)
-
-        def unbind_mousewheel(event):
-            canvas.unbind("<MouseWheel>")
-
-        canvas.bind("<Enter>", bind_mousewheel)
-        canvas.bind("<Leave>", unbind_mousewheel)
+        # Enable mousewheel scrolling
+        self._enable_mousewheel_scrolling(canvas)
 
         return scrollable_frame
 
@@ -214,6 +225,9 @@ class UIBuilder:
 
         screenshot_list_inner = ttk.Frame(list_canvas)
         list_canvas.create_window((0, 0), window=screenshot_list_inner, anchor='nw')
+
+        # Enable mousewheel scrolling
+        self._enable_mousewheel_scrolling(list_canvas)
 
         # Store reference for updating
         self.screenshot_list_frame = screenshot_list_inner
@@ -365,6 +379,9 @@ class UIBuilder:
 
         overlay_list_inner = ttk.Frame(overlay_canvas)
         overlay_canvas.create_window((0, 0), window=overlay_list_inner, anchor='nw')
+
+        # Enable mousewheel scrolling
+        self._enable_mousewheel_scrolling(overlay_canvas)
 
         # Store references for updating
         self.overlay_list_frame = overlay_list_inner
