@@ -1,5 +1,4 @@
 id,name_ja,name_zh-Hans,name_zh-Hant,icon,role,style,faction,element,rarity,name_en,name_kr
-char-000,,,,,,,,,,,
 char-001,セイナ,尘沙,,assets/characters/char-001.png,アタッカー,独創性,空白旅団,風,4,Noya,세이나
 char-002,アヤメ,鸢尾,,assets/characters/char-002.png,バランサー,独創性,空白旅団,水,4,Iris,아야메
 char-003,コハク,琥珀,,assets/characters/char-003.png,アタッカー,収集家,空白旅団,火,4,Amber,코하쿠
@@ -25,3 +24,4 @@ char-022,グレイ,格芮,,assets/characters/char-022.png,アタッカー,知的
 char-023,ナズナ,小禾,,assets/characters/char-023.png,サポーター,収集家,花咲旅団,地,5,Nazuna,나즈나
 char-024,チトセ,千都世,,assets/characters/char-024.png,アタッカー,知的好奇心,その他,水,5,Chitose,치토세
 char-025,シア,希娅,,assets/characters/char-025.png,アタッカー,冒険家,その他,光,5,Shia,시아
+char-026,フユカ,冬香,,assets/characters/char-026.png,アタッカー,,花咲旅団,火,5,,
