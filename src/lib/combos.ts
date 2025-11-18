@@ -45,6 +45,29 @@ export interface CombinationSearchResult {
   missingForBonus: string[]; // Tag IDs needed to add bonus on top of base
 }
 
+/**
+ * A validated combination with commission coverage information
+ */
+export interface ValidatedCombination {
+  characterIds: string[];
+  commissionCoverage: CommissionCoverage[];
+  score: number;
+  contributingTags: string[];
+}
+
+/**
+ * Result of searching for combinations across multiple commissions
+ */
+export interface MultiCommissionCombinationResult {
+  assignments: ValidatedCombination[];
+  totalCandidatesGenerated: number;
+  totalCandidatesValidated: number;
+  pruningStats: {
+    charactersPruned: number;
+    charactersRemaining: number;
+  };
+}
+
 // ============================================================================
 // Helper Functions
 // ============================================================================
@@ -529,11 +552,11 @@ export function findCombinationsForMultipleCommissions(
   ownedCharacters: Character[],
   currentLevels: Record<string, number>,
   bitmaskLookup: BitmaskLookup
-): MultiCommissionAssignmentResult {
+): MultiCommissionCombinationResult {
   // Handle edge case: no commissions selected
   if (commissions.length === 0) {
     return {
-      combinations: [],
+      assignments: [],
       totalCandidatesGenerated: 0,
       totalCandidatesValidated: 0,
       pruningStats: {
@@ -580,7 +603,7 @@ export function findCombinationsForMultipleCommissions(
   const totalCandidatesGenerated = candidateCombos.length;
 
   // Step 4: Validate each combination against ALL commissions
-  const validatedCombinations: MultiCommissionAssignmentResult['combinations'] = [];
+  const validatedCombinations: ValidatedCombination[] = [];
 
   for (const combo of candidateCombos) {
     const commissionCoverage: CommissionCoverage[] = [];
@@ -662,7 +685,7 @@ export function findCombinationsForMultipleCommissions(
   });
 
   return {
-    combinations: rankedCombinations,
+    assignments: rankedCombinations,
     totalCandidatesGenerated,
     totalCandidatesValidated: validatedCombinations.length,
     pruningStats: {
