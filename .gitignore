@@ -20,10 +20,7 @@ dist-ssr
 
 # Generated data files (auto-generated from CSV/source files)
 # DO NOT commit these - they are built by scripts
-data/tags.json
-data/characters.json
-data/missions.json
-data/items.json
+data/*.json
 
 # Keep source data files (human-editable)
 !data/tags.src.json

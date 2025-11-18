@@ -991,6 +991,20 @@ export function findBestCommissionAssignment(
     if (availableBlockedTeams.length > 0) {
       // Sort blocked teams based on strategy
       const sortedBlocked = [...availableBlockedTeams].sort((a, b) => {
+        // Calculate total rarity for each team
+        const rarityA = a.characterIds.reduce((sum, charId) => {
+          const char = ownedCharacters.find(c => c.id === charId);
+          const rarityTag = char?.tags.rarity?.[0];
+          const rarity = rarityTag ? parseInt(rarityTag.split('-')[1], 10) : 0;
+          return sum + rarity;
+        }, 0);
+        const rarityB = b.characterIds.reduce((sum, charId) => {
+          const char = ownedCharacters.find(c => c.id === charId);
+          const rarityTag = char?.tags.rarity?.[0];
+          const rarity = rarityTag ? parseInt(rarityTag.split('-')[1], 10) : 0;
+          return sum + rarity;
+        }, 0);
+
         if (strategy === 'bonus-first') {
           // Bonus-first: prioritize teams that satisfy bonus conditions
           // Primary: bonus satisfaction (true first)
@@ -1000,7 +1014,11 @@ export function findBestCommissionAssignment(
           // Secondary: smaller level gap
           const gapA = Object.values(a.levelDeficits).reduce((sum, gap) => sum + gap, 0);
           const gapB = Object.values(b.levelDeficits).reduce((sum, gap) => sum + gap, 0);
-          return gapA - gapB;
+          if (gapA !== gapB) {
+            return gapA - gapB;
+          }
+          // Tertiary: higher total rarity
+          return rarityB - rarityA;
         } else {
           // Base-first: prioritize teams with smallest level gap
           // Primary: smaller level gap
@@ -1009,8 +1027,12 @@ export function findBestCommissionAssignment(
           if (gapA !== gapB) {
             return gapA - gapB;
           }
-          // Tiebreaker: bonus satisfaction
-          return a.meetsBonusConditions === b.meetsBonusConditions ? 0 : (a.meetsBonusConditions ? -1 : 1);
+          // Secondary: bonus satisfaction
+          if (a.meetsBonusConditions !== b.meetsBonusConditions) {
+            return a.meetsBonusConditions ? -1 : 1;
+          }
+          // Tertiary: higher total rarity
+          return rarityB - rarityA;
         }
       });
 

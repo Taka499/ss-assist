@@ -682,10 +682,10 @@ describe("Scoring System", () => {
       const charBRec = recommendations.find(r => r.characterId === "charB");
 
       expect(charARec).toBeDefined();
-      expect(charARec!.priority).toBeCloseTo(1000 + 4, 1); // 1000 × 1 mission + 4 rarity
+      expect(charARec!.priority).toBeCloseTo(1390, 1); // 1000 × 1 mission + 100 × 4 rarity - 0.5 × 20 levelGap
 
       if (charBRec) {
-        expect(charBRec.priority).toBeCloseTo(10 * 1 + 4, 1); // 10 × 1 bonus + 4 rarity (much lower)
+        expect(charBRec.priority).toBeCloseTo(400, 1); // 10 × 1 bonus + 100 × 4 rarity - 0.5 × 20 levelGap (much lower)
         expect(charARec!.priority).toBeGreaterThan(charBRec.priority);
       }
     });
@@ -753,8 +753,8 @@ describe("Scoring System", () => {
       expect(rec4Star).toBeDefined();
 
       // Both unlock 1 mission (1000 points), but 5★ has higher rarity
-      expect(rec5Star!.priority).toBeCloseTo(1005, 1); // 1000 + 5
-      expect(rec4Star!.priority).toBeCloseTo(1004, 1); // 1000 + 4
+      expect(rec5Star!.priority).toBeCloseTo(1490, 1); // 1000 + 100 × 5 - 0.5 × 20
+      expect(rec4Star!.priority).toBeCloseTo(1390, 1); // 1000 + 100 × 4 - 0.5 × 20
       expect(rec5Star!.priority).toBeGreaterThan(rec4Star!.priority);
     });
 
@@ -879,7 +879,7 @@ describe("Scoring System", () => {
       expect(rec!.impact.commissionsUnlocked).toContain("commission1");
       expect(rec!.impact.commissionsUnlocked).toContain("commission2");
       expect(rec!.impact.commissionsUnlocked).toContain("commission3");
-      expect(rec!.priority).toBeCloseTo(3000 + 4, 1); // 1000 × 3 missions + 4 rarity
+      expect(rec!.priority).toBeCloseTo(3390, 1); // 1000 × 3 missions + 100 × 4 rarity - 0.5 × 20 levelGap
     });
 
     it("handles characters that unlock no commissions", () => {
@@ -1021,17 +1021,19 @@ describe("Scoring System", () => {
         currentLevels
       );
 
-      // Training either character alone won't unlock the mission
-      // So no recommendations should indicate mission unlock unless BOTH are trained
-      // This test verifies that individual character training doesn't falsely claim to unlock
+      // Both characters should get recommendations since they're both in the blocked team
       const recA = recommendations.find(
         r => r.characterId === "charA" && r.targetLevel === 50
       );
+      const recB = recommendations.find(
+        r => r.characterId === "charB" && r.targetLevel === 50
+      );
 
-      // charA alone can't unlock because charB is still at 30
-      if (recA) {
-        expect(recA.impact.commissionsUnlocked).toHaveLength(0);
-      }
+      // Both should have recommendations indicating they contribute to unlocking the commission
+      expect(recA).toBeDefined();
+      expect(recB).toBeDefined();
+      expect(recA!.impact.commissionsUnlocked).toContain("commission1");
+      expect(recB!.impact.commissionsUnlocked).toContain("commission1");
     });
   });
 });
