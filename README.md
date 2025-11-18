@@ -1,6 +1,6 @@
 # ステラソラ依頼アシスト | Stella Sora Request Assistant
 
-A serverless web application to help players optimize character combinations for missions in Stella Sora game.
+A serverless web application to help players optimize character combinations for commissions in Stella Sora game.
 
 ## Live Demo
 
@@ -18,11 +18,11 @@ ss-assist/
 │   ├── tags.json              # Tag dictionary with multi-language support
 │   ├── tags.src.json          # Tag dictionary source (committed)
 │   ├── characters.json         # Character data
-│   ├── missions.json          # Mission data
+│   ├── commissions.json       # Commission data
 │   └── items.json             # Item/reward data
 ├── data-sources/              # Human-editable CSV files
 │   ├── stellasora - characters.csv
-│   ├── stellasora - missions.csv
+│   ├── stellasora - commissions.csv
 │   └── stellasora - items.csv
 ├── i18n/                      # Translation files
 │   ├── tags.zh-Hans.json      # Simplified Chinese translations
@@ -37,9 +37,9 @@ ss-assist/
 │   │   ├── CharacterAvatar.tsx
 │   │   ├── ComboCard.tsx
 │   │   ├── LevelEditor.tsx
-│   │   ├── MissionAssignmentCard.tsx
-│   │   ├── MissionCoverageIndicator.tsx
-│   │   ├── MissionPicker.tsx
+│   │   ├── CommissionAssignmentCard.tsx
+│   │   ├── CommissionCoverageIndicator.tsx
+│   │   ├── CommissionPicker.tsx
 │   │   ├── ResultsView.tsx
 │   │   ├── RewardChip.tsx
 │   │   ├── RosterSelector.tsx
@@ -61,7 +61,7 @@ ss-assist/
 │   │   ├── Home.tsx
 │   │   ├── RosterManagement.tsx
 │   │   ├── LevelManagement.tsx
-│   │   ├── MissionSelection.tsx
+│   │   ├── CommissionSelection.tsx
 │   │   └── Results.tsx
 │   ├── store/                 # Zustand state management (with tests)
 │   │   ├── useAppStore.ts
@@ -145,7 +145,7 @@ npm run release
 ### Generated Files (Gitignored)
 - `data/tags.json` - Generated from tags.src.json
 - `data/characters.json` - Generated from CSV sources
-- `data/missions.json` - Generated from CSV sources
+- `data/commissions.json` - Generated from CSV sources
 
 **Important**: The `data/*.json` files are **gitignored** as they are build artifacts. They are automatically generated:
 - **During local development**: Run `npm run build:data` when CSV sources change

@@ -15,7 +15,7 @@ declare global {
 
 /**
  * Track a custom event in Umami
- * @param eventName - Name of the event (e.g., 'mission-analysis', 'language-change')
+ * @param eventName - Name of the event (e.g., 'commission-analysis', 'language-change')
  * @param eventData - Optional additional data about the event
  */
 export function trackEvent(
@@ -44,17 +44,17 @@ export const analytics = {
   },
 
   /**
-   * Track when user selects a specific mission
+   * Track when user selects a specific commission
    */
-  trackMissionSelected: (missionId: string) => {
-    trackEvent('mission-selected', { missionId });
+  trackCommissionSelected: (commissionId: string) => {
+    trackEvent('commission-selected', { commissionId });
   },
 
   /**
-   * Track when user deselects a specific mission
+   * Track when user deselects a specific commission
    */
-  trackMissionDeselected: (missionId: string) => {
-    trackEvent('mission-deselected', { missionId });
+  trackCommissionDeselected: (commissionId: string) => {
+    trackEvent('commission-deselected', { commissionId });
   },
 
   /**

@@ -278,7 +278,7 @@ function parseAmount(amountStr: string): { min: number; max: number } {
  * Format: "itemId:amount" or "itemId:min~max"
  * Multiple rewards: "dorra:13200~|prize_egg:1~2"
  */
-function parseRewards(rewardStr: string, missionId: string): any[] {
+function parseRewards(rewardStr: string, commissionId: string): any[] {
   if (!rewardStr) return [];
 
   const rewardStrings = rewardStr
@@ -291,7 +291,7 @@ function parseRewards(rewardStr: string, missionId: string): any[] {
     const parts = item.split(":");
     if (parts.length !== 2) {
       throw new Error(
-        `Mission "${missionId}" has malformed reward "${item}". ` +
+        `Commission "${commissionId}" has malformed reward "${item}". ` +
         `Expected format: itemId:amount (e.g., "dorra:13200" or "prize_egg:1~2")`
       );
     }
@@ -360,17 +360,17 @@ async function convertItems(): Promise<void> {
 }
 
 /**
- * Convert missions.csv to missions.json
+ * Convert commissions.csv to commissions.json
  */
-async function convertMissions(jaToId: Map<string, string>): Promise<void> {
-  console.log("[4/4] Converting missions from data-sources/stellasora - missions.csv...");
+async function convertCommissions(jaToId: Map<string, string>): Promise<void> {
+  console.log("[4/4] Converting commissions from data-sources/stellasora - commissions.csv...");
 
-  const csvPath = resolve(DATA_SOURCES_DIR, "stellasora - missions.csv");
-  const outPath = resolve(DATA_DIR, "missions.json");
+  const csvPath = resolve(DATA_SOURCES_DIR, "stellasora - commissions.csv");
+  const outPath = resolve(DATA_DIR, "commissions.json");
 
   const rows = loadCSV(csvPath);
   if (rows.length === 0) {
-    console.log("  ⚠️  No mission data to convert");
+    console.log("  ⚠️  No commission data to convert");
     saveJSON(outPath, []);
     console.log();
     return;
@@ -380,7 +380,7 @@ async function convertMissions(jaToId: Map<string, string>): Promise<void> {
   const categories: Category[] = ["role", "style", "faction", "element", "rarity"];
 
   for (const row of rows) {
-    const mission: any = {
+    const commission: any = {
       id: row.id,
       name: {
         ja: row.name_ja,
@@ -392,16 +392,16 @@ async function convertMissions(jaToId: Map<string, string>): Promise<void> {
 
     // Add optional translations
     if (row["name_zh-Hans"]) {
-      mission.name["zh-Hans"] = row["name_zh-Hans"];
+      commission.name["zh-Hans"] = row["name_zh-Hans"];
     }
     if (row["name_zh-Hant"]) {
-      mission.name["zh-Hant"] = row["name_zh-Hant"];
+      commission.name["zh-Hant"] = row["name_zh-Hant"];
     }
     if (row["name_en"]) {
-      mission.name["en"] = row["name_en"];
+      commission.name["en"] = row["name_en"];
     }
     if (row["name_kr"]) {
-      mission.name["kr"] = row["name_kr"];
+      commission.name["kr"] = row["name_kr"];
     }
 
     // Parse base conditions
@@ -423,7 +423,7 @@ async function convertMissions(jaToId: Map<string, string>): Promise<void> {
 
         if (!tagId) {
           throw new Error(
-            `Mission "${row.id}" baseConditions references unknown ${category} tag "${label}". ` +
+            `Commission "${row.id}" baseConditions references unknown ${category} tag "${label}". ` +
             `Please add this tag to data/tags.src.json first.`
           );
         }
@@ -431,7 +431,7 @@ async function convertMissions(jaToId: Map<string, string>): Promise<void> {
         tagIds.push(tagId);
       }
 
-      mission.baseConditions.push({
+      commission.baseConditions.push({
         category,
         anyOf: tagIds,
       });
@@ -457,7 +457,7 @@ async function convertMissions(jaToId: Map<string, string>): Promise<void> {
 
         if (!tagId) {
           throw new Error(
-            `Mission "${row.id}" bonusConditions references unknown ${category} tag "${label}". ` +
+            `Commission "${row.id}" bonusConditions references unknown ${category} tag "${label}". ` +
             `Please add this tag to data/tags.src.json first.`
           );
         }
@@ -472,10 +472,10 @@ async function convertMissions(jaToId: Map<string, string>): Promise<void> {
     }
 
     if (bonusConditions.length > 0) {
-      mission.bonusConditions = bonusConditions;
+      commission.bonusConditions = bonusConditions;
     }
 
-    // Parse duration options (up to 4 durations per mission)
+    // Parse duration options (up to 4 durations per commission)
     for (let i = 1; i <= 4; i++) {
       const hoursCol = `duration_${i}_hours`;
       const rewardsCol = `duration_${i}_rewards`;
@@ -487,26 +487,26 @@ async function convertMissions(jaToId: Map<string, string>): Promise<void> {
       const rewards = parseRewards(row[rewardsCol] || "", row.id);
       const bonusRewards = parseRewards(row[bonusRewardsCol] || "", row.id);
 
-      mission.durations.push({
+      commission.durations.push({
         hours,
         rewards,
         bonusRewards,
       });
     }
 
-    if (mission.durations.length === 0) {
+    if (commission.durations.length === 0) {
       throw new Error(
-        `Mission "${row.id}" has no duration options. ` +
+        `Commission "${row.id}" has no duration options. ` +
         `Please add at least one duration with duration_1_hours, duration_1_rewards columns.`
       );
     }
 
-    output.push(mission);
+    output.push(commission);
   }
 
   saveJSON(outPath, output);
 
-  console.log(`  ✓ Processed ${output.length} missions`);
+  console.log(`  ✓ Processed ${output.length} commissions`);
   console.log(`  ✓ Wrote ${outPath}`);
   console.log();
 }
@@ -527,8 +527,8 @@ async function main() {
     // Step 3: Convert items (no mapping needed)
     await convertItems();
 
-    // Step 4: Convert missions (uses the mapping)
-    await convertMissions(jaToId);
+    // Step 4: Convert commissions (uses the mapping)
+    await convertCommissions(jaToId);
 
     console.log("✅ Data conversion completed successfully!");
   } catch (error) {

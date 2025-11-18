@@ -49,7 +49,7 @@ export interface Character {
 }
 
 /**
- * Condition for mission requirements
+ * Condition for commission requirements
  * Uses anyOf logic: at least one tag from the array must match
  */
 export interface Condition {
@@ -99,24 +99,24 @@ export interface Reward {
 }
 
 /**
- * Mission duration option with time and rewards
+ * Commission duration option with time and rewards
  */
-export interface MissionDuration {
+export interface CommissionDuration {
   hours: number;
   rewards: Reward[];
   bonusRewards: Reward[];
 }
 
 /**
- * Mission data structure
+ * Commission data structure
  */
-export interface Mission {
+export interface Commission {
   id: string;
   name: MultiLangString;
   requiredLevel: number;
   baseConditions: Condition[];
   bonusConditions?: Condition[];
-  durations: MissionDuration[];
+  durations: CommissionDuration[];
 }
 
 /**
@@ -125,7 +125,7 @@ export interface Mission {
 export interface AppState {
   ownedCharacters: string[];
   levels: Record<string, number>;
-  selectedMissions: string[];
+  selectedCommissions: string[];
 }
 
 /**
@@ -153,9 +153,9 @@ export interface TrainingRecommendation {
   targetLevel: number;
   score: number;
   impact: {
-    baseConditionsUnlocked: number; // Missions that become satisfiable
-    bonusConditionsAdded: number; // Missions where bonus becomes achievable
-    affectedMissions: string[]; // Mission IDs impacted
+    baseConditionsUnlocked: number; // Commissions that become satisfiable
+    bonusConditionsAdded: number; // Commissions where bonus becomes achievable
+    affectedCommissions: string[]; // Commission IDs impacted
   };
 }
 
@@ -168,24 +168,24 @@ export interface BitmaskLookup {
 }
 
 /**
- * Mission coverage for a single combination
- * Tracks which missions a combination satisfies and to what degree
+ * Commission coverage for a single combination
+ * Tracks which commissions a combination satisfies and to what degree
  */
-export interface MissionCoverage {
-  missionId: string;
+export interface CommissionCoverage {
+  commissionId: string;
   satisfiesBase: boolean;
   satisfiesBonus: boolean;
   meetsLevelRequirement: boolean;
 }
 
 /**
- * Multi-mission combination search result
- * Contains combinations that are validated against multiple missions simultaneously
+ * Multi-commission combination search result
+ * Contains combinations that are validated against multiple commissions simultaneously
  */
-export interface MultiMissionCombinationResult {
+export interface MultiCommissionCombinationResult {
   combinations: Array<{
     characterIds: string[];
-    missionCoverage: MissionCoverage[];
+    commissionCoverage: CommissionCoverage[];
     score: number; // Overall score based on coverage breadth and depth
     contributingTags: string[]; // Tag IDs that satisfied conditions
   }>;
@@ -209,10 +209,10 @@ export interface BlockedCombination {
 }
 
 /**
- * Candidate teams for a single mission, separated by level sufficiency
+ * Candidate teams for a single commission, separated by level sufficiency
  */
-export interface PerMissionCandidates {
-  missionId: string;
+export interface PerCommissionCandidates {
+  commissionId: string;
   readyTeams: Array<{
     characterIds: string[];
     meetsBaseConditions: boolean;
@@ -223,17 +223,17 @@ export interface PerMissionCandidates {
 }
 
 /**
- * Assignment of a team to a mission (or indication that mission is unassigned)
+ * Assignment of a team to a commission (or indication that commission is unassigned)
  */
-export interface MissionAssignment {
-  missionId: string;
-  missionValue: number;         // Number of base conditions (1-3)
+export interface CommissionAssignment {
+  commissionId: string;
+  commissionValue: number;         // Number of base conditions (1-3)
   team: {
     characterIds: string[];
     totalRarity: number;        // For display only
     satisfiesBonus: boolean;
   } | null;  // null = unassigned
-  blockedTeam?: {               // Best blocked team (for unassigned missions)
+  blockedTeam?: {               // Best blocked team (for unassigned commissions)
     characterIds: string[];
     levelDeficits: Record<string, number>;  // characterId → level gap
     satisfiesBonus: boolean;
@@ -241,18 +241,18 @@ export interface MissionAssignment {
 }
 
 /**
- * Result of multi-mission disjoint assignment
+ * Result of multi-commission disjoint assignment
  */
-export interface MultiMissionAssignmentResult {
-  assignments: MissionAssignment[];
+export interface MultiCommissionAssignmentResult {
+  assignments: CommissionAssignment[];
 
   stats: {
-    totalMissionValue: number;    // Sum of assigned mission values
-    missionsAssigned: number;
-    missionsTotal: number;
+    totalCommissionValue: number;    // Sum of assigned commission values
+    commissionsAssigned: number;
+    commissionsTotal: number;
     totalCharactersUsed: number;
     totalRarity: number;          // For display only
-    unassignedMissionIds: string[];
+    unassignedCommissionIds: string[];
   };
 
   trainingRecommendations: TrainingRecommendationNew[];  // Filled in Milestone 3
@@ -264,7 +264,7 @@ export interface MultiMissionAssignmentResult {
 }
 
 /**
- * Training recommendation (new structure for multi-mission disjoint assignment)
+ * Training recommendation (new structure for multi-commission disjoint assignment)
  */
 export interface TrainingRecommendationNew {
   characterId: string;
@@ -273,15 +273,15 @@ export interface TrainingRecommendationNew {
   currentLevel: number;
   targetLevel: number;
   impact: {
-    missionsUnlocked: string[];
+    commissionsUnlocked: string[];
     bonusesAdded: string[];
   };
   priority: number;
 }
 
 /**
- * Strategy for mission assignment and training recommendations
- * - base-first: Prioritize unlocking missions quickly, bonuses are secondary
+ * Strategy for commission assignment and training recommendations
+ * - base-first: Prioritize unlocking commissions quickly, bonuses are secondary
  * - bonus-first: Prioritize maximizing bonus satisfaction, even if requires more leveling
  */
 export type AssignmentStrategy = 'base-first' | 'bonus-first';

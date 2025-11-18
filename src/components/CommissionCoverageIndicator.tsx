@@ -1,20 +1,20 @@
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useTranslation } from '../../i18n';
-import type { MissionCoverage, Mission } from '../types';
+import type { CommissionCoverage, Commission } from '../types';
 
-interface MissionCoverageIndicatorProps {
-  missionCoverage: MissionCoverage[];
-  missions: Mission[];
+interface CommissionCoverageIndicatorProps {
+  commissionCoverage: CommissionCoverage[];
+  commissions: Commission[];
 }
 
-export function MissionCoverageIndicator({ missionCoverage, missions }: MissionCoverageIndicatorProps) {
+export function CommissionCoverageIndicator({ commissionCoverage, commissions }: CommissionCoverageIndicatorProps) {
   const lang = useLanguageStore((state) => state.lang);
   const { t } = useTranslation(lang);
 
   return (
     <div className="flex flex-wrap gap-2">
-      {missions.map((mission) => {
-        const coverage = missionCoverage.find((mc) => mc.missionId === mission.id);
+      {commissions.map((commission) => {
+        const coverage = commissionCoverage.find((mc) => mc.commissionId === commission.id);
 
         if (!coverage) return null;
 
@@ -45,16 +45,16 @@ export function MissionCoverageIndicator({ missionCoverage, missions }: MissionC
           statusText = t('status.notSatisfied');
         }
 
-        const missionName = mission.name[lang] || mission.name.ja;
+        const commissionName = commission.name[lang] || commission.name.ja;
 
         return (
           <span
-            key={mission.id}
+            key={commission.id}
             className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium border ${badgeClass}`}
-            title={`${missionName}: ${statusText}`}
+            title={`${commissionName}: ${statusText}`}
           >
             <span>{icon}</span>
-            <span className="truncate max-w-[120px]">{missionName}</span>
+            <span className="truncate max-w-[120px]">{commissionName}</span>
           </span>
         );
       })}

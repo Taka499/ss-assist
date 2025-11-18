@@ -2,10 +2,10 @@
  * Training Priority Scoring System
  *
  * Analyzes the impact of leveling characters and recommends which characters
- * to prioritize for maximum mission unlock potential.
+ * to prioritize for maximum commission unlock potential.
  */
 
-import type { Character, Mission, TagDict, Language, BlockedCombination, TrainingRecommendationNew } from "../types";
+import type { Character, Commission, TagDict, Language, BlockedCombination, TrainingRecommendationNew } from "../types";
 import { findCombinations } from "./combos";
 import type { BitmaskLookup } from "./bitmask";
 
@@ -23,9 +23,9 @@ export interface TrainingRecommendation {
   targetLevel: number;
   score: number;
   impact: {
-    baseConditionsUnlocked: number; // Missions that become satisfiable
-    bonusConditionsAdded: number; // Missions where bonus becomes achievable
-    affectedMissions: string[]; // Mission IDs impacted
+    baseConditionsUnlocked: number; // Commissions that become satisfiable
+    bonusConditionsAdded: number; // Commissions where bonus becomes achievable
+    affectedCommissions: string[]; // Commission IDs impacted
   };
 }
 
@@ -138,22 +138,22 @@ export function calculateCharacterRarity(
 /**
  * Calculate the impact of training a character to a target level
  *
- * Simulates upgrading the character and compares mission outcomes before/after:
- * - Missions that become satisfiable (base conditions unlock)
- * - Missions where bonus becomes achievable
+ * Simulates upgrading the character and compares commission outcomes before/after:
+ * - Commissions that become satisfiable (base conditions unlock)
+ * - Commissions where bonus becomes achievable
  *
  * @param characterId Character to evaluate
  * @param targetLevel Target level for training
- * @param missions Array of missions to evaluate against
+ * @param commissions Array of commissions to evaluate against
  * @param ownedCharacters All owned characters
  * @param currentLevels Map of character ID to current level
  * @param bitmaskLookup Bitmask lookup table for efficient validation
- * @returns Impact object with counts of unlocked missions and affected mission IDs
+ * @returns Impact object with counts of unlocked commissions and affected commission IDs
  */
 export function calculateTrainingImpact(
   characterId: string,
   targetLevel: number,
-  missions: Mission[],
+  commissions: Commission[],
   ownedCharacters: Character[],
   currentLevels: Record<string, number>,
   bitmaskLookup: BitmaskLookup
@@ -161,15 +161,15 @@ export function calculateTrainingImpact(
 
   let baseConditionsUnlocked = 0;
   let bonusConditionsAdded = 0;
-  const affectedMissions: string[] = [];
+  const affectedCommissions: string[] = [];
 
   // Create upgraded levels map
   const upgradedLevels = { ...currentLevels, [characterId]: targetLevel };
 
-  for (const mission of missions) {
+  for (const commission of commissions) {
     // Run combination search with current levels
     const beforeResult = findCombinations(
-      mission,
+      commission,
       ownedCharacters,
       currentLevels,
       bitmaskLookup
@@ -177,13 +177,13 @@ export function calculateTrainingImpact(
 
     // Run combination search with upgraded level
     const afterResult = findCombinations(
-      mission,
+      commission,
       ownedCharacters,
       upgradedLevels,
       bitmaskLookup
     );
 
-    // A mission is "completable" if there's at least one combination with no level deficits
+    // A commission is "completable" if there's at least one combination with no level deficits
     const beforeCompletable = beforeResult.combinations.some(
       (c) => Object.keys(c.levelDeficits).length === 0
     );
@@ -191,15 +191,15 @@ export function calculateTrainingImpact(
       (c) => Object.keys(c.levelDeficits).length === 0
     );
 
-    // Check if mission became completable (base conditions unlock)
+    // Check if commission became completable (base conditions unlock)
     if (!beforeCompletable && afterCompletable) {
       baseConditionsUnlocked++;
-      affectedMissions.push(mission.id);
+      affectedCommissions.push(commission.id);
       continue; // Don't double-count for bonus
     }
 
     // Check if bonus became achievable
-    // A mission has bonus added if:
+    // A commission has bonus added if:
     // - It was completable before (has combinations with no level deficits)
     // - None of the completable combinations met bonus conditions before
     // - At least one completable combination meets bonus conditions after
@@ -212,14 +212,14 @@ export function calculateTrainingImpact(
 
     if (beforeCompletable && !beforeCompletableWithBonus && afterCompletableWithBonus) {
       bonusConditionsAdded++;
-      affectedMissions.push(mission.id);
+      affectedCommissions.push(commission.id);
     }
   }
 
   return {
     baseConditionsUnlocked,
     bonusConditionsAdded,
-    affectedMissions,
+    affectedCommissions,
   };
 }
 
@@ -232,14 +232,14 @@ export function calculateTrainingImpact(
  *
  * For each owned character, evaluates each level milestone above their current level
  * and calculates a score based on:
- * - How many missions the training would unlock (base conditions)
- * - How many missions would gain bonus conditions
+ * - How many commissions the training would unlock (base conditions)
+ * - How many commissions would gain bonus conditions
  * - The level gap (penalizes expensive training slightly)
  * - Character's tag rarity (rewards rare tags)
  *
  * Score formula: score = w1 * baseUnlocked + w2 * bonusAdded - w3 * levelGap + w4 * rarityBonus
  *
- * @param missions Array of missions to evaluate
+ * @param commissions Array of commissions to evaluate
  * @param ownedCharacters Array of owned characters
  * @param currentLevels Map of character ID to current level
  * @param bitmaskLookup Bitmask lookup table for efficient validation
@@ -248,7 +248,7 @@ export function calculateTrainingImpact(
  * @returns Array of training recommendations sorted by score (highest first)
  */
 export function calculateTrainingPriority(
-  missions: Mission[],
+  commissions: Commission[],
   ownedCharacters: Character[],
   currentLevels: Record<string, number>,
   bitmaskLookup: BitmaskLookup,
@@ -272,7 +272,7 @@ export function calculateTrainingPriority(
       const impact = calculateTrainingImpact(
         character.id,
         targetLevel,
-        missions,
+        commissions,
         ownedCharacters,
         currentLevels,
         bitmaskLookup
@@ -312,46 +312,46 @@ export function calculateTrainingPriority(
 }
 
 // ============================================================================
-// Multi-Mission Training Priority (using Blocked Teams)
+// Multi-Commission Training Priority (using Blocked Teams)
 // ============================================================================
 
 /**
- * Calculate training priority from blocked teams for unassigned missions
+ * Calculate training priority from blocked teams for unassigned commissions
  *
  * This function analyzes which characters, when leveled up, would unlock
- * currently unassigned missions by satisfying their level requirements.
+ * currently unassigned commissions by satisfying their level requirements.
  *
  * Scoring formula:
- * - base-first: 1000.0 × missionsUnlocked + 10.0 × bonusesAdded + 1.0 × rarity - 0.5 × levelGap
- * - bonus-first: 1000.0 × bonusesAdded + 100.0 × missionsUnlocked + 1.0 × rarity - 0.5 × levelGap
+ * - base-first: 1000.0 × commissionsUnlocked + 10.0 × bonusesAdded + 1.0 × rarity - 0.5 × levelGap
+ * - bonus-first: 1000.0 × bonusesAdded + 100.0 × commissionsUnlocked + 1.0 × rarity - 0.5 × levelGap
  *
- * @param unassignedMissions Missions that could not be assigned in current state
- * @param blockedTeamsByMission Map of mission ID to its blocked teams
+ * @param unassignedCommissions Commissions that could not be assigned in current state
+ * @param blockedTeamsByCommission Map of commission ID to its blocked teams
  * @param characters All owned characters
  * @param characterLevels Current levels of all characters
  * @param strategy Assignment strategy ('base-first' or 'bonus-first')
  * @returns Array of training recommendations sorted by priority (highest first), limited to top 20
  */
 export function calculateTrainingPriorityFromBlockedTeams(
-  unassignedMissions: Mission[],
-  blockedTeamsByMission: Map<string, BlockedCombination[]>,
+  unassignedCommissions: Commission[],
+  blockedTeamsByCommission: Map<string, BlockedCombination[]>,
   characters: Character[],
   characterLevels: Record<string, number>,
   strategy: import("../types").AssignmentStrategy = 'base-first'
 ): TrainingRecommendationNew[] {
-  // Build a map of character -> missions they could help unlock
-  const characterToMissions = new Map<string, Set<string>>();
+  // Build a map of character -> commissions they could help unlock
+  const characterToCommissions = new Map<string, Set<string>>();
 
-  for (const mission of unassignedMissions) {
-    const blockedTeams = blockedTeamsByMission.get(mission.id) || [];
+  for (const commission of unassignedCommissions) {
+    const blockedTeams = blockedTeamsByCommission.get(commission.id) || [];
 
     for (const team of blockedTeams) {
-      // For each character in this blocked team, record that they could help unlock this mission
+      // For each character in this blocked team, record that they could help unlock this commission
       for (const charId of team.characterIds) {
-        if (!characterToMissions.has(charId)) {
-          characterToMissions.set(charId, new Set());
+        if (!characterToCommissions.has(charId)) {
+          characterToCommissions.set(charId, new Set());
         }
-        characterToMissions.get(charId)!.add(mission.id);
+        characterToCommissions.get(charId)!.add(commission.id);
       }
     }
   }
@@ -361,41 +361,41 @@ export function calculateTrainingPriorityFromBlockedTeams(
 
   for (const character of characters) {
     const currentLevel = characterLevels[character.id] || 1;
-    const potentialMissions = characterToMissions.get(character.id);
+    const potentialCommissions = characterToCommissions.get(character.id);
 
-    if (!potentialMissions || potentialMissions.size === 0) {
+    if (!potentialCommissions || potentialCommissions.size === 0) {
       continue; // This character doesn't appear in any blocked teams
     }
 
     // Determine meaningful level targets for this character
     const levelTargets = new Set<number>();
 
-    // Add mission required levels (exact levels needed)
-    for (const missionId of potentialMissions) {
-      const mission = unassignedMissions.find(m => m.id === missionId);
-      if (mission && mission.requiredLevel > currentLevel) {
-        levelTargets.add(mission.requiredLevel);
+    // Add commission required levels (exact levels needed)
+    for (const commissionId of potentialCommissions) {
+      const commission = unassignedCommissions.find(m => m.id === commissionId);
+      if (commission && commission.requiredLevel > currentLevel) {
+        levelTargets.add(commission.requiredLevel);
       }
     }
 
     if (levelTargets.size === 0) {
-      continue; // This character is already at or above mission requirements
+      continue; // This character is already at or above commission requirements
     }
 
-    // Track best recommendation per unique mission set
-    const impactMap = new Map<string, { targetLevel: number; missionsUnlocked: string[]; bonusesAdded: string[]; priority: number }>();
+    // Track best recommendation per unique commission set
+    const impactMap = new Map<string, { targetLevel: number; commissionsUnlocked: string[]; bonusesAdded: string[]; priority: number }>();
 
     // For each target level, simulate the upgrade and check impact
     for (const targetLevel of levelTargets) {
-      const missionsUnlocked: string[] = [];
+      const commissionsUnlocked: string[] = [];
       const bonusesAdded: string[] = [];
 
-      // Check each mission this character could help unlock
-      for (const missionId of potentialMissions) {
-        const mission = unassignedMissions.find(m => m.id === missionId);
-        if (!mission) continue;
+      // Check each commission this character could help unlock
+      for (const commissionId of potentialCommissions) {
+        const commission = unassignedCommissions.find(m => m.id === commissionId);
+        if (!commission) continue;
 
-        const blockedTeams = blockedTeamsByMission.get(missionId) || [];
+        const blockedTeams = blockedTeamsByCommission.get(commissionId) || [];
 
         // Check if there's a blocked team that includes this character
         for (const team of blockedTeams) {
@@ -409,22 +409,22 @@ export function calculateTrainingPriorityFromBlockedTeams(
             continue; // This character already meets level requirement
           }
 
-          // This character needs training for this mission
+          // This character needs training for this commission
           // Even if other characters also need training, we should recommend this one
-          if (!missionsUnlocked.includes(missionId)) {
+          if (!commissionsUnlocked.includes(commissionId)) {
             if (team.meetsBaseConditions) {
-              missionsUnlocked.push(missionId);
+              commissionsUnlocked.push(commissionId);
             }
             if (team.meetsBonusConditions) {
-              bonusesAdded.push(missionId);
+              bonusesAdded.push(commissionId);
             }
-            break; // Only count this mission once
+            break; // Only count this commission once
           }
         }
       }
 
       // Calculate score if this training would have any impact
-      if (missionsUnlocked.length > 0 || bonusesAdded.length > 0) {
+      if (commissionsUnlocked.length > 0 || bonusesAdded.length > 0) {
         // Get character rarity from tags
         const rarityTag = character.tags.rarity?.[0];
         const rarity = rarityTag ? parseInt(rarityTag.split('-')[1], 10) : 0;
@@ -435,23 +435,23 @@ export function calculateTrainingPriorityFromBlockedTeams(
         // Calculate priority based on strategy
         const priority = strategy === 'bonus-first'
           ? 1000.0 * bonusesAdded.length +
-            100.0 * missionsUnlocked.length +
+            100.0 * commissionsUnlocked.length +
             1.0 * rarity -
             0.5 * levelGap
-          : 1000.0 * missionsUnlocked.length +
+          : 1000.0 * commissionsUnlocked.length +
             10.0 * bonusesAdded.length +
             1.0 * rarity -
             0.5 * levelGap;
 
-        // Create a key based on which missions are unlocked (sorted for consistency)
-        const impactKey = [...missionsUnlocked].sort().join(',') + '|' + [...bonusesAdded].sort().join(',');
+        // Create a key based on which commissions are unlocked (sorted for consistency)
+        const impactKey = [...commissionsUnlocked].sort().join(',') + '|' + [...bonusesAdded].sort().join(',');
 
         // Only keep the minimum level target for each unique impact
         const existing = impactMap.get(impactKey);
         if (!existing || targetLevel < existing.targetLevel) {
           impactMap.set(impactKey, {
             targetLevel,
-            missionsUnlocked,
+            commissionsUnlocked,
             bonusesAdded,
             priority,
           });
@@ -471,7 +471,7 @@ export function calculateTrainingPriorityFromBlockedTeams(
         currentLevel,
         targetLevel: impact.targetLevel,
         impact: {
-          missionsUnlocked: impact.missionsUnlocked,
+          commissionsUnlocked: impact.commissionsUnlocked,
           bonusesAdded: impact.bonusesAdded,
         },
         priority: impact.priority,
@@ -492,45 +492,45 @@ export function calculateTrainingPriorityFromBlockedTeams(
  * Generate a human-readable explanation for a training recommendation
  *
  * @param recommendation Training recommendation to explain
- * @param missions Array of all missions
- * @param lang Language for mission names (defaults to Japanese)
+ * @param commissions Array of all commissions
+ * @param lang Language for commission names (defaults to Japanese)
  * @returns Human-readable explanation string
  */
 export function explainRecommendation(
   recommendation: TrainingRecommendation,
-  missions: Mission[],
+  commissions: Commission[],
   lang: Language = "ja"
 ): string {
   const { characterName, targetLevel, impact } = recommendation;
 
-  // Get mission names for affected missions
-  const affectedMissionNames = impact.affectedMissions
-    .map((missionId) => {
-      const mission = missions.find((m) => m.id === missionId);
-      return mission ? mission.name[lang] || mission.name.ja : missionId;
+  // Get commission names for affected commissions
+  const affectedCommissionNames = impact.affectedCommissions
+    .map((commissionId) => {
+      const commission = commissions.find((m) => m.id === commissionId);
+      return commission ? commission.name[lang] || commission.name.ja : commissionId;
     })
-    .slice(0, 3); // Limit to first 3 missions for readability
+    .slice(0, 3); // Limit to first 3 commissions for readability
 
   // Build explanation parts
   const parts: string[] = [];
 
   if (impact.baseConditionsUnlocked > 0) {
-    const missionText =
-      impact.baseConditionsUnlocked === 1 ? "mission" : "missions";
-    parts.push(`Unlocks ${impact.baseConditionsUnlocked} ${missionText}`);
+    const commissionText =
+      impact.baseConditionsUnlocked === 1 ? "commission" : "commissions";
+    parts.push(`Unlocks ${impact.baseConditionsUnlocked} ${commissionText}`);
   }
 
   if (impact.bonusConditionsAdded > 0) {
-    const missionText =
-      impact.bonusConditionsAdded === 1 ? "mission" : "missions";
-    parts.push(`adds bonus to ${impact.bonusConditionsAdded} ${missionText}`);
+    const commissionText =
+      impact.bonusConditionsAdded === 1 ? "commission" : "commissions";
+    parts.push(`adds bonus to ${impact.bonusConditionsAdded} ${commissionText}`);
   }
 
   const impactDescription = parts.join(", ");
-  const missionList =
-    affectedMissionNames.length > 0
-      ? ` (${affectedMissionNames.join(", ")}${impact.affectedMissions.length > 3 ? ", ..." : ""})`
+  const commissionList =
+    affectedCommissionNames.length > 0
+      ? ` (${affectedCommissionNames.join(", ")}${impact.affectedCommissions.length > 3 ? ", ..." : ""})`
       : "";
 
-  return `Level ${characterName} to ${targetLevel}: ${impactDescription}${missionList}`;
+  return `Level ${characterName} to ${targetLevel}: ${impactDescription}${commissionList}`;
 }

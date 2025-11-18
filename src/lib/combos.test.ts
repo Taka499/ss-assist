@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import type { TagDict, Character, Mission, Condition, Category } from "../types";
+import type { TagDict, Character, Commission, Condition, Category } from "../types";
 import {
   generateCombinations,
   checkLevelRequirements,
@@ -7,9 +7,9 @@ import {
   findMissingTags,
   rankCombinations,
   findCombinations,
-  findCombinationsForMultipleMissions,
-  findPerMissionCandidates,
-  findBestMissionAssignment,
+  findCombinationsForMultipleCommissions,
+  findPerCommissionCandidates,
+  findBestCommissionAssignment,
   type Combination,
 } from "./combos";
 import { buildBitmaskLookup, characterToBitmask } from "./bitmask";
@@ -54,12 +54,12 @@ const createTestCharacter = (
   tags,
 });
 
-const createTestMission = (
+const createTestCommission = (
   id: string,
   requiredLevel: number,
   baseConditions: Condition[],
   bonusConditions?: Condition[]
-): Mission => ({
+): Commission => ({
   id,
   name: { ja: id },
   requiredLevel,
@@ -450,19 +450,19 @@ describe("Combination Search", () => {
         createTestCharacter("char2", { role: ["role-002"] }),
       ];
 
-      const mission = createTestMission("mission1", 50, [
+      const commission = createTestCommission("commission1", 50, [
         { category: "role", anyOf: ["role-001"] },
         { category: "style", anyOf: ["style-001"] },
       ]);
 
       const levels = { char1: 60, char2: 60 };
 
-      const result = findCombinations(mission, characters, levels, lookup);
+      const result = findCombinations(commission, characters, levels, lookup);
 
       expect(result.satisfiable).toBe(true);
-      expect(result.combinations.length).toBeGreaterThan(0);
+      expect(result.assignments.length).toBeGreaterThan(0);
       expect(
-        result.combinations.some((c) =>
+        result.assignments.some((c) =>
           c.characterIds.includes("char1") &&
           c.characterIds.length === 1
         )
@@ -475,18 +475,18 @@ describe("Combination Search", () => {
         createTestCharacter("char2", { style: ["style-001"] }),
       ];
 
-      const mission = createTestMission("mission1", 50, [
+      const commission = createTestCommission("commission1", 50, [
         { category: "role", anyOf: ["role-001"] },
         { category: "style", anyOf: ["style-001"] },
       ]);
 
       const levels = { char1: 60, char2: 60 };
 
-      const result = findCombinations(mission, characters, levels, lookup);
+      const result = findCombinations(commission, characters, levels, lookup);
 
       expect(result.satisfiable).toBe(true);
       expect(
-        result.combinations.some((c) =>
+        result.assignments.some((c) =>
           c.characterIds.includes("char1") && c.characterIds.includes("char2")
         )
       ).toBe(true);
@@ -497,16 +497,16 @@ describe("Combination Search", () => {
         createTestCharacter("char1", { role: ["role-001"] }),
       ];
 
-      const mission = createTestMission("mission1", 50, [
+      const commission = createTestCommission("commission1", 50, [
         { category: "role", anyOf: ["role-003"] }, // No character has this
       ]);
 
       const levels = { char1: 60 };
 
-      const result = findCombinations(mission, characters, levels, lookup);
+      const result = findCombinations(commission, characters, levels, lookup);
 
       expect(result.satisfiable).toBe(false);
-      expect(result.combinations).toHaveLength(0);
+      expect(result.assignments).toHaveLength(0);
       expect(result.missingForBase).toContain("role-003");
     });
 
@@ -518,8 +518,8 @@ describe("Combination Search", () => {
         }),
       ];
 
-      const mission = createTestMission(
-        "mission1",
+      const commission = createTestCommission(
+        "commission1",
         50,
         [{ category: "role", anyOf: ["role-001"] }],
         [{ category: "element", anyOf: ["element-001"] }]
@@ -527,10 +527,10 @@ describe("Combination Search", () => {
 
       const levels = { char1: 60 };
 
-      const result = findCombinations(mission, characters, levels, lookup);
+      const result = findCombinations(commission, characters, levels, lookup);
 
       expect(result.satisfiable).toBe(true);
-      const combo = result.combinations.find((c) =>
+      const combo = result.assignments.find((c) =>
         c.characterIds.includes("char1")
       );
       expect(combo?.meetsBonusConditions).toBe(true);
@@ -543,17 +543,17 @@ describe("Combination Search", () => {
         createTestCharacter("char3", { role: ["role-001"] }),
       ];
 
-      // Mission requires 2 attackers (role-002) and 1 balancer (role-001)
-      const mission = createTestMission("mission1", 50, [
+      // Commission requires 2 attackers (role-002) and 1 balancer (role-001)
+      const commission = createTestCommission("commission1", 50, [
         { category: "role", anyOf: ["role-002", "role-001", "role-002"] },
       ]);
 
       const levels = { char1: 60, char2: 60, char3: 60 };
 
-      const result = findCombinations(mission, characters, levels, lookup);
+      const result = findCombinations(commission, characters, levels, lookup);
 
       expect(result.satisfiable).toBe(true);
-      const validCombo = result.combinations.find(
+      const validCombo = result.assignments.find(
         (c) =>
           c.characterIds.includes("char1") &&
           c.characterIds.includes("char2") &&
@@ -567,16 +567,16 @@ describe("Combination Search", () => {
         createTestCharacter("char1", { role: ["role-001"] }),
       ];
 
-      const mission = createTestMission("mission1", 50, [
+      const commission = createTestCommission("commission1", 50, [
         { category: "role", anyOf: ["role-001"] },
       ]);
 
       const levels = { char1: 40 };
 
-      const result = findCombinations(mission, characters, levels, lookup);
+      const result = findCombinations(commission, characters, levels, lookup);
 
       expect(result.satisfiable).toBe(true);
-      const combo = result.combinations[0];
+      const combo = result.assignments[0];
       expect(combo.levelDeficits).toEqual({ char1: 10 });
     });
 
@@ -586,7 +586,7 @@ describe("Combination Search", () => {
         createTestCharacter(`char${i}`, { role: ["role-001"] })
       );
 
-      const mission = createTestMission("mission1", 50, [
+      const commission = createTestCommission("commission1", 50, [
         { category: "role", anyOf: ["role-001"] },
       ]);
 
@@ -594,9 +594,9 @@ describe("Combination Search", () => {
         characters.map((c) => [c.id, 60])
       );
 
-      const result = findCombinations(mission, characters, levels, lookup);
+      const result = findCombinations(commission, characters, levels, lookup);
 
-      expect(result.combinations.length).toBeGreaterThan(10);
+      expect(result.assignments.length).toBeGreaterThan(10);
       expect(result.bestCombinations.length).toBeLessThanOrEqual(10);
     });
 
@@ -606,16 +606,16 @@ describe("Combination Search", () => {
         createTestCharacter("char2", { faction: ["faction-001"] }), // Irrelevant
       ];
 
-      const mission = createTestMission("mission1", 50, [
+      const commission = createTestCommission("commission1", 50, [
         { category: "role", anyOf: ["role-001"] },
       ]);
 
       const levels = { char1: 60, char2: 60 };
 
-      const result = findCombinations(mission, characters, levels, lookup);
+      const result = findCombinations(commission, characters, levels, lookup);
 
       // char2 should be pruned, so no combination should include both
-      const comboWithBoth = result.combinations.find(
+      const comboWithBoth = result.assignments.find(
         (c) =>
           c.characterIds.includes("char1") && c.characterIds.includes("char2")
       );
@@ -623,7 +623,7 @@ describe("Combination Search", () => {
     });
   });
 
-  describe("findPerMissionCandidates", () => {
+  describe("findPerCommissionCandidates", () => {
     let tags: TagDict;
     let lookup: ReturnType<typeof buildBitmaskLookup>;
 
@@ -633,7 +633,7 @@ describe("Combination Search", () => {
     });
 
     it("separates ready teams from blocked teams", () => {
-      // Setup: Mission requires 2 Attackers, Level 30
+      // Setup: Commission requires 2 Attackers, Level 30
       // Characters: A (Attacker, Lv25), B (Attacker, Lv35), C (Attacker, Lv40)
       const characters = [
         createTestCharacter("charA", { role: ["role-002"] }), // Attacker
@@ -641,7 +641,7 @@ describe("Combination Search", () => {
         createTestCharacter("charC", { role: ["role-002"] }), // Attacker
       ];
 
-      const mission = createTestMission("mission1", 30, [
+      const commission = createTestCommission("commission1", 30, [
         { category: "role", anyOf: ["role-002", "role-002"] }, // Need 2 Attackers
       ]);
 
@@ -651,8 +651,8 @@ describe("Combination Search", () => {
         charC: 40,
       };
 
-      const result = findPerMissionCandidates(
-        mission,
+      const result = findPerCommissionCandidates(
+        commission,
         characters,
         levels,
         lookup
@@ -682,14 +682,14 @@ describe("Combination Search", () => {
     });
 
     it("does not include teams with missing tags as blocked", () => {
-      // Setup: Mission requires 2 Attackers
+      // Setup: Commission requires 2 Attackers
       // Characters: A (Attacker, Lv25), B (Supporter, Lv40)
       const characters = [
         createTestCharacter("charA", { role: ["role-002"] }), // Attacker
         createTestCharacter("charB", { role: ["role-003"] }), // Supporter
       ];
 
-      const mission = createTestMission("mission1", 30, [
+      const commission = createTestCommission("commission1", 30, [
         { category: "role", anyOf: ["role-002", "role-002"] }, // Need 2 Attackers
       ]);
 
@@ -698,8 +698,8 @@ describe("Combination Search", () => {
         charB: 40,
       };
 
-      const result = findPerMissionCandidates(
-        mission,
+      const result = findPerCommissionCandidates(
+        commission,
         characters,
         levels,
         lookup
@@ -713,14 +713,14 @@ describe("Combination Search", () => {
     });
 
     it("handles missions where bonus conditions affect blocking status", () => {
-      // Setup: Mission with base (1 Attacker) and bonus (1 Supporter) conditions
+      // Setup: Commission with base (1 Attacker) and bonus (1 Supporter) conditions
       const characters = [
         createTestCharacter("charA", { role: ["role-002"] }), // Attacker, Lv25
         createTestCharacter("charB", { role: ["role-003"] }), // Supporter, Lv40
       ];
 
-      const mission = createTestMission(
-        "mission1",
+      const commission = createTestCommission(
+        "commission1",
         30,
         [{ category: "role", anyOf: ["role-002"] }], // Base: 1 Attacker
         [{ category: "role", anyOf: ["role-003"] }]  // Bonus: 1 Supporter
@@ -731,8 +731,8 @@ describe("Combination Search", () => {
         charB: 40,
       };
 
-      const result = findPerMissionCandidates(
-        mission,
+      const result = findPerCommissionCandidates(
+        commission,
         characters,
         levels,
         lookup
@@ -764,13 +764,13 @@ describe("Combination Search", () => {
     });
 
     it("populates levelDeficits correctly for multiple characters", () => {
-      // Setup: Mission requires Lv50, team with chars at Lv30 and Lv40
+      // Setup: Commission requires Lv50, team with chars at Lv30 and Lv40
       const characters = [
         createTestCharacter("char1", { role: ["role-002"] }), // Attacker
         createTestCharacter("char2", { role: ["role-001"] }), // Balancer
       ];
 
-      const mission = createTestMission("mission1", 50, [
+      const commission = createTestCommission("commission1", 50, [
         { category: "role", anyOf: ["role-002"] }, // Attacker
         { category: "role", anyOf: ["role-001"] }, // Balancer
       ]);
@@ -780,8 +780,8 @@ describe("Combination Search", () => {
         char2: 40,
       };
 
-      const result = findPerMissionCandidates(
-        mission,
+      const result = findPerCommissionCandidates(
+        commission,
         characters,
         levels,
         lookup
@@ -801,14 +801,14 @@ describe("Combination Search", () => {
     });
 
     it("handles missions with 1-character requirements", () => {
-      // Setup: Mission requires 1 role
+      // Setup: Commission requires 1 role
       const characters = [
         createTestCharacter("char1", { role: ["role-001"] }), // Lv20
         createTestCharacter("char2", { role: ["role-001"] }), // Lv30
         createTestCharacter("char3", { role: ["role-001"] }), // Lv50
       ];
 
-      const mission = createTestMission("mission1", 30, [
+      const commission = createTestCommission("commission1", 30, [
         { category: "role", anyOf: ["role-001"] }, // 1 Balancer
       ]);
 
@@ -818,8 +818,8 @@ describe("Combination Search", () => {
         char3: 50,
       };
 
-      const result = findPerMissionCandidates(
-        mission,
+      const result = findPerCommissionCandidates(
+        commission,
         characters,
         levels,
         lookup
@@ -851,9 +851,9 @@ describe("Combination Search", () => {
         createTestCharacter("char3", { role: ["role-002"] }), // Attacker
       ];
 
-      // Mission: 1 Attacker base, 2 Attackers bonus
-      const mission = createTestMission(
-        "mission1",
+      // Commission: 1 Attacker base, 2 Attackers bonus
+      const commission = createTestCommission(
+        "commission1",
         30,
         [{ category: "role", anyOf: ["role-002"] }], // 1 Attacker
         [{ category: "role", anyOf: ["role-002", "role-002"] }] // 2 Attackers
@@ -861,8 +861,8 @@ describe("Combination Search", () => {
 
       const levels = { char1: 50, char2: 50, char3: 50 };
 
-      const result = findPerMissionCandidates(
-        mission,
+      const result = findPerCommissionCandidates(
+        commission,
         characters,
         levels,
         lookup
@@ -884,14 +884,14 @@ describe("Combination Search", () => {
         createTestCharacter("char3", { role: ["role-002"] }), // Lv45 -> gap 5
       ];
 
-      const mission = createTestMission("mission1", 50, [
+      const commission = createTestCommission("commission1", 50, [
         { category: "role", anyOf: ["role-002", "role-002"] }, // 2 Attackers
       ]);
 
       const levels = { char1: 10, char2: 30, char3: 45 };
 
-      const result = findPerMissionCandidates(
-        mission,
+      const result = findPerCommissionCandidates(
+        commission,
         characters,
         levels,
         lookup
@@ -916,7 +916,7 @@ describe("Combination Search", () => {
     });
   });
 
-  describe("findCombinationsForMultipleMissions", () => {
+  describe("findCombinationsForMultipleCommissions", () => {
     let lookup: ReturnType<typeof buildBitmaskLookup>;
 
     beforeEach(() => {
@@ -924,20 +924,20 @@ describe("Combination Search", () => {
       lookup = buildBitmaskLookup(tags);
     });
 
-    it("handles empty mission list", () => {
+    it("handles empty commission list", () => {
       const characters = [
         createTestCharacter("char1", { role: ["role-001"] }),
       ];
       const levels = { char1: 60 };
 
-      const result = findCombinationsForMultipleMissions(
+      const result = findCombinationsForMultipleCommissions(
         [],
         characters,
         levels,
         lookup
       );
 
-      expect(result.combinations).toHaveLength(0);
+      expect(result.assignments).toHaveLength(0);
       expect(result.totalCandidatesGenerated).toBe(0);
     });
 
@@ -954,27 +954,27 @@ describe("Combination Search", () => {
         }),
       ];
 
-      // Mission 1: Needs role-001
-      const mission1 = createTestMission("mission1", 50, [
+      // Commission 1: Needs role-001
+      const commission1 = createTestCommission("commission1", 50, [
         { category: "role", anyOf: ["role-001"] },
       ]);
 
-      // Mission 2: Needs role-002
-      const mission2 = createTestMission("mission2", 50, [
+      // Commission 2: Needs role-002
+      const commission2 = createTestCommission("commission2", 50, [
         { category: "role", anyOf: ["role-002"] },
       ]);
 
       const levels = { char1: 60, char2: 60 };
 
-      const result = findCombinationsForMultipleMissions(
-        [mission1, mission2],
+      const result = findCombinationsForMultipleCommissions(
+        [commission1, commission2],
         characters,
         levels,
         lookup
       );
 
       // Should find combination with both characters
-      const universalCombo = result.combinations.find(
+      const universalCombo = result.assignments.find(
         (c) =>
           c.characterIds.includes("char1") && c.characterIds.includes("char2")
       );
@@ -982,17 +982,17 @@ describe("Combination Search", () => {
       expect(universalCombo).toBeDefined();
       if (universalCombo) {
         // Should satisfy both missions
-        const mission1Coverage = universalCombo.missionCoverage.find(
-          (mc) => mc.missionId === "mission1"
+        const commission1Coverage = universalCombo.commissionCoverage.find(
+          (mc) => mc.commissionId === "commission1"
         );
-        const mission2Coverage = universalCombo.missionCoverage.find(
-          (mc) => mc.missionId === "mission2"
+        const commission2Coverage = universalCombo.commissionCoverage.find(
+          (mc) => mc.commissionId === "commission2"
         );
 
-        expect(mission1Coverage?.satisfiesBase).toBe(true);
-        expect(mission1Coverage?.meetsLevelRequirement).toBe(true);
-        expect(mission2Coverage?.satisfiesBase).toBe(true);
-        expect(mission2Coverage?.meetsLevelRequirement).toBe(true);
+        expect(commission1Coverage?.satisfiesBase).toBe(true);
+        expect(commission1Coverage?.meetsLevelRequirement).toBe(true);
+        expect(commission2Coverage?.satisfiesBase).toBe(true);
+        expect(commission2Coverage?.meetsLevelRequirement).toBe(true);
       }
     });
 
@@ -1002,9 +1002,9 @@ describe("Combination Search", () => {
         createTestCharacter("char2", { role: ["role-002"] }),
       ];
 
-      // Mission with bonus conditions
-      const mission = createTestMission(
-        "mission1",
+      // Commission with bonus conditions
+      const commission = createTestCommission(
+        "commission1",
         50,
         [{ category: "role", anyOf: ["role-001"] }],
         [
@@ -1015,34 +1015,34 @@ describe("Combination Search", () => {
 
       const levels = { char1: 60, char2: 60 };
 
-      const result = findCombinationsForMultipleMissions(
-        [mission],
+      const result = findCombinationsForMultipleCommissions(
+        [commission],
         characters,
         levels,
         lookup
       );
 
       // Single-character combo: should satisfy base but not bonus
-      const singleCombo = result.combinations.find(
+      const singleCombo = result.assignments.find(
         (c) => c.characterIds.length === 1 && c.characterIds.includes("char1")
       );
 
       expect(singleCombo).toBeDefined();
       if (singleCombo) {
-        const coverage = singleCombo.missionCoverage[0];
+        const coverage = singleCombo.commissionCoverage[0];
         expect(coverage.satisfiesBase).toBe(true);
         expect(coverage.satisfiesBonus).toBe(false);
       }
 
       // Two-character combo: should satisfy both base and bonus
-      const dualCombo = result.combinations.find(
+      const dualCombo = result.assignments.find(
         (c) =>
           c.characterIds.includes("char1") && c.characterIds.includes("char2")
       );
 
       expect(dualCombo).toBeDefined();
       if (dualCombo) {
-        const coverage = dualCombo.missionCoverage[0];
+        const coverage = dualCombo.commissionCoverage[0];
         expect(coverage.satisfiesBase).toBe(true);
         expect(coverage.satisfiesBonus).toBe(true);
       }
@@ -1053,37 +1053,37 @@ describe("Combination Search", () => {
         createTestCharacter("char1", { role: ["role-001"] }),
       ];
 
-      // Mission A: level 20 required
-      const missionA = createTestMission("missionA", 20, [
+      // Commission A: level 20 required
+      const commissionA = createTestCommission("commissionA", 20, [
         { category: "role", anyOf: ["role-001"] },
       ]);
 
-      // Mission B: level 50 required
-      const missionB = createTestMission("missionB", 50, [
+      // Commission B: level 50 required
+      const commissionB = createTestCommission("commissionB", 50, [
         { category: "role", anyOf: ["role-001"] },
       ]);
 
       // Character at level 30: satisfies A but not B
       const levels = { char1: 30 };
 
-      const result = findCombinationsForMultipleMissions(
-        [missionA, missionB],
+      const result = findCombinationsForMultipleCommissions(
+        [commissionA, commissionB],
         characters,
         levels,
         lookup
       );
 
-      const combo = result.combinations.find((c) =>
+      const combo = result.assignments.find((c) =>
         c.characterIds.includes("char1")
       );
 
       expect(combo).toBeDefined();
       if (combo) {
-        const coverageA = combo.missionCoverage.find(
-          (mc) => mc.missionId === "missionA"
+        const coverageA = combo.commissionCoverage.find(
+          (mc) => mc.commissionId === "commissionA"
         );
-        const coverageB = combo.missionCoverage.find(
-          (mc) => mc.missionId === "missionB"
+        const coverageB = combo.commissionCoverage.find(
+          (mc) => mc.commissionId === "commissionB"
         );
 
         expect(coverageA?.satisfiesBase).toBe(true);
@@ -1099,37 +1099,37 @@ describe("Combination Search", () => {
         createTestCharacter("char2", { role: ["role-002"] }), // Only Supporter
       ];
 
-      // Mission A: Needs role-001
-      const missionA = createTestMission("missionA", 50, [
+      // Commission A: Needs role-001
+      const commissionA = createTestCommission("commissionA", 50, [
         { category: "role", anyOf: ["role-001"] },
       ]);
 
-      // Mission B: Needs role-003 (which no character has)
-      const missionB = createTestMission("missionB", 50, [
+      // Commission B: Needs role-003 (which no character has)
+      const commissionB = createTestCommission("commissionB", 50, [
         { category: "role", anyOf: ["role-003"] },
       ]);
 
       const levels = { char1: 60, char2: 60 };
 
-      const result = findCombinationsForMultipleMissions(
-        [missionA, missionB],
+      const result = findCombinationsForMultipleCommissions(
+        [commissionA, commissionB],
         characters,
         levels,
         lookup
       );
 
-      // Should have combos that satisfy missionA but not missionB
-      const partialCombo = result.combinations.find(
+      // Should have combos that satisfy commissionA but not commissionB
+      const partialCombo = result.assignments.find(
         (c) => c.characterIds.includes("char1")
       );
 
       expect(partialCombo).toBeDefined();
       if (partialCombo) {
-        const coverageA = partialCombo.missionCoverage.find(
-          (mc) => mc.missionId === "missionA"
+        const coverageA = partialCombo.commissionCoverage.find(
+          (mc) => mc.commissionId === "commissionA"
         );
-        const coverageB = partialCombo.missionCoverage.find(
-          (mc) => mc.missionId === "missionB"
+        const coverageB = partialCombo.commissionCoverage.find(
+          (mc) => mc.commissionId === "commissionB"
         );
 
         expect(coverageA?.satisfiesBase).toBe(true);
@@ -1137,8 +1137,8 @@ describe("Combination Search", () => {
       }
 
       // No combination should satisfy both missions
-      const universalCombo = result.combinations.find((c) =>
-        c.missionCoverage.every((mc) => mc.satisfiesBase)
+      const universalCombo = result.assignments.find((c) =>
+        c.commissionCoverage.every((mc) => mc.satisfiesBase)
       );
       expect(universalCombo).toBeUndefined();
     });
@@ -1149,8 +1149,8 @@ describe("Combination Search", () => {
         createTestCharacter("char2", { role: ["role-002"] }),
       ];
 
-      const mission = createTestMission(
-        "mission1",
+      const commission = createTestCommission(
+        "commission1",
         50,
         [{ category: "role", anyOf: ["role-001"] }],
         [
@@ -1161,18 +1161,18 @@ describe("Combination Search", () => {
 
       const levels = { char1: 60, char2: 60 };
 
-      const result = findCombinationsForMultipleMissions(
-        [mission],
+      const result = findCombinationsForMultipleCommissions(
+        [commission],
         characters,
         levels,
         lookup
       );
 
       // Two-character combo with bonus should score higher than single-character
-      const singleCombo = result.combinations.find(
+      const singleCombo = result.assignments.find(
         (c) => c.characterIds.length === 1
       );
-      const dualCombo = result.combinations.find(
+      const dualCombo = result.assignments.find(
         (c) => c.characterIds.length === 2
       );
 
@@ -1193,35 +1193,35 @@ describe("Combination Search", () => {
         createTestCharacter("char3", { role: ["role-003"] }),
       ];
 
-      const mission1 = createTestMission("mission1", 50, [
+      const commission1 = createTestCommission("commission1", 50, [
         { category: "role", anyOf: ["role-001"] },
       ]);
 
-      const mission2 = createTestMission("mission2", 50, [
+      const commission2 = createTestCommission("commission2", 50, [
         { category: "role", anyOf: ["role-002"] },
       ]);
 
       const levels = { char1: 60, char2: 60, char3: 60 };
 
-      const result = findCombinationsForMultipleMissions(
-        [mission1, mission2],
+      const result = findCombinationsForMultipleCommissions(
+        [commission1, commission2],
         characters,
         levels,
         lookup
       );
 
       // Top-ranked combo should satisfy both missions
-      const topCombo = result.combinations[0];
+      const topCombo = result.assignments[0];
 
-      const mission1Coverage = topCombo.missionCoverage.find(
-        (mc) => mc.missionId === "mission1"
+      const commission1Coverage = topCombo.commissionCoverage.find(
+        (mc) => mc.commissionId === "commission1"
       );
-      const mission2Coverage = topCombo.missionCoverage.find(
-        (mc) => mc.missionId === "mission2"
+      const commission2Coverage = topCombo.commissionCoverage.find(
+        (mc) => mc.commissionId === "commission2"
       );
 
-      expect(mission1Coverage?.satisfiesBase).toBe(true);
-      expect(mission2Coverage?.satisfiesBase).toBe(true);
+      expect(commission1Coverage?.satisfiesBase).toBe(true);
+      expect(commission2Coverage?.satisfiesBase).toBe(true);
     });
 
     it("applies pruning across multiple missions", () => {
@@ -1231,18 +1231,18 @@ describe("Combination Search", () => {
         createTestCharacter("char3", { faction: ["faction-001"] }), // Irrelevant to both missions
       ];
 
-      const mission1 = createTestMission("mission1", 50, [
+      const commission1 = createTestCommission("commission1", 50, [
         { category: "role", anyOf: ["role-001"] },
       ]);
 
-      const mission2 = createTestMission("mission2", 50, [
+      const commission2 = createTestCommission("commission2", 50, [
         { category: "role", anyOf: ["role-002"] },
       ]);
 
       const levels = { char1: 60, char2: 60, char3: 60 };
 
-      const result = findCombinationsForMultipleMissions(
-        [mission1, mission2],
+      const result = findCombinationsForMultipleCommissions(
+        [commission1, commission2],
         characters,
         levels,
         lookup
@@ -1253,43 +1253,43 @@ describe("Combination Search", () => {
       expect(result.pruningStats.charactersRemaining).toBe(2);
 
       // No combination should include char3
-      const comboWithChar3 = result.combinations.find((c) =>
+      const comboWithChar3 = result.assignments.find((c) =>
         c.characterIds.includes("char3")
       );
       expect(comboWithChar3).toBeUndefined();
     });
 
-    it("matches single-mission behavior for backward compatibility", () => {
+    it("matches single-commission behavior for backward compatibility", () => {
       const characters = [
         createTestCharacter("char1", { role: ["role-001"] }),
         createTestCharacter("char2", { role: ["role-002"] }),
       ];
 
-      const mission = createTestMission("mission1", 50, [
+      const commission = createTestCommission("commission1", 50, [
         { category: "role", anyOf: ["role-001"] },
       ]);
 
       const levels = { char1: 60, char2: 60 };
 
-      // Single-mission with old function
-      const singleResult = findCombinations(mission, characters, levels, lookup);
+      // Single-commission with old function
+      const singleResult = findCombinations(commission, characters, levels, lookup);
 
-      // Single-mission with new function
-      const multiResult = findCombinationsForMultipleMissions(
-        [mission],
+      // Single-commission with new function
+      const multiResult = findCombinationsForMultipleCommissions(
+        [commission],
         characters,
         levels,
         lookup
       );
 
       // Should have same number of valid combinations
-      expect(multiResult.combinations.length).toBe(
-        singleResult.combinations.length
+      expect(multiResult.assignments.length).toBe(
+        singleResult.assignments.length
       );
 
       // All combos in single result should exist in multi result
-      for (const singleCombo of singleResult.combinations) {
-        const matchingMultiCombo = multiResult.combinations.find((mc) =>
+      for (const singleCombo of singleResult.assignments) {
+        const matchingMultiCombo = multiResult.assignments.find((mc) =>
           singleCombo.characterIds.every((id) => mc.characterIds.includes(id)) &&
           mc.characterIds.length === singleCombo.characterIds.length
         );
@@ -1298,7 +1298,7 @@ describe("Combination Search", () => {
     });
   });
 
-  describe("findBestMissionAssignment", () => {
+  describe("findBestCommissionAssignment", () => {
     let lookup: ReturnType<typeof buildBitmaskLookup>;
 
     beforeEach(() => {
@@ -1307,7 +1307,7 @@ describe("Combination Search", () => {
     });
 
     it("assigns disjoint teams with no character reuse", () => {
-      // Setup: 2 missions, 6 characters with different roles
+      // Setup: 2 commissions, 6 characters with different roles
       const characters = [
         createTestCharacter("char1", { role: ["role-001"] }),
         createTestCharacter("char2", { role: ["role-001"] }),
@@ -1317,11 +1317,11 @@ describe("Combination Search", () => {
         createTestCharacter("char6", { role: ["role-003"] }),
       ];
 
-      const mission1 = createTestMission("mission1", 10, [
+      const commission1 = createTestCommission("commission1", 10, [
         { category: "role", anyOf: ["role-001"] },
       ]);
 
-      const mission2 = createTestMission("mission2", 10, [
+      const commission2 = createTestCommission("commission2", 10, [
         { category: "role", anyOf: ["role-002"] },
       ]);
 
@@ -1334,20 +1334,20 @@ describe("Combination Search", () => {
         char6: 20,
       };
 
-      const result = findBestMissionAssignment(
-        [mission1, mission2],
+      const result = findBestCommissionAssignment(
+        [commission1, commission2],
         characters,
         levels,
         lookup
       );
 
       // Both missions should be assigned
-      expect(result.stats.missionsAssigned).toBe(2);
-      expect(result.stats.unassignedMissionIds).toHaveLength(0);
+      expect(result.stats.commissionsAssigned).toBe(2);
+      expect(result.stats.unassignedCommissionIds).toHaveLength(0);
 
       // Find the assignments
-      const assignment1 = result.assignments.find(a => a.missionId === "mission1");
-      const assignment2 = result.assignments.find(a => a.missionId === "mission2");
+      const assignment1 = result.assignments.find(a => a.commissionId === "commission1");
+      const assignment2 = result.assignments.find(a => a.commissionId === "commission2");
 
       expect(assignment1?.team).not.toBeNull();
       expect(assignment2?.team).not.toBeNull();
@@ -1363,7 +1363,7 @@ describe("Combination Search", () => {
     it("prioritizes high-value missions (more base conditions)", () => {
       // Mission A has 3 base conditions (value 3)
       // Mission B has 1 base condition (value 1)
-      // Only enough characters to assign one mission
+      // Only enough characters to assign one commission
       const characters = [
         createTestCharacter("char1", {
           role: ["role-001"],
@@ -1375,33 +1375,33 @@ describe("Combination Search", () => {
         }),
       ];
 
-      const missionA = createTestMission("missionA", 10, [
+      const commissionA = createTestCommission("commissionA", 10, [
         { category: "role", anyOf: ["role-001"] },
         { category: "role", anyOf: ["role-002"] },
         { category: "style", anyOf: ["style-001"] },
       ]);
 
-      const missionB = createTestMission("missionB", 10, [
+      const commissionB = createTestCommission("commissionB", 10, [
         { category: "role", anyOf: ["role-001"] },
       ]);
 
       const levels = { char1: 20, char2: 20 };
 
-      const result = findBestMissionAssignment(
-        [missionA, missionB],
+      const result = findBestCommissionAssignment(
+        [commissionA, commissionB],
         characters,
         levels,
         lookup
       );
 
-      // Mission A (higher value) should be assigned
-      const assignmentA = result.assignments.find(a => a.missionId === "missionA");
+      // Commission A (higher value) should be assigned
+      const assignmentA = result.assignments.find(a => a.commissionId === "commissionA");
 
       expect(assignmentA?.team).not.toBeNull();
-      expect(result.stats.totalMissionValue).toBeGreaterThan(0);
+      expect(result.stats.totalCommissionValue).toBeGreaterThan(0);
     });
 
-    it("minimizes total characters when mission values are equal", () => {
+    it("minimizes total characters when commission values are equal", () => {
       // Two missions with same value (1 base condition each)
       // Multiple ways to assign, prefer using fewer total characters
       const characters = [
@@ -1411,52 +1411,52 @@ describe("Combination Search", () => {
         createTestCharacter("char4", { role: ["role-002"] }),
       ];
 
-      const mission1 = createTestMission("mission1", 10, [
+      const commission1 = createTestCommission("commission1", 10, [
         { category: "role", anyOf: ["role-001"] },
       ]);
 
-      const mission2 = createTestMission("mission2", 10, [
+      const commission2 = createTestCommission("commission2", 10, [
         { category: "role", anyOf: ["role-002"] },
       ]);
 
       const levels = { char1: 20, char2: 20, char3: 20, char4: 20 };
 
-      const result = findBestMissionAssignment(
-        [mission1, mission2],
+      const result = findBestCommissionAssignment(
+        [commission1, commission2],
         characters,
         levels,
         lookup
       );
 
       // Should assign both missions
-      expect(result.stats.missionsAssigned).toBe(2);
+      expect(result.stats.commissionsAssigned).toBe(2);
 
-      // Should use 2 characters total (1 per mission), not more
+      // Should use 2 characters total (1 per commission), not more
       expect(result.stats.totalCharactersUsed).toBe(2);
     });
 
-    it("prefers smaller teams per mission", () => {
-      // Mission can be satisfied by 1 character or 2 characters
+    it("prefers smaller teams per commission", () => {
+      // Commission can be satisfied by 1 character or 2 characters
       // Should prefer 1-character team
       const characters = [
         createTestCharacter("char1", { role: ["role-001"] }),
         createTestCharacter("char2", { role: ["role-001"] }),
       ];
 
-      const mission = createTestMission("mission1", 10, [
+      const commission = createTestCommission("commission1", 10, [
         { category: "role", anyOf: ["role-001"] },
       ]);
 
       const levels = { char1: 20, char2: 20 };
 
-      const result = findBestMissionAssignment(
-        [mission],
+      const result = findBestCommissionAssignment(
+        [commission],
         characters,
         levels,
         lookup
       );
 
-      const assignment = result.assignments.find(a => a.missionId === "mission1");
+      const assignment = result.assignments.find(a => a.commissionId === "commission1");
       expect(assignment?.team).not.toBeNull();
 
       // Should use only 1 character
@@ -1464,14 +1464,14 @@ describe("Combination Search", () => {
     });
 
     it("handles partial coverage when resources insufficient", () => {
-      // 4 missions, only enough chars for 2
+      // 4 commissions, only enough chars for 2
       // Should assign the highest value missions
       const characters = [
         createTestCharacter("char1", { role: ["role-001"] }),
         createTestCharacter("char2", { role: ["role-002"] }),
       ];
 
-      const mission1 = createTestMission("mission1", 10, [
+      const commission1 = createTestCommission("commission1", 10, [
         { category: "role", anyOf: ["role-001"] },
         { category: "role", anyOf: ["role-002"] },
       ], [
@@ -1479,72 +1479,72 @@ describe("Combination Search", () => {
         { category: "role", anyOf: ["role-002"] },
       ]);
 
-      const mission2 = createTestMission("mission2", 10, [
+      const commission2 = createTestCommission("commission2", 10, [
         { category: "role", anyOf: ["role-001"] },
         { category: "role", anyOf: ["role-002"] },
       ]);
 
-      const mission3 = createTestMission("mission3", 10, [
+      const commission3 = createTestCommission("commission3", 10, [
         { category: "role", anyOf: ["role-001"] },
       ]);
 
-      const mission4 = createTestMission("mission4", 10, [
+      const commission4 = createTestCommission("commission4", 10, [
         { category: "role", anyOf: ["role-002"] },
       ]);
 
       const levels = { char1: 20, char2: 20 };
 
-      const result = findBestMissionAssignment(
-        [mission1, mission2, mission3, mission4],
+      const result = findBestCommissionAssignment(
+        [commission1, commission2, commission3, commission4],
         characters,
         levels,
         lookup
       );
 
-      // Should assign at least one mission
-      expect(result.stats.missionsAssigned).toBeGreaterThan(0);
-      expect(result.stats.missionsAssigned).toBeLessThan(4);
+      // Should assign at least one commission
+      expect(result.stats.commissionsAssigned).toBeGreaterThan(0);
+      expect(result.stats.commissionsAssigned).toBeLessThan(4);
 
-      // Should have unassigned missions
-      expect(result.stats.unassignedMissionIds.length).toBeGreaterThan(0);
+      // Should have unassigned commissions
+      expect(result.stats.unassignedCommissionIds.length).toBeGreaterThan(0);
     });
 
-    it("tracks unassigned missions correctly", () => {
-      // 3 missions, but mission3 cannot be satisfied
+    it("tracks unassigned commissions correctly", () => {
+      // 3 commissions, but commission3 cannot be satisfied
       const characters = [
         createTestCharacter("char1", { role: ["role-001"] }),
         createTestCharacter("char2", { role: ["role-002"] }),
       ];
 
-      const mission1 = createTestMission("mission1", 10, [
+      const commission1 = createTestCommission("commission1", 10, [
         { category: "role", anyOf: ["role-001"] },
       ]);
 
-      const mission2 = createTestMission("mission2", 10, [
+      const commission2 = createTestCommission("commission2", 10, [
         { category: "role", anyOf: ["role-002"] },
       ]);
 
-      const mission3 = createTestMission("mission3", 10, [
+      const commission3 = createTestCommission("commission3", 10, [
         { category: "role", anyOf: ["role-003"] }, // No character has role-003
       ]);
 
       const levels = { char1: 20, char2: 20 };
 
-      const result = findBestMissionAssignment(
-        [mission1, mission2, mission3],
+      const result = findBestCommissionAssignment(
+        [commission1, commission2, commission3],
         characters,
         levels,
         lookup
       );
 
-      // Should assign mission1 and mission2
-      expect(result.stats.missionsAssigned).toBe(2);
+      // Should assign commission1 and commission2
+      expect(result.stats.commissionsAssigned).toBe(2);
 
-      // mission3 should be unassigned
-      expect(result.stats.unassignedMissionIds).toContain("mission3");
+      // commission3 should be unassigned
+      expect(result.stats.unassignedCommissionIds).toContain("commission3");
     });
 
-    it("calculates mission value correctly", () => {
+    it("calculates commission value correctly", () => {
       const characters = [
         createTestCharacter("char1", {
           role: ["role-001"],
@@ -1552,28 +1552,28 @@ describe("Combination Search", () => {
         }),
       ];
 
-      // Mission with 2 base conditions = value 2
-      const mission = createTestMission("mission1", 10, [
+      // Commission with 2 base conditions = value 2
+      const commission = createTestCommission("commission1", 10, [
         { category: "role", anyOf: ["role-001"] },
         { category: "style", anyOf: ["style-001"] },
       ]);
 
       const levels = { char1: 20 };
 
-      const result = findBestMissionAssignment(
-        [mission],
+      const result = findBestCommissionAssignment(
+        [commission],
         characters,
         levels,
         lookup
       );
 
-      const assignment = result.assignments.find(a => a.missionId === "mission1");
-      expect(assignment?.missionValue).toBe(2);
-      expect(result.stats.totalMissionValue).toBe(2);
+      const assignment = result.assignments.find(a => a.commissionId === "commission1");
+      expect(assignment?.commissionValue).toBe(2);
+      expect(result.stats.totalCommissionValue).toBe(2);
     });
 
     it("prefers bonus-satisfying teams as tiebreaker", () => {
-      // Mission with base and bonus conditions
+      // Commission with base and bonus conditions
       // Two possible teams: one satisfies bonus, one doesn't
       const characters = [
         createTestCharacter("char1", { role: ["role-001"] }),
@@ -1583,8 +1583,8 @@ describe("Combination Search", () => {
         }),
       ];
 
-      const mission = createTestMission(
-        "mission1",
+      const commission = createTestCommission(
+        "commission1",
         10,
         [{ category: "role", anyOf: ["role-001"] }],
         [{ category: "style", anyOf: ["style-001"] }]
@@ -1592,14 +1592,14 @@ describe("Combination Search", () => {
 
       const levels = { char1: 20, char2: 20 };
 
-      const result = findBestMissionAssignment(
-        [mission],
+      const result = findBestCommissionAssignment(
+        [commission],
         characters,
         levels,
         lookup
       );
 
-      const assignment = result.assignments.find(a => a.missionId === "mission1");
+      const assignment = result.assignments.find(a => a.commissionId === "commission1");
       expect(assignment?.team).not.toBeNull();
 
       // Should prefer char2 because it satisfies bonus
@@ -1610,23 +1610,23 @@ describe("Combination Search", () => {
       const characters = [createTestCharacter("char1", { role: ["role-001"] })];
       const levels = { char1: 20 };
 
-      const result = findBestMissionAssignment([], characters, levels, lookup);
+      const result = findBestCommissionAssignment([], characters, levels, lookup);
 
       expect(result.assignments).toHaveLength(0);
-      expect(result.stats.missionsAssigned).toBe(0);
-      expect(result.stats.missionsTotal).toBe(0);
+      expect(result.stats.commissionsAssigned).toBe(0);
+      expect(result.stats.commissionsTotal).toBe(0);
       expect(result.stats.totalCharactersUsed).toBe(0);
     });
 
     it("returns empty assignment for no characters", () => {
-      const mission = createTestMission("mission1", 10, [
+      const commission = createTestCommission("commission1", 10, [
         { category: "role", anyOf: ["role-001"] },
       ]);
 
-      const result = findBestMissionAssignment([mission], [], {}, lookup);
+      const result = findBestCommissionAssignment([commission], [], {}, lookup);
 
-      expect(result.stats.missionsAssigned).toBe(0);
-      expect(result.stats.unassignedMissionIds).toContain("mission1");
+      expect(result.stats.commissionsAssigned).toBe(0);
+      expect(result.stats.unassignedCommissionIds).toContain("commission1");
     });
   });
 });
