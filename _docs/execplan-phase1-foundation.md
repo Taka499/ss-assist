@@ -7,9 +7,9 @@ This document must be maintained in accordance with `/Users/ghensk/Developer/ss-
 
 ## Purpose / Big Picture
 
-After completing this phase, the Stella Sora Request Assistant will have a complete data pipeline that converts human-editable CSV files (containing character and mission data in Japanese) into optimized JSON files that the React application can load. A developer will be able to add new characters or missions by editing simple CSV files, run a single command, and see the generated JSON files appear with properly normalized tag IDs and multi-language support. The validation system will catch errors like missing tags or invalid references before deployment.
+After completing this phase, the Stella Sora Request Assistant will have a complete data pipeline that converts human-editable CSV files (containing character and commission data in Japanese) into optimized JSON files that the React application can load. A developer will be able to add new characters or commissions by editing simple CSV files, run a single command, and see the generated JSON files appear with properly normalized tag IDs and multi-language support. The validation system will catch errors like missing tags or invalid references before deployment.
 
-The demonstrable outcome is: Run `npm run build:data` and observe that `data/characters.json`, `data/missions.json`, and `data/tags.json` are generated from source files with all Japanese tag names converted to stable language-neutral IDs (like "role-001", "style-002"), while preserving the original Japanese labels and Chinese translations for display purposes.
+The demonstrable outcome is: Run `npm run build:data` and observe that `data/characters.json`, `data/commissions.json`, and `data/tags.json` are generated from source files with all Japanese tag names converted to stable language-neutral IDs (like "role-001", "style-002"), while preserving the original Japanese labels and Chinese translations for display purposes.
 
 
 ## Progress
@@ -29,13 +29,13 @@ The demonstrable outcome is: Run `npm run build:data` and observe that `data/cha
   - [x] Create `scripts/csv-to-json.ts` for data pipeline
   - [x] Handle tags.src.json → tags.json conversion (validate IDs)
   - [x] Handle characters.csv → characters.json conversion
-  - [x] Handle missions.csv → missions.json conversion
+  - [x] Handle commissions.csv → commissions.json conversion
   - [x] Merge translations from i18n files
 
 - [x] Milestone 4: Create sample dataset
   - [x] Populate `data/tags.src.json` with game tags (with manual IDs: role-001, style-002, etc.)
   - [x] Create `data-sources/characters.csv` with sample characters
-  - [x] Create `data-sources/missions.csv` with sample missions
+  - [x] Create `data-sources/commissions.csv` with sample commissions
   - [x] Add Chinese translations to `i18n/tags.zh-Hans.json` and `i18n/tags.zh-Hant.json`
   - [x] Run full pipeline and verify output
 
@@ -65,18 +65,18 @@ After completing the initial implementation, we discovered that Google Sheets au
 
 **Benefit:** Data maintainers can now download CSV exports from Google Sheets and drop them directly into `data-sources/` without renaming. This reduces friction in the data update workflow and prevents errors from forgetting to rename files.
 
-### Mission Duration Options Discovery (2025-11-05)
-After populating the missions CSV with real game data, we discovered that missions support multiple time duration options (not just fixed rewards). Each mission allows players to choose from 2-4 different time durations, with rewards scaling accordingly.
+### Commission Duration Options Discovery (2025-11-05)
+After populating the commissions CSV with real game data, we discovered that commissions support multiple time duration options (not just fixed rewards). Each commission allows players to choose from 2-4 different time durations, with rewards scaling accordingly.
 
 **Details:**
-- Most missions (m-001 to m-027): 4 duration options (4h, 8h, 12h, 20h)
-- Skill-based missions (m-028 to m-036): 2 duration options (12h, 20h)
+- Most commissions (m-001 to m-027): 4 duration options (4h, 8h, 12h, 20h)
+- Skill-based commissions (m-028 to m-036): 2 duration options (12h, 20h)
 - Rewards scale with duration and support variable amounts (ranges like "1~2 items")
 
-**Solution:** Extended the data model and CSV structure to support multiple durations per mission. Each duration has its own hours, rewards, and bonusRewards. The CSV uses numbered columns (`duration_1_hours`, `duration_1_rewards`, `duration_1_bonus_rewards`, etc.) for up to 4 durations. Empty columns indicate fewer duration options.
+**Solution:** Extended the data model and CSV structure to support multiple durations per commission. Each duration has its own hours, rewards, and bonusRewards. The CSV uses numbered columns (`duration_1_hours`, `duration_1_rewards`, `duration_1_bonus_rewards`, etc.) for up to 4 durations. Empty columns indicate fewer duration options.
 
 **Impact:**
-- TypeScript types: Added `MissionDuration` interface and `RewardAmount` for min-max ranges
+- TypeScript types: Added `CommissionDuration` interface and `RewardAmount` for min-max ranges
 - CSV converter: Added `parseAmount()` and `parseRewards()` functions to handle range notation
 - Validation: Added schemas for duration arrays and reward amount ranges
 - Reward model simplified: Changed from discriminated union to single interface with `itemId` + `amount`
@@ -109,37 +109,37 @@ After populating the missions CSV with real game data, we discovered that missio
 - CSV converter now validates that IDs follow the pattern rather than generating them
 - Reduced overall complexity and external dependencies
 
-### 2025-11-05: Mission Duration Support
+### 2025-11-05: Commission Duration Support
 
-**Decision:** Implement multiple duration options per mission with variable reward ranges instead of single fixed rewards.
+**Decision:** Implement multiple duration options per commission with variable reward ranges instead of single fixed rewards.
 
 **Rationale:**
-1. Game mechanics allow players to choose mission duration (4h/8h/12h/20h for most, 12h/20h for skill missions)
+1. Game mechanics allow players to choose commission duration (4h/8h/12h/20h for most, 12h/20h for skill commissions)
 2. Rewards scale with duration, with some items having variable amounts
-3. Users need to compare duration options when optimizing mission assignments
+3. Users need to compare duration options when optimizing commission assignments
 4. CSV structure should remain flat for easy editing in spreadsheet tools
 
 **Impact:**
-- Changed Mission interface from `rewards: Reward[]` to `durations: MissionDuration[]`
+- Changed Commission interface from `rewards: Reward[]` to `durations: CommissionDuration[]`
 - Added `RewardAmount` interface with min/max for range support (e.g., "1~2 items")
 - Simplified Reward from discriminated union to single interface: `{ itemId, amount, category? }`
 - CSV format expanded from 11 columns to 21 columns (20 duration-related columns)
-- Converter supports parsing range notation (`1~2`) and gracefully handles 2-4 durations per mission
-- Validation enforces 1-4 durations per mission with proper schema checks
+- Converter supports parsing range notation (`1~2`) and gracefully handles 2-4 durations per commission
+- Validation enforces 1-4 durations per commission with proper schema checks
 
 
 ## Outcomes & Retrospective
 
 **Initial Completion Date:** 2025-11-03
-**Extended Features:** 2025-11-05 (Mission Duration Support)
+**Extended Features:** 2025-11-05 (Commission Duration Support)
 
-**Status:** ✅ All milestones completed successfully + mission duration feature extension
+**Status:** ✅ All milestones completed successfully + commission duration feature extension
 
 ### What We Achieved
 
 Phase 1 delivered a complete, working data pipeline for the Stella Sora Request Assistant:
 
-1. **Type System (Milestone 1):** Complete TypeScript type definitions establish a solid contract between data and application code. Types cover all data structures including multi-language strings, tag dictionaries, characters, missions, conditions, and rewards.
+1. **Type System (Milestone 1):** Complete TypeScript type definitions establish a solid contract between data and application code. Types cover all data structures including multi-language strings, tag dictionaries, characters, commissions, conditions, and rewards.
 
 2. **Validation System (Milestone 2):** JSON Schema validation using ajv ensures data integrity. The validator checks schema compliance, ID format patterns (category-NNN), and referential integrity across files. Running `npm run validate:data` confirms all data is correct before deployment.
 
@@ -153,15 +153,15 @@ Phase 1 delivered a complete, working data pipeline for the Stella Sora Request 
 4. **Sample Dataset (Milestone 4):** Populated with real game data:
    - 32 tags across 5 categories (role, style, faction, element, rarity)
    - 26 characters with multi-language names and complete tag assignments
-   - 36 missions with varying complexity, conditions, and multiple duration options
+   - 36 commissions with varying complexity, conditions, and multiple duration options
    - 32 Simplified Chinese translations with idiomatic expressions
 
-5. **Mission Duration Feature (Extension):** Added support for multiple time duration options per mission:
-   - Type system extended with `MissionDuration` and `RewardAmount` interfaces
+5. **Commission Duration Feature (Extension):** Added support for multiple time duration options per commission:
+   - Type system extended with `CommissionDuration` and `RewardAmount` interfaces
    - CSV converter parses duration columns and reward range notation (e.g., "1~2")
-   - Validation schemas updated to handle 1-4 duration options per mission
-   - 27 standard missions with 4 durations (4h/8h/12h/20h)
-   - 9 skill-based missions with 2 durations (12h/20h)
+   - Validation schemas updated to handle 1-4 duration options per commission
+   - 27 standard commissions with 4 durations (4h/8h/12h/20h)
+   - 9 skill-based commissions with 2 durations (12h/20h)
    - All rewards support variable amounts via min-max ranges
 
 ### Demonstrable Outcomes
@@ -172,13 +172,13 @@ The pipeline works end-to-end:
 $ npm run build:data
 ✓ Validated 32 tag IDs across 5 categories
 ✓ Processed 26 characters
-✓ Processed 36 missions
+✓ Processed 36 commissions
 ✅ Data conversion completed successfully!
 
 $ npm run validate:data
 ✓ data/tags.json is valid
 ✓ data/characters.json is valid
-✓ data/missions.json is valid
+✓ data/commissions.json is valid
 ✓ All tag references are valid
 ✅ All data files are valid!
 ```
@@ -205,12 +205,12 @@ All generated files are properly UTF-8 encoded and contain correctly transformed
 2. **Validate Early, Validate Often:** The validation script caught multiple issues during development
 3. **Clear Error Messages:** Investing time in error messages pays off during data maintenance
 4. **Test with Real Data:** Sample data revealed edge cases not apparent in minimal examples
-5. **Iterate on Design:** Starting with simplified assumptions (fixed mission rewards) and extending when real game mechanics emerge (duration options) is better than over-engineering upfront. The clean architecture made adding duration support straightforward.
+5. **Iterate on Design:** Starting with simplified assumptions (fixed commission rewards) and extending when real game mechanics emerge (duration options) is better than over-engineering upfront. The clean architecture made adding duration support straightforward.
 
 ### Next Steps
 
 Phase 1 foundation is complete. The data pipeline is production-ready. Next phases will build:
-- Phase 2: React UI components (character roster, mission picker, results view)
+- Phase 2: React UI components (character roster, commission picker, results view)
 - Phase 3: Combination search algorithm with bitmask optimization
 - Phase 4: Training priority scoring system
 - Phase 5: GitHub Pages deployment and CI/CD automation
@@ -220,9 +220,9 @@ The data layer provides a solid foundation for UI development.
 
 ## Context and Orientation
 
-This is a serverless web application for the game Stella Sora that helps players optimize character combinations for missions. The application is built with React, TypeScript, and Vite, and will be deployed to GitHub Pages.
+This is a serverless web application for the game Stella Sora that helps players optimize character combinations for commissions. The application is built with React, TypeScript, and Vite, and will be deployed to GitHub Pages.
 
-The project uses a data pipeline approach where the technical maintainer can edit JSON and CSV files with character and mission data, and a build script converts these into optimized JSON files for the web app. All internal logic uses stable language-neutral IDs (like "role-001", "style-002") while the UI displays localized text in Japanese, Simplified Chinese, or Traditional Chinese.
+The project uses a data pipeline approach where the technical maintainer can edit JSON and CSV files with character and commission data, and a build script converts these into optimized JSON files for the web app. All internal logic uses stable language-neutral IDs (like "role-001", "style-002") while the UI displays localized text in Japanese, Simplified Chinese, or Traditional Chinese.
 
 Key files and directories:
 - `src/types/index.ts` - TypeScript type definitions (✓ completed)
@@ -240,13 +240,13 @@ The tech stack includes Node.js 18+, TypeScript 5, and the following npm package
 
 The work proceeds in four milestones, each building on the previous:
 
-**Milestone 1: Type Definitions** (✓ COMPLETED) - We established the TypeScript type system that defines the shape of all data structures. This includes types for categories (role, style, faction, element, rarity), characters with their tags, missions with conditions and rewards, and the multi-language string format. These types serve as the contract between the data pipeline and the React application.
+**Milestone 1: Type Definitions** (✓ COMPLETED) - We established the TypeScript type system that defines the shape of all data structures. This includes types for categories (role, style, faction, element, rarity), characters with their tags, commissions with conditions and rewards, and the multi-language string format. These types serve as the contract between the data pipeline and the React application.
 
-**Milestone 2: Validation System** (✓ COMPLETED) - We implemented JSON Schema validation to catch data errors before deployment. Schemas define required fields, allowed value types, multi-language string structure, ID format validation (category-NNN pattern), and referential integrity (ensuring all tag IDs referenced by characters and missions exist in the tag dictionary). The validation runs automatically in CI/CD and can be run locally with npm run validate:data. We also fixed ES module compatibility by replacing CommonJS patterns with ES module syntax.
+**Milestone 2: Validation System** (✓ COMPLETED) - We implemented JSON Schema validation to catch data errors before deployment. Schemas define required fields, allowed value types, multi-language string structure, ID format validation (category-NNN pattern), and referential integrity (ensuring all tag IDs referenced by characters and commissions exist in the tag dictionary). The validation runs automatically in CI/CD and can be run locally with npm run validate:data. We also fixed ES module compatibility by replacing CommonJS patterns with ES module syntax.
 
-**Milestone 3: Data Conversion Pipeline** (✓ COMPLETED) - We built the main converter script that orchestrates the entire data transformation. It reads tags.src.json (with manual IDs like "role-001"), validates ID format, merges Chinese translations from i18n files, outputs tags.json with all languages. Then it reads stellasora - characters.csv and stellasora - missions.csv, creates a reverse mapping (Japanese label → ID), replaces Japanese tag labels with their corresponding IDs, and outputs characters.json and missions.json. The script includes robust error handling for missing tags, invalid ID patterns, duplicate labels, and malformed CSV rows.
+**Milestone 3: Data Conversion Pipeline** (✓ COMPLETED) - We built the main converter script that orchestrates the entire data transformation. It reads tags.src.json (with manual IDs like "role-001"), validates ID format, merges Chinese translations from i18n files, outputs tags.json with all languages. Then it reads stellasora - characters.csv and stellasora - commissions.csv, creates a reverse mapping (Japanese label → ID), replaces Japanese tag labels with their corresponding IDs, and outputs characters.json and commissions.json. The script includes robust error handling for missing tags, invalid ID patterns, duplicate labels, and malformed CSV rows.
 
-**Milestone 4: Sample Dataset** - We populate source files with real game data to validate the entire pipeline. This includes approximately 15 characters (Kohaku, Minerva, and others from the design document), 6 missions with varying conditions, complete tag dictionary with 5 categories (each tag assigned a sequential ID like role-001, role-002), and Chinese translations for common tags. After running the pipeline, we verify the output JSON files are correctly formatted and can be loaded by the application.
+**Milestone 4: Sample Dataset** - We populate source files with real game data to validate the entire pipeline. This includes approximately 15 characters (Kohaku, Minerva, and others from the design document), 6 commissions with varying conditions, complete tag dictionary with 5 categories (each tag assigned a sequential ID like role-001, role-002), and Chinese translations for common tags. After running the pipeline, we verify the output JSON files are correctly formatted and can be loaded by the application.
 
 
 ## Concrete Steps
@@ -306,7 +306,7 @@ Expected output shows packages installed.
 - icon (required string, path to image)
 - tags (required object, keys are categories, values are arrays of tag ID strings)
 
-**Missions Schema** - Array of objects with:
+**Commissions Schema** - Array of objects with:
 - id (required string)
 - name (required object, multi-language)
 - requiredLevel (required number, 1-90)
@@ -340,7 +340,7 @@ Expected output:
     Validation errors:
     - data/tags.json: (specific error about empty/invalid JSON)
     - data/characters.json: (specific error)
-    - data/missions.json: (specific error)
+    - data/commissions.json: (specific error)
 
 This is expected at this stage. We will create valid files in later milestones.
 

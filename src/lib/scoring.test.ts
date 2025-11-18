@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { TagDict, Character, Mission, Condition, Category, BlockedCombination } from "../types";
+import type { TagDict, Character, Commission, Condition, Category, BlockedCombination } from "../types";
 import {
   calculateTagRarity,
   calculateCharacterRarity,
@@ -54,12 +54,12 @@ const createTestCharacter = (
   tags,
 });
 
-const createTestMission = (
+const createTestCommission = (
   id: string,
   requiredLevel: number,
   baseConditions: Condition[],
   bonusConditions?: Condition[]
-): Mission => ({
+): Commission => ({
   id,
   name: { ja: id },
   requiredLevel,
@@ -190,8 +190,8 @@ describe("Scoring System", () => {
         createTestCharacter("char2", { role: ["role-002"] }),
       ];
 
-      const missions: Mission[] = [
-        createTestMission("mission1", 50, [
+      const commissions: Commission[] = [
+        createTestCommission("commission1", 50, [
           { category: "role", anyOf: ["role-001"] },
         ]),
       ];
@@ -202,7 +202,7 @@ describe("Scoring System", () => {
       const impact = calculateTrainingImpact(
         "char1",
         50,
-        missions,
+        commissions,
         characters,
         currentLevels,
         bitmaskLookup
@@ -210,7 +210,7 @@ describe("Scoring System", () => {
 
       expect(impact.baseConditionsUnlocked).toBe(1);
       expect(impact.bonusConditionsAdded).toBe(0);
-      expect(impact.affectedMissions).toContain("mission1");
+      expect(impact.affectedCommissions).toContain("commission1");
     });
 
     it("detects bonus conditions added by leveling", () => {
@@ -221,9 +221,9 @@ describe("Scoring System", () => {
         createTestCharacter("char2", { role: ["role-002"] }),
       ];
 
-      const missions: Mission[] = [
-        createTestMission(
-          "mission1",
+      const commissions: Commission[] = [
+        createTestCommission(
+          "commission1",
           40,
           [{ category: "role", anyOf: ["role-001"] }],
           [{ category: "role", anyOf: ["role-002"] }]
@@ -237,7 +237,7 @@ describe("Scoring System", () => {
       const impact = calculateTrainingImpact(
         "char2",
         40,
-        missions,
+        commissions,
         characters,
         currentLevels,
         bitmaskLookup
@@ -245,7 +245,7 @@ describe("Scoring System", () => {
 
       expect(impact.baseConditionsUnlocked).toBe(0);
       expect(impact.bonusConditionsAdded).toBe(1);
-      expect(impact.affectedMissions).toContain("mission1");
+      expect(impact.affectedCommissions).toContain("commission1");
     });
 
     it("handles missions that require multiple characters", () => {
@@ -257,8 +257,8 @@ describe("Scoring System", () => {
         createTestCharacter("char3", { role: ["role-002"] }),
       ];
 
-      const missions: Mission[] = [
-        createTestMission("mission1", 50, [
+      const commissions: Commission[] = [
+        createTestCommission("commission1", 50, [
           { category: "role", anyOf: ["role-002", "role-001", "role-002"] }, // Requires 2x role-002, 1x role-001
         ]),
       ];
@@ -269,7 +269,7 @@ describe("Scoring System", () => {
       const impact = calculateTrainingImpact(
         "char3",
         50,
-        missions,
+        commissions,
         characters,
         currentLevels,
         bitmaskLookup
@@ -286,8 +286,8 @@ describe("Scoring System", () => {
         createTestCharacter("char2", { role: ["role-002"] }),
       ];
 
-      const missions: Mission[] = [
-        createTestMission("mission1", 50, [
+      const commissions: Commission[] = [
+        createTestCommission("commission1", 50, [
           { category: "role", anyOf: ["role-003"] }, // Requires role-003, which no one has
         ]),
       ];
@@ -298,7 +298,7 @@ describe("Scoring System", () => {
       const impact = calculateTrainingImpact(
         "char1",
         50,
-        missions,
+        commissions,
         characters,
         currentLevels,
         bitmaskLookup
@@ -306,7 +306,7 @@ describe("Scoring System", () => {
 
       expect(impact.baseConditionsUnlocked).toBe(0);
       expect(impact.bonusConditionsAdded).toBe(0);
-      expect(impact.affectedMissions).toHaveLength(0);
+      expect(impact.affectedCommissions).toHaveLength(0);
     });
   });
 
@@ -319,14 +319,14 @@ describe("Scoring System", () => {
         createTestCharacter("char2", { role: ["role-002"] }),
       ];
 
-      const missions: Mission[] = [
-        createTestMission("mission1", 50, [
+      const commissions: Commission[] = [
+        createTestCommission("commission1", 50, [
           { category: "role", anyOf: ["role-001"] },
         ]),
-        createTestMission("mission2", 50, [
+        createTestCommission("commission2", 50, [
           { category: "role", anyOf: ["role-001"] },
         ]),
-        createTestMission("mission3", 50, [
+        createTestCommission("commission3", 50, [
           { category: "role", anyOf: ["role-002"] },
         ]),
       ];
@@ -334,7 +334,7 @@ describe("Scoring System", () => {
       const currentLevels = { char1: 30, char2: 30 };
 
       const recommendations = calculateTrainingPriority(
-        missions,
+        commissions,
         characters,
         currentLevels,
         bitmaskLookup,
@@ -354,8 +354,8 @@ describe("Scoring System", () => {
         createTestCharacter("char1", { role: ["role-001"] }),
       ];
 
-      const missions: Mission[] = [
-        createTestMission("mission1", 50, [
+      const commissions: Commission[] = [
+        createTestCommission("commission1", 50, [
           { category: "role", anyOf: ["role-001"] },
         ]),
       ];
@@ -363,7 +363,7 @@ describe("Scoring System", () => {
       const currentLevels = { char1: 20 };
 
       const recommendations = calculateTrainingPriority(
-        missions,
+        commissions,
         characters,
         currentLevels,
         bitmaskLookup,
@@ -386,8 +386,8 @@ describe("Scoring System", () => {
         createTestCharacter("char1", { role: ["role-001"] }),
       ];
 
-      const missions: Mission[] = [
-        createTestMission("mission1", 50, [
+      const commissions: Commission[] = [
+        createTestCommission("commission1", 50, [
           { category: "role", anyOf: ["role-001"] },
         ]),
       ];
@@ -403,7 +403,7 @@ describe("Scoring System", () => {
       };
 
       const recommendations = calculateTrainingPriority(
-        missions,
+        commissions,
         characters,
         currentLevels,
         bitmaskLookup,
@@ -430,8 +430,8 @@ describe("Scoring System", () => {
         createTestCharacter("char1", { role: ["role-001"] }),
       ];
 
-      const missions: Mission[] = [
-        createTestMission("mission1", 30, [
+      const commissions: Commission[] = [
+        createTestCommission("commission1", 30, [
           { category: "role", anyOf: ["role-002"] }, // char1 doesn't have this
         ]),
       ];
@@ -439,7 +439,7 @@ describe("Scoring System", () => {
       const currentLevels = { char1: 20 };
 
       const recommendations = calculateTrainingPriority(
-        missions,
+        commissions,
         characters,
         currentLevels,
         bitmaskLookup,
@@ -458,8 +458,8 @@ describe("Scoring System", () => {
         createTestCharacter("char1", { role: ["role-001"] }),
       ];
 
-      const missions: Mission[] = [
-        createTestMission("mission1", 50, [
+      const commissions: Commission[] = [
+        createTestCommission("commission1", 50, [
           { category: "role", anyOf: ["role-001"] },
         ]),
       ];
@@ -467,7 +467,7 @@ describe("Scoring System", () => {
       const currentLevels = { char1: 90 }; // Max level
 
       const recommendations = calculateTrainingPriority(
-        missions,
+        commissions,
         characters,
         currentLevels,
         bitmaskLookup,
@@ -491,22 +491,22 @@ describe("Scoring System", () => {
         impact: {
           baseConditionsUnlocked: 2,
           bonusConditionsAdded: 0,
-          affectedMissions: ["mission1", "mission2"],
+          affectedCommissions: ["commission1", "commission2"],
         },
       };
 
-      const missions: Mission[] = [
-        createTestMission("mission1", 50, []),
-        createTestMission("mission2", 50, []),
+      const commissions: Commission[] = [
+        createTestCommission("commission1", 50, []),
+        createTestCommission("commission2", 50, []),
       ];
 
-      const explanation = explainRecommendation(recommendation, missions);
+      const explanation = explainRecommendation(recommendation, commissions);
 
       expect(explanation).toContain("コハク");
       expect(explanation).toContain("50");
-      expect(explanation).toContain("Unlocks 2 missions");
-      expect(explanation).toContain("mission1");
-      expect(explanation).toContain("mission2");
+      expect(explanation).toContain("Unlocks 2 commissions");
+      expect(explanation).toContain("commission1");
+      expect(explanation).toContain("commission2");
     });
 
     it("generates explanation for adding bonus conditions", () => {
@@ -519,20 +519,20 @@ describe("Scoring System", () => {
         impact: {
           baseConditionsUnlocked: 0,
           bonusConditionsAdded: 2,
-          affectedMissions: ["mission1", "mission2"],
+          affectedCommissions: ["commission1", "commission2"],
         },
       };
 
-      const missions: Mission[] = [
-        createTestMission("mission1", 50, []),
-        createTestMission("mission2", 50, []),
+      const commissions: Commission[] = [
+        createTestCommission("commission1", 50, []),
+        createTestCommission("commission2", 50, []),
       ];
 
-      const explanation = explainRecommendation(recommendation, missions);
+      const explanation = explainRecommendation(recommendation, commissions);
 
       expect(explanation).toContain("ミネルバ");
       expect(explanation).toContain("60");
-      expect(explanation).toContain("adds bonus to 2 missions");
+      expect(explanation).toContain("adds bonus to 2 commissions");
     });
 
     it("generates explanation for both unlocking and bonus", () => {
@@ -545,24 +545,24 @@ describe("Scoring System", () => {
         impact: {
           baseConditionsUnlocked: 1,
           bonusConditionsAdded: 1,
-          affectedMissions: ["mission1", "mission2"],
+          affectedCommissions: ["commission1", "commission2"],
         },
       };
 
-      const missions: Mission[] = [
-        createTestMission("mission1", 50, []),
-        createTestMission("mission2", 50, []),
+      const commissions: Commission[] = [
+        createTestCommission("commission1", 50, []),
+        createTestCommission("commission2", 50, []),
       ];
 
-      const explanation = explainRecommendation(recommendation, missions);
+      const explanation = explainRecommendation(recommendation, commissions);
 
       expect(explanation).toContain("エレン");
       expect(explanation).toContain("50");
-      expect(explanation).toContain("Unlocks 1 mission");
-      expect(explanation).toContain("adds bonus to 1 mission");
+      expect(explanation).toContain("Unlocks 1 commission");
+      expect(explanation).toContain("adds bonus to 1 commission");
     });
 
-    it("limits mission list to 3 missions", () => {
+    it("limits commission list to 3 commissions", () => {
       const recommendation: TrainingRecommendation = {
         characterId: "char1",
         characterName: "コハク",
@@ -572,30 +572,30 @@ describe("Scoring System", () => {
         impact: {
           baseConditionsUnlocked: 5,
           bonusConditionsAdded: 0,
-          affectedMissions: [
-            "mission1",
-            "mission2",
-            "mission3",
+          affectedCommissions: [
+            "commission1",
+            "commission2",
+            "commission3",
             "mission4",
             "mission5",
           ],
         },
       };
 
-      const missions: Mission[] = [
-        createTestMission("mission1", 50, []),
-        createTestMission("mission2", 50, []),
-        createTestMission("mission3", 50, []),
-        createTestMission("mission4", 50, []),
-        createTestMission("mission5", 50, []),
+      const commissions: Commission[] = [
+        createTestCommission("commission1", 50, []),
+        createTestCommission("commission2", 50, []),
+        createTestCommission("commission3", 50, []),
+        createTestCommission("mission4", 50, []),
+        createTestCommission("mission5", 50, []),
       ];
 
-      const explanation = explainRecommendation(recommendation, missions);
+      const explanation = explainRecommendation(recommendation, commissions);
 
-      // Should show first 3 missions and indicate there are more
-      expect(explanation).toContain("mission1");
-      expect(explanation).toContain("mission2");
-      expect(explanation).toContain("mission3");
+      // Should show first 3 commissions and indicate there are more
+      expect(explanation).toContain("commission1");
+      expect(explanation).toContain("commission2");
+      expect(explanation).toContain("commission3");
       expect(explanation).toContain("...");
     });
   });
@@ -614,7 +614,7 @@ describe("Scoring System", () => {
   });
 
   describe("calculateTrainingPriorityFromBlockedTeams", () => {
-    it("heavily weights mission unlocks over bonuses", () => {
+    it("heavily weights commission unlocks over bonuses", () => {
       // Setup: Char A unlocks 1 mission (score = 1000 + rarity)
       //        Char B adds 2 bonuses (score = 20 + rarity)
       const characters: Character[] = [
@@ -628,11 +628,11 @@ describe("Scoring System", () => {
         }),
       ];
 
-      const unassignedMissions: Mission[] = [
-        createTestMission("mission1", 50, [
+      const unassignedCommissions: Commission[] = [
+        createTestCommission("commission1", 50, [
           { category: "role", anyOf: ["role-001"] },
         ]),
-        createTestMission("mission2", 50, [
+        createTestCommission("commission2", 50, [
           { category: "role", anyOf: ["role-002"] },
         ]),
       ];
@@ -641,7 +641,7 @@ describe("Scoring System", () => {
 
       const blockedTeamsByMission = new Map<string, BlockedCombination[]>([
         [
-          "mission1",
+          "commission1",
           [
             {
               characterIds: ["charA"],
@@ -652,7 +652,7 @@ describe("Scoring System", () => {
           ],
         ],
         [
-          "mission2",
+          "commission2",
           [
             {
               characterIds: ["charB"],
@@ -671,7 +671,7 @@ describe("Scoring System", () => {
       ]);
 
       const recommendations = calculateTrainingPriorityFromBlockedTeams(
-        unassignedMissions,
+        unassignedCommissions,
         blockedTeamsByMission,
         characters,
         currentLevels
@@ -703,11 +703,11 @@ describe("Scoring System", () => {
         }),
       ];
 
-      const unassignedMissions: Mission[] = [
-        createTestMission("mission1", 50, [
+      const unassignedCommissions: Commission[] = [
+        createTestCommission("commission1", 50, [
           { category: "role", anyOf: ["role-001"] },
         ]),
-        createTestMission("mission2", 50, [
+        createTestCommission("commission2", 50, [
           { category: "role", anyOf: ["role-002"] },
         ]),
       ];
@@ -716,7 +716,7 @@ describe("Scoring System", () => {
 
       const blockedTeamsByMission = new Map<string, BlockedCombination[]>([
         [
-          "mission1",
+          "commission1",
           [
             {
               characterIds: ["char5Star"],
@@ -727,7 +727,7 @@ describe("Scoring System", () => {
           ],
         ],
         [
-          "mission2",
+          "commission2",
           [
             {
               characterIds: ["char4Star"],
@@ -740,7 +740,7 @@ describe("Scoring System", () => {
       ]);
 
       const recommendations = calculateTrainingPriorityFromBlockedTeams(
-        unassignedMissions,
+        unassignedCommissions,
         blockedTeamsByMission,
         characters,
         currentLevels
@@ -759,7 +759,7 @@ describe("Scoring System", () => {
     });
 
     it("recommends minimum level targets to unlock missions", () => {
-      // Mission requires Lv30, char at Lv20
+      // Commission requires Lv30, char at Lv20
       const characters: Character[] = [
         createTestCharacter("char1", {
           role: ["role-001"],
@@ -767,8 +767,8 @@ describe("Scoring System", () => {
         }),
       ];
 
-      const unassignedMissions: Mission[] = [
-        createTestMission("mission1", 30, [
+      const unassignedCommissions: Commission[] = [
+        createTestCommission("commission1", 30, [
           { category: "role", anyOf: ["role-001"] },
         ]),
       ];
@@ -777,7 +777,7 @@ describe("Scoring System", () => {
 
       const blockedTeamsByMission = new Map<string, BlockedCombination[]>([
         [
-          "mission1",
+          "commission1",
           [
             {
               characterIds: ["char1"],
@@ -790,7 +790,7 @@ describe("Scoring System", () => {
       ]);
 
       const recommendations = calculateTrainingPriorityFromBlockedTeams(
-        unassignedMissions,
+        unassignedCommissions,
         blockedTeamsByMission,
         characters,
         currentLevels
@@ -801,10 +801,10 @@ describe("Scoring System", () => {
         r => r.characterId === "char1" && r.targetLevel === 30
       );
       expect(rec30).toBeDefined();
-      expect(rec30!.impact.missionsUnlocked).toContain("mission1");
+      expect(rec30!.impact.commissionsUnlocked).toContain("commission1");
     });
 
-    it("aggregates impact across multiple missions", () => {
+    it("aggregates impact across multiple commissions", () => {
       // Char appears in blocked teams for 3 missions
       const characters: Character[] = [
         createTestCharacter("char1", {
@@ -813,14 +813,14 @@ describe("Scoring System", () => {
         }),
       ];
 
-      const unassignedMissions: Mission[] = [
-        createTestMission("mission1", 50, [
+      const unassignedCommissions: Commission[] = [
+        createTestCommission("commission1", 50, [
           { category: "role", anyOf: ["role-001"] },
         ]),
-        createTestMission("mission2", 50, [
+        createTestCommission("commission2", 50, [
           { category: "role", anyOf: ["role-001"] },
         ]),
-        createTestMission("mission3", 50, [
+        createTestCommission("commission3", 50, [
           { category: "role", anyOf: ["role-001"] },
         ]),
       ];
@@ -829,7 +829,7 @@ describe("Scoring System", () => {
 
       const blockedTeamsByMission = new Map<string, BlockedCombination[]>([
         [
-          "mission1",
+          "commission1",
           [
             {
               characterIds: ["char1"],
@@ -840,7 +840,7 @@ describe("Scoring System", () => {
           ],
         ],
         [
-          "mission2",
+          "commission2",
           [
             {
               characterIds: ["char1"],
@@ -851,7 +851,7 @@ describe("Scoring System", () => {
           ],
         ],
         [
-          "mission3",
+          "commission3",
           [
             {
               characterIds: ["char1"],
@@ -864,7 +864,7 @@ describe("Scoring System", () => {
       ]);
 
       const recommendations = calculateTrainingPriorityFromBlockedTeams(
-        unassignedMissions,
+        unassignedCommissions,
         blockedTeamsByMission,
         characters,
         currentLevels
@@ -875,14 +875,14 @@ describe("Scoring System", () => {
       );
 
       expect(rec).toBeDefined();
-      expect(rec!.impact.missionsUnlocked).toHaveLength(3);
-      expect(rec!.impact.missionsUnlocked).toContain("mission1");
-      expect(rec!.impact.missionsUnlocked).toContain("mission2");
-      expect(rec!.impact.missionsUnlocked).toContain("mission3");
+      expect(rec!.impact.commissionsUnlocked).toHaveLength(3);
+      expect(rec!.impact.commissionsUnlocked).toContain("commission1");
+      expect(rec!.impact.commissionsUnlocked).toContain("commission2");
+      expect(rec!.impact.commissionsUnlocked).toContain("commission3");
       expect(rec!.priority).toBeCloseTo(3000 + 4, 1); // 1000 × 3 missions + 4 rarity
     });
 
-    it("handles characters that unlock no missions", () => {
+    it("handles characters that unlock no commissions", () => {
       // Char not in any blocked teams
       const characters: Character[] = [
         createTestCharacter("char1", {
@@ -895,8 +895,8 @@ describe("Scoring System", () => {
         }),
       ];
 
-      const unassignedMissions: Mission[] = [
-        createTestMission("mission1", 50, [
+      const unassignedCommissions: Commission[] = [
+        createTestCommission("commission1", 50, [
           { category: "role", anyOf: ["role-001"] },
         ]),
       ];
@@ -905,7 +905,7 @@ describe("Scoring System", () => {
 
       const blockedTeamsByMission = new Map<string, BlockedCombination[]>([
         [
-          "mission1",
+          "commission1",
           [
             {
               characterIds: ["char1"], // only char1 in blocked team
@@ -918,7 +918,7 @@ describe("Scoring System", () => {
       ]);
 
       const recommendations = calculateTrainingPriorityFromBlockedTeams(
-        unassignedMissions,
+        unassignedCommissions,
         blockedTeamsByMission,
         characters,
         currentLevels
@@ -945,8 +945,8 @@ describe("Scoring System", () => {
         );
       }
 
-      const unassignedMissions: Mission[] = [
-        createTestMission("mission1", 50, [
+      const unassignedCommissions: Commission[] = [
+        createTestCommission("commission1", 50, [
           { category: "role", anyOf: ["role-001"] },
         ]),
       ];
@@ -965,11 +965,11 @@ describe("Scoring System", () => {
       }
 
       const blockedTeamsByMission = new Map<string, BlockedCombination[]>([
-        ["mission1", blockedTeams],
+        ["commission1", blockedTeams],
       ]);
 
       const recommendations = calculateTrainingPriorityFromBlockedTeams(
-        unassignedMissions,
+        unassignedCommissions,
         blockedTeamsByMission,
         characters,
         currentLevels
@@ -992,8 +992,8 @@ describe("Scoring System", () => {
         }),
       ];
 
-      const unassignedMissions: Mission[] = [
-        createTestMission("mission1", 50, [
+      const unassignedCommissions: Commission[] = [
+        createTestCommission("commission1", 50, [
           { category: "role", anyOf: ["role-001", "role-002"] }, // needs both
         ]),
       ];
@@ -1002,7 +1002,7 @@ describe("Scoring System", () => {
 
       const blockedTeamsByMission = new Map<string, BlockedCombination[]>([
         [
-          "mission1",
+          "commission1",
           [
             {
               characterIds: ["charA", "charB"],
@@ -1015,7 +1015,7 @@ describe("Scoring System", () => {
       ]);
 
       const recommendations = calculateTrainingPriorityFromBlockedTeams(
-        unassignedMissions,
+        unassignedCommissions,
         blockedTeamsByMission,
         characters,
         currentLevels
@@ -1030,7 +1030,7 @@ describe("Scoring System", () => {
 
       // charA alone can't unlock because charB is still at 30
       if (recA) {
-        expect(recA.impact.missionsUnlocked).toHaveLength(0);
+        expect(recA.impact.commissionsUnlocked).toHaveLength(0);
       }
     });
   });

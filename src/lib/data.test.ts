@@ -4,7 +4,7 @@ import {
   loadData,
   getTags,
   getCharacters,
-  getMissions,
+  getCommissions,
   getBitmaskLookup,
   isDataLoaded,
   resolveTagName,
@@ -12,11 +12,11 @@ import {
   getCharactersByTag,
   getCharactersByTags,
   getCharacterById,
-  getMissionsByTag,
-  getMissionsByLevel,
-  getMissionById,
+  getCommissionsByTag,
+  getCommissionsByLevel,
+  getCommissionById,
   getCharacterName,
-  getMissionName,
+  getCommissionName,
   resetData,
 } from "./data";
 
@@ -71,21 +71,21 @@ describe("Data Loading Layer", () => {
       expect(char).toHaveProperty("tags");
     });
 
-    it("loads missions data", async () => {
+    it("loads commissions data", async () => {
       await loadData();
-      const missions = getMissions();
+      const commissions = getCommissions();
 
-      expect(missions).toBeDefined();
-      expect(Array.isArray(missions)).toBe(true);
-      expect(missions.length).toBeGreaterThan(0);
+      expect(commissions).toBeDefined();
+      expect(Array.isArray(commissions)).toBe(true);
+      expect(commissions.length).toBeGreaterThan(0);
 
-      // Check structure of first mission
-      const mission = missions[0];
-      expect(mission).toHaveProperty("id");
-      expect(mission).toHaveProperty("name");
-      expect(mission).toHaveProperty("requiredLevel");
-      expect(mission).toHaveProperty("baseConditions");
-      expect(mission).toHaveProperty("durations");
+      // Check structure of first commission
+      const commission = commissions[0];
+      expect(commission).toHaveProperty("id");
+      expect(commission).toHaveProperty("name");
+      expect(commission).toHaveProperty("requiredLevel");
+      expect(commission).toHaveProperty("baseConditions");
+      expect(commission).toHaveProperty("durations");
     });
 
     it("builds bitmask lookup table", async () => {
@@ -110,8 +110,8 @@ describe("Data Loading Layer", () => {
       expect(() => getCharacters()).toThrow("Data not loaded");
     });
 
-    it("getMissions throws error when data not loaded", () => {
-      expect(() => getMissions()).toThrow("Data not loaded");
+    it("getCommissions throws error when data not loaded", () => {
+      expect(() => getCommissions()).toThrow("Data not loaded");
     });
 
     it("getBitmaskLookup throws error when data not loaded", () => {
@@ -226,22 +226,22 @@ describe("Data Loading Layer", () => {
     });
   });
 
-  describe("Mission Filtering", () => {
+  describe("Commission Filtering", () => {
     beforeEach(async () => {
       await loadData();
     });
 
-    it("gets missions by tag", () => {
-      const missions = getMissionsByTag("role-001");
+    it("gets commissions by tag", () => {
+      const commissions = getCommissionsByTag("role-001");
 
-      expect(Array.isArray(missions)).toBe(true);
-      expect(missions.length).toBeGreaterThan(0);
+      expect(Array.isArray(commissions)).toBe(true);
+      expect(commissions.length).toBeGreaterThan(0);
 
-      // Verify all returned missions require the tag
-      missions.forEach((mission) => {
+      // Verify all returned commissions require the tag
+      commissions.forEach((commission) => {
         const allConditions = [
-          ...mission.baseConditions,
-          ...(mission.bonusConditions || []),
+          ...commission.baseConditions,
+          ...(commission.bonusConditions || []),
         ];
         const hasTag = allConditions.some((cond) =>
           cond.anyOf.includes("role-001")
@@ -250,48 +250,48 @@ describe("Data Loading Layer", () => {
       });
     });
 
-    it("gets missions by minimum level", () => {
-      const missions = getMissionsByLevel(10);
+    it("gets commissions by minimum level", () => {
+      const commissions = getCommissionsByLevel(10);
 
-      expect(Array.isArray(missions)).toBe(true);
+      expect(Array.isArray(commissions)).toBe(true);
 
-      // Verify all returned missions have required level >= 10
-      missions.forEach((mission) => {
-        expect(mission.requiredLevel).toBeGreaterThanOrEqual(10);
+      // Verify all returned commissions have required level >= 10
+      commissions.forEach((commission) => {
+        expect(commission.requiredLevel).toBeGreaterThanOrEqual(10);
       });
     });
 
-    it("gets missions by level range", () => {
-      const missions = getMissionsByLevel(1, 10);
+    it("gets commissions by level range", () => {
+      const commissions = getCommissionsByLevel(1, 10);
 
-      expect(Array.isArray(missions)).toBe(true);
+      expect(Array.isArray(commissions)).toBe(true);
 
-      // Verify all returned missions are in range [1, 10]
-      missions.forEach((mission) => {
-        expect(mission.requiredLevel).toBeGreaterThanOrEqual(1);
-        expect(mission.requiredLevel).toBeLessThanOrEqual(10);
+      // Verify all returned commissions are in range [1, 10]
+      commissions.forEach((commission) => {
+        expect(commission.requiredLevel).toBeGreaterThanOrEqual(1);
+        expect(commission.requiredLevel).toBeLessThanOrEqual(10);
       });
     });
 
-    it("gets mission by ID", () => {
-      const mission = getMissionById("m-001");
+    it("gets commission by ID", () => {
+      const commission = getCommissionById("m-001");
 
-      expect(mission).toBeDefined();
-      expect(mission?.id).toBe("m-001");
-      expect(mission?.name.ja).toBe("資金獲得 初級");
+      expect(commission).toBeDefined();
+      expect(commission?.id).toBe("m-001");
+      expect(commission?.name.ja).toBe("資金獲得 初級");
     });
 
-    it("returns undefined for unknown mission ID", () => {
-      const mission = getMissionById("m-999");
+    it("returns undefined for unknown commission ID", () => {
+      const commission = getCommissionById("m-999");
 
-      expect(mission).toBeUndefined();
+      expect(commission).toBeUndefined();
     });
 
-    it("gets localized mission name", () => {
-      const mission = getMissionById("m-001");
-      expect(mission).toBeDefined();
+    it("gets localized commission name", () => {
+      const commission = getCommissionById("m-001");
+      expect(commission).toBeDefined();
 
-      const nameJa = getMissionName(mission!, "ja");
+      const nameJa = getCommissionName(commission!, "ja");
       expect(nameJa).toBe("資金獲得 初級");
     });
   });
@@ -315,16 +315,16 @@ describe("Data Loading Layer", () => {
       expect(firstChar.tags.role).toContain("role-001");
     });
 
-    it("can find missions that a character can participate in", () => {
+    it("can find commissions that a character can participate in", () => {
       // Get a character
       const char = getCharacterById("char-001");
       expect(char).toBeDefined();
 
-      // Get missions that require any of this character's tags
-      const missions = getMissions().filter((mission) => {
+      // Get commissions that require any of this character's tags
+      const commissions = getCommissions().filter((commission) => {
         const allConditions = [
-          ...mission.baseConditions,
-          ...(mission.bonusConditions || []),
+          ...commission.baseConditions,
+          ...(commission.bonusConditions || []),
         ];
 
         return allConditions.some((condition) => {
@@ -335,8 +335,8 @@ describe("Data Loading Layer", () => {
         });
       });
 
-      // Character should be able to participate in at least one mission
-      expect(missions.length).toBeGreaterThan(0);
+      // Character should be able to participate in at least one commission
+      expect(commissions.length).toBeGreaterThan(0);
     });
 
     it("verifies data consistency between tags and characters", () => {

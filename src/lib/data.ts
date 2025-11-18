@@ -8,7 +8,7 @@
 import type {
   TagDict,
   Character,
-  Mission,
+  Commission,
   Item,
   Category,
   Language,
@@ -21,7 +21,7 @@ import { buildBitmaskLookup, type BitmaskLookup } from "./bitmask";
 
 let tagsData: TagDict | null = null;
 let charactersData: Character[] | null = null;
-let missionsData: Mission[] | null = null;
+let commissionsData: Commission[] | null = null;
 let itemsData: Item[] | null = null;
 let bitmaskLookup: BitmaskLookup | null = null;
 
@@ -36,16 +36,16 @@ let bitmaskLookup: BitmaskLookup | null = null;
 export async function loadData(): Promise<void> {
   try {
     // Dynamic imports for JSON files (Vite handles these efficiently)
-    const [tagsModule, charactersModule, missionsModule, itemsModule] = await Promise.all([
+    const [tagsModule, charactersModule, commissionsModule, itemsModule] = await Promise.all([
       import("../../data/tags.json"),
       import("../../data/characters.json"),
-      import("../../data/missions.json"),
+      import("../../data/commissions.json"),
       import("../../data/items.json"),
     ]);
 
     tagsData = tagsModule.default as TagDict;
     charactersData = charactersModule.default as Character[];
-    missionsData = missionsModule.default as Mission[];
+    commissionsData = commissionsModule.default as Commission[];
     itemsData = itemsModule.default as Item[];
 
     // Build bitmask lookup table from tags
@@ -79,14 +79,14 @@ export function getCharacters(): Character[] {
 }
 
 /**
- * Get all missions
+ * Get all commissions
  * @throws Error if data not loaded
  */
-export function getMissions(): Mission[] {
-  if (!missionsData) {
+export function getCommissions(): Commission[] {
+  if (!commissionsData) {
     throw new Error("Data not loaded. Call loadData() first.");
   }
-  return missionsData;
+  return commissionsData;
 }
 
 /**
@@ -115,7 +115,7 @@ export function getItems(): Item[] {
  * Check if data has been loaded
  */
 export function isDataLoaded(): boolean {
-  return !!(tagsData && charactersData && missionsData && itemsData && bitmaskLookup);
+  return !!(tagsData && charactersData && commissionsData && itemsData && bitmaskLookup);
 }
 
 // ============================================================================
@@ -217,24 +217,24 @@ export function getCharacterById(charId: string): Character | undefined {
 }
 
 // ============================================================================
-// Mission Filtering
+// Commission Filtering
 // ============================================================================
 
 /**
- * Get missions that require a specific tag
+ * Get commissions that require a specific tag
  * @param tagId Tag ID to filter by
- * @returns Array of missions that require the specified tag
+ * @returns Array of commissions that require the specified tag
  */
-export function getMissionsByTag(tagId: string): Mission[] {
-  if (!missionsData) {
+export function getCommissionsByTag(tagId: string): Commission[] {
+  if (!commissionsData) {
     return [];
   }
 
-  return missionsData.filter((mission) => {
+  return commissionsData.filter((commission) => {
     // Check both base and bonus conditions
     const allConditions = [
-      ...mission.baseConditions,
-      ...(mission.bonusConditions || []),
+      ...commission.baseConditions,
+      ...(commission.bonusConditions || []),
     ];
 
     return allConditions.some((condition) => condition.anyOf.includes(tagId));
@@ -242,39 +242,39 @@ export function getMissionsByTag(tagId: string): Mission[] {
 }
 
 /**
- * Get missions by required level range
+ * Get commissions by required level range
  * @param minLevel Minimum required level (inclusive)
  * @param maxLevel Maximum required level (inclusive), optional
- * @returns Array of missions within the level range
+ * @returns Array of commissions within the level range
  */
-export function getMissionsByLevel(
+export function getCommissionsByLevel(
   minLevel: number,
   maxLevel?: number
-): Mission[] {
-  if (!missionsData) {
+): Commission[] {
+  if (!commissionsData) {
     return [];
   }
 
-  return missionsData.filter((mission) => {
+  return commissionsData.filter((commission) => {
     if (maxLevel !== undefined) {
       return (
-        mission.requiredLevel >= minLevel && mission.requiredLevel <= maxLevel
+        commission.requiredLevel >= minLevel && commission.requiredLevel <= maxLevel
       );
     }
-    return mission.requiredLevel >= minLevel;
+    return commission.requiredLevel >= minLevel;
   });
 }
 
 /**
- * Get mission by ID
- * @param missionId Mission ID
- * @returns Mission or undefined if not found
+ * Get commission by ID
+ * @param commissionId Commission ID
+ * @returns Commission or undefined if not found
  */
-export function getMissionById(missionId: string): Mission | undefined {
-  if (!missionsData) {
+export function getCommissionById(commissionId: string): Commission | undefined {
+  if (!commissionsData) {
     return undefined;
   }
-  return missionsData.find((mission) => mission.id === missionId);
+  return commissionsData.find((commission) => commission.id === commissionId);
 }
 
 // ============================================================================
@@ -295,13 +295,13 @@ export function getCharacterName(
 }
 
 /**
- * Get localized name for a mission
- * @param mission Mission object
+ * Get localized name for a commission
+ * @param commission Commission object
  * @param lang Language code (defaults to "ja")
- * @returns Localized mission name
+ * @returns Localized commission name
  */
-export function getMissionName(mission: Mission, lang: Language = "ja"): string {
-  return mission.name[lang] || mission.name.ja;
+export function getCommissionName(commission: Commission, lang: Language = "ja"): string {
+  return commission.name[lang] || commission.name.ja;
 }
 
 /**
@@ -322,7 +322,7 @@ export function getItemById(itemId: string): Item | undefined {
 export function resetData(): void {
   tagsData = null;
   charactersData = null;
-  missionsData = null;
+  commissionsData = null;
   itemsData = null;
   bitmaskLookup = null;
 }

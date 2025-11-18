@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { loadData, isDataLoaded } from '../lib/data';
 import { RosterSelector } from '../components/RosterSelector';
 import { LevelEditor } from '../components/LevelEditor';
-import { MissionPicker } from '../components/MissionPicker';
+import { CommissionPicker } from '../components/CommissionPicker';
 import { useLanguageStore } from '../store/useLanguageStore';
 
 export function FeatureTest() {
@@ -51,7 +51,7 @@ export function FeatureTest() {
       </section>
 
       <section>
-        <MissionPicker />
+        <CommissionPicker />
       </section>
     </div>
   );

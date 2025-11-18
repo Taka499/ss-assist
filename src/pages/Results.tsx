@@ -1,13 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
-import { loadData, isDataLoaded, getMissionById, getCharacters, getBitmaskLookup } from '../lib/data';
+import { loadData, isDataLoaded, getCommissionById, getCharacters, getBitmaskLookup } from '../lib/data';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useTranslation } from '../../i18n';
 import { useAppStore } from '../store/useAppStore';
-import { findBestMissionAssignment } from '../lib/combos';
-import { MissionAssignmentCard } from '../components/MissionAssignmentCard';
+import { findBestCommissionAssignment } from '../lib/combos';
+import { CommissionAssignmentCard } from '../components/CommissionAssignmentCard';
 import { TrainingRecommendationList } from '../components/TrainingRecommendationList';
 import { analytics } from '../lib/analytics';
-import type { Mission, MultiMissionAssignmentResult, MissionAssignment, AssignmentStrategy } from '../types';
+import type { Commission, MultiCommissionAssignmentResult, CommissionAssignment, AssignmentStrategy } from '../types';
 
 interface ResultsProps {
   onNavigate: (page: string) => void;
@@ -16,10 +16,10 @@ interface ResultsProps {
 export function Results({ onNavigate }: ResultsProps) {
   const lang = useLanguageStore((state) => state.lang);
   const { t } = useTranslation(lang);
-  const { selectedMissionIds, ownedCharacterIds, characterLevels } = useAppStore();
+  const { selectedCommissionIds, ownedCharacterIds, characterLevels } = useAppStore();
 
-  const [baseFirstResult, setBaseFirstResult] = useState<MultiMissionAssignmentResult | null>(null);
-  const [bonusFirstResult, setBonusFirstResult] = useState<MultiMissionAssignmentResult | null>(null);
+  const [baseFirstResult, setBaseFirstResult] = useState<MultiCommissionAssignmentResult | null>(null);
+  const [bonusFirstResult, setBonusFirstResult] = useState<MultiCommissionAssignmentResult | null>(null);
   const [currentStrategy, setCurrentStrategy] = useState<AssignmentStrategy>('bonus-first');
   const [isAnalyzing, setIsAnalyzing] = useState(true);
 
@@ -38,22 +38,22 @@ export function Results({ onNavigate }: ResultsProps) {
         ownedCharacterIds.includes(char.id)
       );
 
-      // Get selected missions
-      const selectedMissions = selectedMissionIds
-        .map(id => getMissionById(id))
-        .filter((m): m is Mission => m !== null);
+      // Get selected commissions
+      const selectedCommissions = selectedCommissionIds
+        .map(id => getCommissionById(id))
+        .filter((m): m is Commission => m !== null);
 
       // Compute both assignment strategies
-      const baseFirst = findBestMissionAssignment(
-        selectedMissions,
+      const baseFirst = findBestCommissionAssignment(
+        selectedCommissions,
         ownedCharacters,
         characterLevels,
         bitmaskLookup,
         'base-first'
       );
 
-      const bonusFirst = findBestMissionAssignment(
-        selectedMissions,
+      const bonusFirst = findBestCommissionAssignment(
+        selectedCommissions,
         ownedCharacters,
         characterLevels,
         bitmaskLookup,
@@ -70,7 +70,7 @@ export function Results({ onNavigate }: ResultsProps) {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [selectedMissionIds, ownedCharacterIds, characterLevels]);
+  }, [selectedCommissionIds, ownedCharacterIds, characterLevels]);
 
   useEffect(() => {
     if (!isDataLoaded()) {
@@ -79,12 +79,12 @@ export function Results({ onNavigate }: ResultsProps) {
     }
 
     // Perform analysis when data is loaded and selections exist
-    if (selectedMissionIds.length > 0) {
+    if (selectedCommissionIds.length > 0) {
       analyzeResults();
     } else {
       setIsAnalyzing(false);
     }
-  }, [selectedMissionIds, ownedCharacterIds, characterLevels, analyzeResults]);
+  }, [selectedCommissionIds, ownedCharacterIds, characterLevels, analyzeResults]);
 
 
   if (!isDataLoaded()) {
@@ -98,7 +98,7 @@ export function Results({ onNavigate }: ResultsProps) {
     );
   }
 
-  if (selectedMissionIds.length === 0) {
+  if (selectedCommissionIds.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-600 mb-4">
@@ -204,7 +204,7 @@ export function Results({ onNavigate }: ResultsProps) {
                 {t('results.assigned')}
               </p>
               <p className="text-2xl font-bold text-blue-600">
-                {assignmentResult.stats.missionsAssigned} / {assignmentResult.stats.missionsTotal}
+                {assignmentResult.stats.commissionsAssigned} / {assignmentResult.stats.commissionsTotal}
               </p>
             </div>
             <div>
@@ -212,7 +212,7 @@ export function Results({ onNavigate }: ResultsProps) {
                 {t('results.missionValue')}
               </p>
               <p className="text-2xl font-bold text-green-600">
-                {assignmentResult.stats.totalMissionValue}
+                {assignmentResult.stats.totalCommissionValue}
               </p>
             </div>
             <div>
@@ -235,7 +235,7 @@ export function Results({ onNavigate }: ResultsProps) {
         </div>
       )}
 
-      {/* Mission Assignments */}
+      {/* Commission Assignments */}
       {assignmentResult && assignmentResult.assignments.length > 0 && (
         <div>
           <h2 className="text-xl font-semibold mb-4">
@@ -245,15 +245,15 @@ export function Results({ onNavigate }: ResultsProps) {
             {t('results.assignmentsDescription')}
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {assignmentResult.assignments.map((assignment: MissionAssignment) => {
-              const mission = getMissionById(assignment.missionId);
-              if (!mission) return null;
+            {assignmentResult.assignments.map((assignment: CommissionAssignment) => {
+              const commission = getCommissionById(assignment.commissionId);
+              if (!commission) return null;
 
               return (
-                <MissionAssignmentCard
-                  key={assignment.missionId}
+                <CommissionAssignmentCard
+                  key={assignment.commissionId}
                   assignment={assignment}
-                  mission={mission}
+                  commission={commission}
                   characterLevels={characterLevels}
                 />
               );

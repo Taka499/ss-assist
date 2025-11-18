@@ -1,20 +1,20 @@
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useTranslation } from '../../i18n';
-import type { MissionAssignment, Mission } from '../types';
+import type { CommissionAssignment, Commission } from '../types';
 import { getCharacterById, resolveTagName } from '../lib/data';
 import { analyzeConditionSatisfaction, getMatchingTagForCharacter } from '../lib/requirementMatching';
 
-interface MissionAssignmentCardProps {
-  assignment: MissionAssignment;
-  mission: Mission;
+interface CommissionAssignmentCardProps {
+  assignment: CommissionAssignment;
+  commission: Commission;
   characterLevels: Record<string, number>;
 }
 
-export function MissionAssignmentCard({ assignment, mission, characterLevels }: MissionAssignmentCardProps) {
+export function CommissionAssignmentCard({ assignment, commission, characterLevels }: CommissionAssignmentCardProps) {
   const lang = useLanguageStore((state) => state.lang);
   const { t } = useTranslation(lang);
 
-  const missionName = mission.name[lang] || mission.name.ja;
+  const commissionName = commission.name[lang] || commission.name.ja;
 
   // Get team characters for requirement analysis
   const teamCharacters = assignment.team
@@ -25,14 +25,14 @@ export function MissionAssignmentCard({ assignment, mission, characterLevels }: 
 
   return (
     <div className="border rounded-lg p-4 bg-white">
-      {/* Mission Header */}
+      {/* Commission Header */}
       <div className="flex justify-between items-start mb-3">
         <div>
-          <h3 className="font-semibold text-lg">{missionName}</h3>
+          <h3 className="font-semibold text-lg">{commissionName}</h3>
           <p className="text-xs text-gray-500">
-            {t('results.missionValue')}: {assignment.missionValue}
+            {t('results.missionValue')}: {assignment.commissionValue}
             {' • '}
-            {t('missions.requiredLevel')}: {mission.requiredLevel}
+            {t('missions.requiredLevel')}: {commission.requiredLevel}
           </p>
         </div>
       </div>
@@ -46,8 +46,8 @@ export function MissionAssignmentCard({ assignment, mission, characterLevels }: 
               if (!char) return null;
 
               const level = characterLevels[charId] || 1;
-              const dimmed = level < mission.requiredLevel;
-              const levelDeficit = dimmed ? mission.requiredLevel - level : 0;
+              const dimmed = level < commission.requiredLevel;
+              const levelDeficit = dimmed ? commission.requiredLevel - level : 0;
 
               return (
                 <div key={charId} className="text-center relative">
@@ -87,7 +87,7 @@ export function MissionAssignmentCard({ assignment, mission, characterLevels }: 
               {/* Base Conditions */}
               <div className="mb-2">
                 <p className="font-semibold text-gray-700 mb-1">Base Requirements:</p>
-                {analyzeConditionSatisfaction(teamCharacters, mission.baseConditions).map((condSat, idx) => (
+                {analyzeConditionSatisfaction(teamCharacters, commission.baseConditions).map((condSat, idx) => (
                   <div key={idx} className="flex items-center gap-2 mb-1">
                     <span className="text-gray-600">
                       {condSat.requiredTagIds.map(tagId => resolveTagName(tagId, lang)).join(' / ')}:
@@ -116,10 +116,10 @@ export function MissionAssignmentCard({ assignment, mission, characterLevels }: 
               </div>
 
               {/* Bonus Conditions */}
-              {mission.bonusConditions && mission.bonusConditions.length > 0 && (
+              {commission.bonusConditions && commission.bonusConditions.length > 0 && (
                 <div>
                   <p className="font-semibold text-gray-700 mb-1">Bonus Requirements:</p>
-                  {analyzeConditionSatisfaction(teamCharacters, mission.bonusConditions).map((condSat, idx) => (
+                  {analyzeConditionSatisfaction(teamCharacters, commission.bonusConditions).map((condSat, idx) => (
                     <div key={idx} className="flex items-center gap-2 mb-1">
                       <span className={condSat.satisfied ? 'text-gray-600' : 'text-gray-400'}>
                         {condSat.requiredTagIds.map(tagId => resolveTagName(tagId, lang)).join(' / ')}:
@@ -258,7 +258,7 @@ export function MissionAssignmentCard({ assignment, mission, characterLevels }: 
                   {/* Base Conditions */}
                   <div className="mb-2">
                     <p className="font-semibold text-gray-700 mb-1">Base Requirements:</p>
-                    {analyzeConditionSatisfaction(teamCharacters, mission.baseConditions).map((condSat, idx) => (
+                    {analyzeConditionSatisfaction(teamCharacters, commission.baseConditions).map((condSat, idx) => (
                       <div key={idx} className="flex items-center gap-2 mb-1">
                         <span className="text-gray-600">
                           {condSat.requiredTagIds.map(tagId => resolveTagName(tagId, lang)).join(' / ')}:
@@ -287,10 +287,10 @@ export function MissionAssignmentCard({ assignment, mission, characterLevels }: 
                   </div>
 
                   {/* Bonus Conditions */}
-                  {mission.bonusConditions && mission.bonusConditions.length > 0 && (
+                  {commission.bonusConditions && commission.bonusConditions.length > 0 && (
                     <div>
                       <p className="font-semibold text-gray-700 mb-1">Bonus Requirements:</p>
-                      {analyzeConditionSatisfaction(teamCharacters, mission.bonusConditions).map((condSat, idx) => (
+                      {analyzeConditionSatisfaction(teamCharacters, commission.bonusConditions).map((condSat, idx) => (
                         <div key={idx} className="flex items-center gap-2 mb-1">
                           <span className={condSat.satisfied ? 'text-gray-600' : 'text-gray-400'}>
                             {condSat.requiredTagIds.map(tagId => resolveTagName(tagId, lang)).join(' / ')}:
