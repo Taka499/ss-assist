@@ -460,9 +460,9 @@ describe("Combination Search", () => {
       const result = findCombinations(commission, characters, levels, lookup);
 
       expect(result.satisfiable).toBe(true);
-      expect(result.assignments.length).toBeGreaterThan(0);
+      expect(result.combinations.length).toBeGreaterThan(0);
       expect(
-        result.assignments.some((c) =>
+        result.combinations.some((c) =>
           c.characterIds.includes("char1") &&
           c.characterIds.length === 1
         )
@@ -486,7 +486,7 @@ describe("Combination Search", () => {
 
       expect(result.satisfiable).toBe(true);
       expect(
-        result.assignments.some((c) =>
+        result.combinations.some((c) =>
           c.characterIds.includes("char1") && c.characterIds.includes("char2")
         )
       ).toBe(true);
@@ -506,7 +506,7 @@ describe("Combination Search", () => {
       const result = findCombinations(commission, characters, levels, lookup);
 
       expect(result.satisfiable).toBe(false);
-      expect(result.assignments).toHaveLength(0);
+      expect(result.combinations).toHaveLength(0);
       expect(result.missingForBase).toContain("role-003");
     });
 
@@ -530,7 +530,7 @@ describe("Combination Search", () => {
       const result = findCombinations(commission, characters, levels, lookup);
 
       expect(result.satisfiable).toBe(true);
-      const combo = result.assignments.find((c) =>
+      const combo = result.combinations.find((c) =>
         c.characterIds.includes("char1")
       );
       expect(combo?.meetsBonusConditions).toBe(true);
@@ -553,7 +553,7 @@ describe("Combination Search", () => {
       const result = findCombinations(commission, characters, levels, lookup);
 
       expect(result.satisfiable).toBe(true);
-      const validCombo = result.assignments.find(
+      const validCombo = result.combinations.find(
         (c) =>
           c.characterIds.includes("char1") &&
           c.characterIds.includes("char2") &&
@@ -576,7 +576,7 @@ describe("Combination Search", () => {
       const result = findCombinations(commission, characters, levels, lookup);
 
       expect(result.satisfiable).toBe(true);
-      const combo = result.assignments[0];
+      const combo = result.combinations[0];
       expect(combo.levelDeficits).toEqual({ char1: 10 });
     });
 
@@ -596,7 +596,7 @@ describe("Combination Search", () => {
 
       const result = findCombinations(commission, characters, levels, lookup);
 
-      expect(result.assignments.length).toBeGreaterThan(10);
+      expect(result.combinations.length).toBeGreaterThan(10);
       expect(result.bestCombinations.length).toBeLessThanOrEqual(10);
     });
 
@@ -615,7 +615,7 @@ describe("Combination Search", () => {
       const result = findCombinations(commission, characters, levels, lookup);
 
       // char2 should be pruned, so no combination should include both
-      const comboWithBoth = result.assignments.find(
+      const comboWithBoth = result.combinations.find(
         (c) =>
           c.characterIds.includes("char1") && c.characterIds.includes("char2")
       );
@@ -1284,11 +1284,11 @@ describe("Combination Search", () => {
 
       // Should have same number of valid combinations
       expect(multiResult.assignments.length).toBe(
-        singleResult.assignments.length
+        singleResult.combinations.length
       );
 
       // All combos in single result should exist in multi result
-      for (const singleCombo of singleResult.assignments) {
+      for (const singleCombo of singleResult.combinations) {
         const matchingMultiCombo = multiResult.assignments.find((mc) =>
           singleCombo.characterIds.every((id) => mc.characterIds.includes(id)) &&
           mc.characterIds.length === singleCombo.characterIds.length
