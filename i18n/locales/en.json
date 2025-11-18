@@ -1,13 +1,13 @@
 {
   "app": {
-    "title": "Stella Sora Mission Assistant",
+    "title": "Stella Sora Commission Assistant",
     "subtitle": "Unofficial Fan Tool"
   },
   "nav": {
     "home": "Home",
     "roster": "Characters",
     "levels": "Levels",
-    "missions": "Missions",
+    "missions": "Commissions",
     "results": "Results"
   },
   "buttons": {
@@ -27,11 +27,11 @@
     "missionCount": "{{count}}"
   },
   "home": {
-    "description": "Find optimal character combinations for missions and get training priority recommendations.",
+    "description": "Find optimal character combinations for commissions and get training priority recommendations.",
     "howToUse": "How to Use",
     "step1": "Select your characters",
     "step2": "Set character levels",
-    "step3": "Choose up to 4 missions to analyze",
+    "step3": "Choose up to 4 commissions to analyze",
     "step4": "View optimal combinations and training recommendations"
   },
   "roster": {
@@ -48,12 +48,12 @@
     "goToRoster": "Go to Character Selection"
   },
   "missions": {
-    "title": "Select Missions",
+    "title": "Select Commissions",
     "selected": "Selected: {{count}}/4",
-    "warning": "Please select at least one mission",
-    "noMissions": "Please select missions",
-    "goToMissions": "Go to Mission Selection",
-    "maxSelectAlert": "You can select up to 4 missions",
+    "warning": "Please select at least one commission",
+    "noMissions": "Please select commissions",
+    "goToMissions": "Go to Commission Selection",
+    "maxSelectAlert": "You can select up to 4 commissions",
     "baseConditions": "Base Conditions",
     "bonusConditions": "Bonus Conditions",
     "rewards": "Rewards",
@@ -67,19 +67,19 @@
     "analyzing": "Analyzing...",
     "summary": "📊 Summary",
     "assigned": "Assigned",
-    "missionValue": "Mission Value",
+    "missionValue": "Commission Value",
     "charactersUsed": "Characters Used",
     "totalRarity": "Total Rarity",
     "strategyLabel": "Assignment Strategy",
     "bonusFirst": "Bonus First",
     "baseFirst": "Quick Unlock",
     "bonusFirstDescription": "Prioritize maximizing bonus rewards, even if it requires more leveling",
-    "baseFirstDescription": "Prioritize unlocking missions quickly to accept more requests as soon as possible",
-    "assignmentsTitle": "🎯 Mission Assignments",
-    "assignmentsDescription": "Each mission is assigned a separate team (no character overlap)",
+    "baseFirstDescription": "Prioritize unlocking commissions quickly to accept more requests as soon as possible",
+    "assignmentsTitle": "🎯 Commission Assignments",
+    "assignmentsDescription": "Each commission is assigned a separate team (no character overlap)",
     "trainingTitle": "💪 Training Recommendations",
-    "trainingDescription": "Training these characters will unlock more missions",
-    "noAssignments": "No missions can be assigned with current roster",
+    "trainingDescription": "Training these characters will unlock more commissions",
+    "noAssignments": "No commissions can be assigned with current roster",
     "noAssignmentsHint": "Please add more characters or level them up"
   },
   "training": {
@@ -88,12 +88,12 @@
     "bonusReward": "Bonus Reward",
     "noRecommendations": "No training recommendations",
     "priorityRanking": "Training Priority Ranking",
-    "unlockSummary": "Unlock {{base}} mission(s), {{bonus}} bonus(es)",
+    "unlockSummary": "Unlock {{base}} commission(s), {{bonus}} bonus(es)",
     "score": "Score",
     "detailsPlaceholder": "Details (Coming Soon)"
   },
   "status": {
-    "missionUnlock": "Mission Unlock",
+    "missionUnlock": "Commission Unlock",
     "bonusAchieved": "Bonus Achieved",
     "canAccept": "Can Accept",
     "baseOnly": "Base Only",
