@@ -8,7 +8,7 @@ When writing complex features or significant refactors, use an ExecPlan (as desc
 
 ## Project Overview
 
-**ステラソラ依頼アシスト (Stella Sora Request Assistant)** is a serverless SPA that helps players optimize character combinations for missions in the Stella Sora game. The application runs entirely client-side with no backend, deployed to GitHub Pages.
+**ステラソラ依頼アシスト (Stella Sora Request Assistant)** is a serverless SPA that helps players optimize character combinations for commissions in the Stella Sora game. The application runs entirely client-side with no backend, deployed to GitHub Pages.
 
 **Live:** https://taka499.github.io/ss-assist/
 
@@ -65,7 +65,7 @@ See `src/lib/bitmask.ts` for implementation details.
 
 The combination search uses a two-phase approach:
 
-1. **Phase 1 - Pruning (fast)**: Use bitmasks to eliminate characters irrelevant to the mission
+1. **Phase 1 - Pruning (fast)**: Use bitmasks to eliminate characters irrelevant to the commission
 2. **Phase 2 - Validation (accurate)**: Use count-based checking to handle conditions like "2 Attackers and 1 Balancer"
 
 Bitmasks can't verify counts (just presence/absence), so count-based validation is needed for accuracy.
@@ -101,7 +101,7 @@ const navigate = (page: string) => {
 
 **5. Training Priority Scoring**
 
-Calculates which characters to train for maximum mission unlock value:
+Calculates which characters to train for maximum commission unlock value:
 
 ```
 score = 3.0 × baseConditionsUnlocked
@@ -110,7 +110,7 @@ score = 3.0 × baseConditionsUnlocked
       + 1.0 × rarityBonus
 ```
 
-The algorithm simulates training each character to each level milestone (10, 20, ..., 90) and measures impact by running `findCombinations()` before and after to count newly unlocked missions and bonuses.
+The algorithm simulates training each character to each level milestone (10, 20, ..., 90) and measures impact by running `findCombinations()` before and after to count newly unlocked commissions and bonuses.
 
 See `src/lib/scoring.ts::calculateTrainingPriority()`.
 
@@ -124,14 +124,14 @@ src/
 │   ├── combos.ts          # Combination search: prune → generate → validate → rank
 │   └── scoring.ts         # Training priority calculator
 ├── store/                  # Zustand state management
-│   ├── useAppStore.ts     # User selections (owned chars, levels, missions)
+│   ├── useAppStore.ts     # User selections (owned chars, levels, commissions)
 │   └── useLanguageStore.ts # Language preference (ja/zh-Hans/zh-Hant)
 ├── components/             # Reusable UI components
 ├── pages/                  # Full-page views (hash route handlers)
 │   ├── Home.tsx           # Entry point
 │   ├── RosterManagement.tsx
 │   ├── LevelManagement.tsx
-│   ├── MissionSelection.tsx
+│   ├── CommissionSelection.tsx
 │   └── Results.tsx        # Main analysis view
 └── types/                  # TypeScript type definitions
 
@@ -180,7 +180,7 @@ npm test -- --coverage   # Run with coverage report
 
 1. Edit human-readable sources:
    - `data-sources/stellasora - characters.csv`
-   - `data-sources/stellasora - missions.csv`
+   - `data-sources/stellasora - commissions.csv`
    - `data/tags.src.json`
    - `i18n/*.json` (translations)
 
@@ -280,11 +280,11 @@ See existing ExecPlans in `_docs/execplan-*.md` for examples.
 }
 ```
 
-**Mission:**
+**Commission:**
 ```typescript
 {
-  id: "mission-01",
-  name: { ja: "ミッション名", "zh-Hans": "任务名" },
+  id: "commission-01",
+  name: { ja: "依頼名", "zh-Hans": "任务名" },
   requiredLevel: 20,
   baseConditions: [
     { category: "role", anyOf: ["role-001", "role-002"] }
@@ -313,7 +313,7 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       ownedCharacterIds: [],
       characterLevels: {},
-      selectedMissionIds: [],
+      selectedCommissionIds: [],
 
       toggleCharacter: (id: string) =>
         set((state) => ({
@@ -367,11 +367,11 @@ const displayName = character.name[lang] || character.name.ja;
 - **Combination search**: O(n³) for generating combinations, but bitmask pruning typically reduces n by 50-70%
 - **Bitmask matching**: O(1) per check
 - **Count validation**: O(n·m) where n = combo size, m = conditions
-- **Training priority**: O(characters × levels × missions × combinations)
+- **Training priority**: O(characters × levels × commissions × combinations)
 
 **Typical performance:**
-- 20 characters, 36 missions: Results in <100ms
-- 50 characters, 36 missions: Results in <500ms
+- 20 characters, 36 commissions: Results in <100ms
+- 50 characters, 36 commissions: Results in <500ms
 
 ## Troubleshooting
 

@@ -1,15 +1,15 @@
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useTranslation } from '../../i18n';
 import { CharacterAvatar } from './CharacterAvatar';
-import type { Combo, Mission } from '../types';
+import type { Combo, Commission } from '../types';
 
 interface ComboCardProps {
   combo: Combo;
-  mission: Mission;
+  commission: Commission;
   characterLevels: Record<string, number>;
 }
 
-export function ComboCard({ combo, mission, characterLevels }: ComboCardProps) {
+export function ComboCard({ combo, commission, characterLevels }: ComboCardProps) {
   const lang = useLanguageStore((state) => state.lang);
   const { t } = useTranslation(lang);
 
@@ -19,7 +19,7 @@ export function ComboCard({ combo, mission, characterLevels }: ComboCardProps) {
       <div className="flex justify-center gap-4 mb-3">
         {combo.characters.map((char) => {
           const currentLevel = characterLevels[char.id] || 1;
-          const deficit = Math.max(0, mission.requiredLevel - currentLevel);
+          const deficit = Math.max(0, commission.requiredLevel - currentLevel);
 
           return (
             <CharacterAvatar

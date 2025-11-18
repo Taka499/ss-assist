@@ -3,17 +3,17 @@ import { loadData, isDataLoaded } from '../lib/data';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useTranslation } from '../../i18n';
 import { useAppStore } from '../store/useAppStore';
-import { MissionPicker } from '../components/MissionPicker';
+import { CommissionPicker } from '../components/CommissionPicker';
 
-interface MissionSelectionProps {
+interface CommissionSelectionProps {
   onNavigate: (page: string) => void;
 }
 
-export function MissionSelection({ onNavigate }: MissionSelectionProps) {
+export function CommissionSelection({ onNavigate }: CommissionSelectionProps) {
   const lang = useLanguageStore((state) => state.lang);
   const { t } = useTranslation(lang);
-  const selectedMissionIds = useAppStore((state) => state.selectedMissionIds);
-  const clearSelectedMissions = useAppStore((state) => state.clearSelectedMissions);
+  const selectedCommissionIds = useAppStore((state) => state.selectedCommissionIds);
+  const clearSelectedCommissions = useAppStore((state) => state.clearSelectedCommissions);
 
   useEffect(() => {
     if (!isDataLoaded()) {
@@ -32,7 +32,7 @@ export function MissionSelection({ onNavigate }: MissionSelectionProps) {
     );
   }
 
-  const canAnalyze = selectedMissionIds.length > 0;
+  const canAnalyze = selectedCommissionIds.length > 0;
 
   return (
     <div className="space-y-6">
@@ -44,13 +44,13 @@ export function MissionSelection({ onNavigate }: MissionSelectionProps) {
               {t('missions.title')}
             </h1>
             <p className="text-sm text-gray-600 mt-1">
-              {t('missions.selected', { count: selectedMissionIds.length })}
+              {t('missions.selected', { count: selectedCommissionIds.length })}
             </p>
           </div>
           <div className="flex gap-2">
-            {selectedMissionIds.length > 0 && (
+            {selectedCommissionIds.length > 0 && (
               <button
-                onClick={clearSelectedMissions}
+                onClick={clearSelectedCommissions}
                 className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-md hover:bg-red-100 transition-colors"
               >
                 {t('buttons.clear')}
@@ -84,7 +84,7 @@ export function MissionSelection({ onNavigate }: MissionSelectionProps) {
         </div>
       )}
 
-      <MissionPicker />
+      <CommissionPicker />
     </div>
   );
 }

@@ -105,8 +105,8 @@ export function TrainingRecommendationList({ recommendations }: TrainingRecommen
                         </div>
                         {/* Impact - Compact */}
                         <div className="flex items-center gap-1 flex-shrink-0" style={{fontSize: '11px'}}>
-                          {rec.impact.missionsUnlocked.length > 0 && (
-                            <span className="text-green-700 font-semibold">✅{rec.impact.missionsUnlocked.length}</span>
+                          {rec.impact.commissionsUnlocked.length > 0 && (
+                            <span className="text-green-700 font-semibold">✅{rec.impact.commissionsUnlocked.length}</span>
                           )}
                           {rec.impact.bonusesAdded.length > 0 && (
                             <span className="text-blue-700 font-semibold">⭐{rec.impact.bonusesAdded.length}</span>
