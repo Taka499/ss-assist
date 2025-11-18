@@ -7,9 +7,9 @@ This document must be maintained in accordance with `/Users/ghensk/Developer/ss-
 
 ## Purpose / Big Picture
 
-After completing this phase, the Stella Sora Request Assistant will have a working algorithm that can analyze a player's character roster and find all valid character combinations for selected missions. A developer will be able to import the core logic modules, pass in character ownership data and mission requirements, and receive back a list of valid 1-3 character combinations that satisfy mission conditions, along with recommendations for which characters to prioritize leveling up to unlock more missions.
+After completing this phase, the Stella Sora Request Assistant will have a working algorithm that can analyze a player's character roster and find all valid character combinations for selected commissions. A developer will be able to import the core logic modules, pass in character ownership data and commission requirements, and receive back a list of valid 1-3 character combinations that satisfy commission conditions, along with recommendations for which characters to prioritize leveling up to unlock more commissions.
 
-The demonstrable outcome is: Create a Node.js test script that loads real mission data, simulates a player owning 10 characters at various levels, runs the combination search algorithm, and outputs a list of valid character combinations with clear indicators showing which combinations meet base conditions (受注条件) and which also meet bonus conditions (追加報酬条件). The script will also output training recommendations showing "Level Character X to 50 to unlock N missions."
+The demonstrable outcome is: Create a Node.js test script that loads real commission data, simulates a player owning 10 characters at various levels, runs the combination search algorithm, and outputs a list of valid character combinations with clear indicators showing which combinations meet base conditions (受注条件) and which also meet bonus conditions (追加報酬条件). The script will also output training recommendations showing "Level Character X to 50 to unlock N commissions."
 
 
 ## Progress
@@ -57,7 +57,7 @@ The demonstrable outcome is: Create a Node.js test script that loads real missio
 
 ### Count-Based Conditions Discovery (2025-11-05)
 
-**Observation:** While reviewing the real mission data in `data-sources/stellasora - missions.csv`, we discovered that some missions require **multiple characters with the same tag**. For example, mission m-003 (資金獲得 上級) has:
+**Observation:** While reviewing the real commission data in `data-sources/stellasora - commissions.csv`, we discovered that some commissions require **multiple characters with the same tag**. For example, commission m-003 (資金獲得 上級) has:
 ```
 base_role: アタッカー|バランサー|アタッカー
 ```
@@ -70,16 +70,16 @@ This means: "Dispatch 2 Attackers and 1 Balancer" - a **counting requirement**, 
 
 Bitwise OR operations collapse duplicates. We cannot distinguish between "1 Attacker" and "2 Attackers" using bitmasks alone.
 
-**Evidence:** Approximately 9 missions (m-003, m-006, m-009, m-012, m-015, m-018, m-021, m-024, m-027) in the dataset require duplicate role tags, all for "上級" (advanced) difficulty missions.
+**Evidence:** Approximately 9 commissions (m-003, m-006, m-009, m-012, m-015, m-018, m-021, m-024, m-027) in the dataset require duplicate role tags, all for "上級" (advanced) difficulty commissions.
 
 **Impact:** This requires a fundamental redesign of the condition validation approach. We cannot rely solely on bitmasks for correctness.
 
 
 ### "Satisfiable" vs "Completable" Semantics (2025-11-07)
 
-**Observation:** During Milestone 4 implementation, discovered that `findCombinations().satisfiable` only checks whether tag conditions can be met, not whether characters meet level requirements. A mission could be "satisfiable" (has valid tag combinations) but not "completable" (all combinations have level deficits preventing actual mission execution).
+**Observation:** During Milestone 4 implementation, discovered that `findCombinations().satisfiable` only checks whether tag conditions can be met, not whether characters meet level requirements. A commission could be "satisfiable" (has valid tag combinations) but not "completable" (all combinations have level deficits preventing actual commission execution).
 
-**Example:** Mission requires level 50. Player has a character with correct tags at level 30. The combination search marks this as "satisfiable" because tags match, but the combination has a level deficit of 20, making it not actually completable.
+**Example:** Commission requires level 50. Player has a character with correct tags at level 30. The combination search marks this as "satisfiable" because tags match, but the combination has a level deficit of 20, making it not actually completable.
 
 **Impact:** The training impact calculation in `calculateTrainingImpact()` needed to distinguish between:
 - Satisfiable: Tag requirements can be met (may have level deficits)

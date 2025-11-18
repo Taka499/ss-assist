@@ -4,7 +4,7 @@ import { AppLayout } from './components/AppLayout';
 import { Home } from './pages/Home';
 import { RosterManagement } from './pages/RosterManagement';
 import { LevelManagement } from './pages/LevelManagement';
-import { MissionSelection } from './pages/MissionSelection';
+import { CommissionSelection } from './pages/CommissionSelection';
 import { Results } from './pages/Results';
 
 function App() {
@@ -63,7 +63,7 @@ function App() {
       case 'levels':
         return <LevelManagement onNavigate={navigate} />;
       case 'missions':
-        return <MissionSelection onNavigate={navigate} />;
+        return <CommissionSelection onNavigate={navigate} />;
       case 'results':
         return <Results onNavigate={navigate} />;
       default:

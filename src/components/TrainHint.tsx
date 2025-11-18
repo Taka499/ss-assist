@@ -1,29 +1,29 @@
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useTranslation } from '../../i18n';
-import { getCharacterById, getMissions } from '../lib/data';
+import { getCharacterById, getCommissions } from '../lib/data';
 import { CharacterAvatar } from './CharacterAvatar';
 import type { TrainingRecommendation } from '../types';
 
 interface TrainHintProps {
-  missionId: string;
+  commissionId: string;
   recommendations: TrainingRecommendation[];
 }
 
-export function TrainHint({ missionId, recommendations }: TrainHintProps) {
+export function TrainHint({ commissionId, recommendations }: TrainHintProps) {
   const lang = useLanguageStore((state) => state.lang);
   const { t } = useTranslation(lang);
 
-  const mission = getMissions().find((m) => m.id === missionId);
-  if (!mission || recommendations.length === 0) return null;
+  const commission = getCommissions().find((m) => m.id === commissionId);
+  if (!commission || recommendations.length === 0) return null;
 
   // Show top 3 recommendations for this mission
   const topRecs = recommendations.slice(0, 3);
-  const missionName = mission.name[lang] || mission.name.ja;
+  const commissionName = commission.name[lang] || commission.name.ja;
 
   return (
     <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
       <h4 className="font-semibold text-yellow-900 mb-3">
-        {t('training.unlockMission', { missionName })}
+        {t('training.unlockMission', { commissionName })}
       </h4>
 
       <ul className="space-y-2">

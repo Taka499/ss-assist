@@ -1,0 +1,4616 @@
+[
+  {
+    "id": "m-001",
+    "name": {
+      "ja": "資金獲得 初級"
+    },
+    "requiredLevel": 1,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-001"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 13200,
+              "max": 13200
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 2640,
+              "max": 2640
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 26400,
+              "max": 26400
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 5280,
+              "max": 5280
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 39600,
+              "max": 39600
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 7920,
+              "max": 7920
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 66000,
+              "max": 66000
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 13200,
+              "max": 13200
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-002"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-002",
+    "name": {
+      "ja": "資金獲得 中級"
+    },
+    "requiredLevel": 40,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-002",
+          "role-001"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 21600,
+              "max": 21600
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 4320,
+              "max": 4320
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 43200,
+              "max": 43200
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 8640,
+              "max": 8640
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 64800,
+              "max": 64800
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 12960,
+              "max": 12960
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 108000,
+              "max": 108000
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 5,
+              "max": 7
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 21600,
+              "max": 21600
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-001",
+          "style-005"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-003",
+    "name": {
+      "ja": "資金獲得 上級"
+    },
+    "requiredLevel": 70,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-002",
+          "role-001",
+          "role-002"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 30000,
+              "max": 30000
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 6000,
+              "max": 6000
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 60000,
+              "max": 60000
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 12000,
+              "max": 12000
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 90000,
+              "max": 90000
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 6
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 18000,
+              "max": 18000
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 150000,
+              "max": 150000
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 6,
+              "max": 8
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "dorra",
+            "amount": {
+              "min": 30000,
+              "max": 30000
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-001",
+          "style-005"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-004",
+    "name": {
+      "ja": "経験値獲得 初級"
+    },
+    "requiredLevel": 1,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-002"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 0,
+              "max": 1
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 4,
+              "max": 6
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 6,
+              "max": 9
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 10,
+              "max": 15
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-002"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-005",
+    "name": {
+      "ja": "経験値獲得 中級"
+    },
+    "requiredLevel": 40,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-002",
+          "role-001"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 4,
+              "max": 5
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 0,
+              "max": 1
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 8,
+              "max": 10
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 12,
+              "max": 15
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 20,
+              "max": 25
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 5,
+              "max": 7
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 4,
+              "max": 5
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-001",
+          "style-002"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-006",
+    "name": {
+      "ja": "経験値獲得 上級"
+    },
+    "requiredLevel": 70,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-002",
+          "role-001",
+          "role-002"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 6,
+              "max": 6
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 12,
+              "max": 12
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 2,
+              "max": 4
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 18,
+              "max": 18
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 6
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 3,
+              "max": 6
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 30,
+              "max": 30
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 6,
+              "max": 8
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_trekkers_t1",
+            "amount": {
+              "min": 5,
+              "max": 10
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-001",
+          "style-002"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-007",
+    "name": {
+      "ja": "ロスレコ素材 初級"
+    },
+    "requiredLevel": 1,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-002"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 0,
+              "max": 1
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 4,
+              "max": 6
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 6,
+              "max": 9
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 10,
+              "max": 15
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-004"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-008",
+    "name": {
+      "ja": "ロスレコ素材 中級"
+    },
+    "requiredLevel": 40,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-001",
+          "role-003"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 4,
+              "max": 5
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 0,
+              "max": 1
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 8,
+              "max": 10
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 12,
+              "max": 15
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 20,
+              "max": 25
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 5,
+              "max": 7
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 4,
+              "max": 5
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-004",
+          "style-001"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-009",
+    "name": {
+      "ja": "ロスレコ素材 上級"
+    },
+    "requiredLevel": 70,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-001",
+          "role-003",
+          "role-001"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 6,
+              "max": 6
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 12,
+              "max": 12
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 2,
+              "max": 4
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 18,
+              "max": 18
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 6
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 3,
+              "max": 6
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 30,
+              "max": 30
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 6,
+              "max": 8
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "exp_discs_t1",
+            "amount": {
+              "min": 5,
+              "max": 10
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-004",
+          "style-001"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-010",
+    "name": {
+      "ja": "巡遊者昇格素材A 初級"
+    },
+    "requiredLevel": 1,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-003"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 4,
+              "max": 4
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 0,
+              "max": 1
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 8,
+              "max": 8
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 12,
+              "max": 12
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 20,
+              "max": 20
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-001"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-011",
+    "name": {
+      "ja": "巡遊者昇格素材A 中級"
+    },
+    "requiredLevel": 40,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-002",
+          "role-003"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 8,
+              "max": 9
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 0,
+              "max": 1
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 16,
+              "max": 18
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 24,
+              "max": 27
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 40,
+              "max": 45
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-003",
+          "style-005"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-012",
+    "name": {
+      "ja": "巡遊者昇格素材A 上級"
+    },
+    "requiredLevel": 70,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-002",
+          "role-003",
+          "role-002"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 17,
+              "max": 17
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 0,
+              "max": 1
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 34,
+              "max": 34
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 51,
+              "max": 51
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 6
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 85,
+              "max": 85
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 6,
+              "max": 8
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_a_t1",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-003",
+          "style-005"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-013",
+    "name": {
+      "ja": "巡遊者昇格素材B 初級"
+    },
+    "requiredLevel": 1,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-002"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 4,
+              "max": 4
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 0,
+              "max": 1
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 8,
+              "max": 8
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 12,
+              "max": 12
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 20,
+              "max": 20
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-004"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-014",
+    "name": {
+      "ja": "巡遊者昇格素材B 中級"
+    },
+    "requiredLevel": 40,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-002",
+          "role-003"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 8,
+              "max": 9
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 0,
+              "max": 1
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 16,
+              "max": 18
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 24,
+              "max": 27
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 40,
+              "max": 45
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-004",
+          "style-002"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-015",
+    "name": {
+      "ja": "巡遊者昇格素材B 上級"
+    },
+    "requiredLevel": 70,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-002",
+          "role-003",
+          "role-002"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 17,
+              "max": 17
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 0,
+              "max": 1
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 34,
+              "max": 34
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 51,
+              "max": 51
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 6
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 85,
+              "max": 85
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 6,
+              "max": 8
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_b_t1",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-004",
+          "style-002"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-016",
+    "name": {
+      "ja": "巡遊者昇格素材C 初級"
+    },
+    "requiredLevel": 1,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-001"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 4,
+              "max": 4
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 0,
+              "max": 1
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 8,
+              "max": 8
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 12,
+              "max": 12
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 20,
+              "max": 20
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-002"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-017",
+    "name": {
+      "ja": "巡遊者昇格素材C 中級"
+    },
+    "requiredLevel": 40,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-001",
+          "role-003"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 8,
+              "max": 9
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 0,
+              "max": 1
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 16,
+              "max": 18
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 24,
+              "max": 27
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 40,
+              "max": 45
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-003",
+          "style-002"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-018",
+    "name": {
+      "ja": "巡遊者昇格素材C 上級"
+    },
+    "requiredLevel": 70,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-001",
+          "role-003",
+          "role-001"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 17,
+              "max": 17
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 0,
+              "max": 1
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 34,
+              "max": 34
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 51,
+              "max": 51
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 6
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 85,
+              "max": 85
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 6,
+              "max": 8
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_trekkers_c_t1",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-003",
+          "style-002"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-019",
+    "name": {
+      "ja": "ロスレコ昇格素材A 初級"
+    },
+    "requiredLevel": 1,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-001"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 4,
+              "max": 4
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 0,
+              "max": 1
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 8,
+              "max": 8
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 12,
+              "max": 12
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 20,
+              "max": 20
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-001"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-020",
+    "name": {
+      "ja": "ロスレコ昇格素材A 中級"
+    },
+    "requiredLevel": 40,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-001",
+          "role-003"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 8,
+              "max": 9
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 0,
+              "max": 1
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 16,
+              "max": 18
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 24,
+              "max": 27
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 40,
+              "max": 45
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-003",
+          "style-001"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-021",
+    "name": {
+      "ja": "ロスレコ昇格素材A 上級"
+    },
+    "requiredLevel": 70,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-001",
+          "role-003",
+          "role-001"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 17,
+              "max": 17
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 0,
+              "max": 1
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 34,
+              "max": 34
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 51,
+              "max": 51
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 6
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 85,
+              "max": 85
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 6,
+              "max": 8
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_a_t1",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-003",
+          "style-001"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-022",
+    "name": {
+      "ja": "ロスレコ昇格素材B 初級"
+    },
+    "requiredLevel": 1,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-003"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 4,
+              "max": 4
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 0,
+              "max": 1
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 8,
+              "max": 8
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 12,
+              "max": 12
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 20,
+              "max": 20
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-004"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-023",
+    "name": {
+      "ja": "ロスレコ昇格素材B 中級"
+    },
+    "requiredLevel": 40,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-002",
+          "role-003"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 8,
+              "max": 9
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 0,
+              "max": 1
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 16,
+              "max": 18
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 24,
+              "max": 27
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 40,
+              "max": 45
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-004",
+          "style-005"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-024",
+    "name": {
+      "ja": "ロスレコ昇格素材B 上級"
+    },
+    "requiredLevel": 70,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-002",
+          "role-003",
+          "role-002"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 17,
+              "max": 17
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 0,
+              "max": 1
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 34,
+              "max": 34
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 51,
+              "max": 51
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 6
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 85,
+              "max": 85
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 6,
+              "max": 8
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_b_t1",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-004",
+          "style-005"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-025",
+    "name": {
+      "ja": "ロスレコ昇格素材C 初級"
+    },
+    "requiredLevel": 1,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-002"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 4,
+              "max": 4
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 0,
+              "max": 1
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 8,
+              "max": 8
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 12,
+              "max": 12
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 20,
+              "max": 20
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-002"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-026",
+    "name": {
+      "ja": "ロスレコ昇格素材C 中級"
+    },
+    "requiredLevel": 40,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-002",
+          "role-001"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 8,
+              "max": 9
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 0,
+              "max": 1
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 16,
+              "max": 18
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 24,
+              "max": 27
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 40,
+              "max": 45
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-002",
+          "style-005"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-027",
+    "name": {
+      "ja": "ロスレコ昇格素材C 上級"
+    },
+    "requiredLevel": 70,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-002",
+          "role-001",
+          "role-001"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 4,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 17,
+              "max": 17
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 0,
+              "max": 1
+            }
+          }
+        ]
+      },
+      {
+        "hours": 8,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 34,
+              "max": 34
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ]
+      },
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 51,
+              "max": 51
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 4,
+              "max": 6
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 85,
+              "max": 85
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 6,
+              "max": 8
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "tier-up_discs_c_t1",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-002",
+          "style-005"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-028",
+    "name": {
+      "ja": "音楽ゲーム依頼 初級"
+    },
+    "requiredLevel": 1,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-002"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "skill_music_t1",
+            "amount": {
+              "min": 11,
+              "max": 11
+            }
+          },
+          {
+            "itemId": "piece_t1",
+            "amount": {
+              "min": 6,
+              "max": 7
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "skill_music_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "skill_music_t1",
+            "amount": {
+              "min": 18,
+              "max": 19
+            }
+          },
+          {
+            "itemId": "piece_t1",
+            "amount": {
+              "min": 10,
+              "max": 11
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "skill_music_t1",
+            "amount": {
+              "min": 5,
+              "max": 6
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-005"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-029",
+    "name": {
+      "ja": "音楽ゲーム依頼 中級"
+    },
+    "requiredLevel": 40,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-002",
+          "role-001"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "skill_music_t1",
+            "amount": {
+              "min": 16,
+              "max": 17
+            }
+          },
+          {
+            "itemId": "piece_t1",
+            "amount": {
+              "min": 9,
+              "max": 10
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "skill_music_t1",
+            "amount": {
+              "min": 4,
+              "max": 5
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "skill_music_t1",
+            "amount": {
+              "min": 26,
+              "max": 28
+            }
+          },
+          {
+            "itemId": "piece_t1",
+            "amount": {
+              "min": 15,
+              "max": 16
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "skill_music_t1",
+            "amount": {
+              "min": 8,
+              "max": 10
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-005",
+          "style-004"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-030",
+    "name": {
+      "ja": "音楽ゲーム依頼 上級"
+    },
+    "requiredLevel": 70,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-002",
+          "role-001",
+          "role-002"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "skill_music_t1",
+            "amount": {
+              "min": 29,
+              "max": 30
+            }
+          },
+          {
+            "itemId": "piece_t1",
+            "amount": {
+              "min": 16,
+              "max": 17
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "skill_music_t1",
+            "amount": {
+              "min": 7,
+              "max": 8
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "skill_music_t1",
+            "amount": {
+              "min": 48,
+              "max": 50
+            }
+          },
+          {
+            "itemId": "piece_t1",
+            "amount": {
+              "min": 26,
+              "max": 28
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "skill_music_t1",
+            "amount": {
+              "min": 13,
+              "max": 15
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-005",
+          "style-004"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-031",
+    "name": {
+      "ja": "弾幕ゲーム依頼 初級"
+    },
+    "requiredLevel": 1,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-001"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "skill_danmaku_t1",
+            "amount": {
+              "min": 11,
+              "max": 11
+            }
+          },
+          {
+            "itemId": "piece_t1",
+            "amount": {
+              "min": 6,
+              "max": 7
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "skill_danmaku_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "skill_danmaku_t1",
+            "amount": {
+              "min": 18,
+              "max": 19
+            }
+          },
+          {
+            "itemId": "piece_t1",
+            "amount": {
+              "min": 10,
+              "max": 11
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "skill_danmaku_t1",
+            "amount": {
+              "min": 5,
+              "max": 6
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-002"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-032",
+    "name": {
+      "ja": "弾幕ゲーム依頼 中級"
+    },
+    "requiredLevel": 40,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-001",
+          "role-002"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "skill_danmaku_t1",
+            "amount": {
+              "min": 16,
+              "max": 17
+            }
+          },
+          {
+            "itemId": "piece_t1",
+            "amount": {
+              "min": 9,
+              "max": 10
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "skill_danmaku_t1",
+            "amount": {
+              "min": 4,
+              "max": 5
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "skill_danmaku_t1",
+            "amount": {
+              "min": 26,
+              "max": 28
+            }
+          },
+          {
+            "itemId": "piece_t1",
+            "amount": {
+              "min": 15,
+              "max": 16
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "skill_danmaku_t1",
+            "amount": {
+              "min": 8,
+              "max": 10
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-002",
+          "style-003"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-033",
+    "name": {
+      "ja": "弾幕ゲーム依頼 上級"
+    },
+    "requiredLevel": 70,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-001",
+          "role-002",
+          "role-001"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "skill_danmaku_t1",
+            "amount": {
+              "min": 29,
+              "max": 30
+            }
+          },
+          {
+            "itemId": "piece_t1",
+            "amount": {
+              "min": 16,
+              "max": 17
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "skill_danmaku_t1",
+            "amount": {
+              "min": 7,
+              "max": 8
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "skill_danmaku_t1",
+            "amount": {
+              "min": 48,
+              "max": 50
+            }
+          },
+          {
+            "itemId": "piece_t1",
+            "amount": {
+              "min": 26,
+              "max": 28
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "skill_danmaku_t1",
+            "amount": {
+              "min": 13,
+              "max": 15
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-002",
+          "style-003"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-034",
+    "name": {
+      "ja": "格闘ゲーム依頼 初級"
+    },
+    "requiredLevel": 1,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-001"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "skill_fighting_t1",
+            "amount": {
+              "min": 11,
+              "max": 11
+            }
+          },
+          {
+            "itemId": "piece_t1",
+            "amount": {
+              "min": 6,
+              "max": 7
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 2
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "skill_fighting_t1",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "skill_fighting_t1",
+            "amount": {
+              "min": 18,
+              "max": 19
+            }
+          },
+          {
+            "itemId": "piece_t1",
+            "amount": {
+              "min": 10,
+              "max": 11
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "skill_fighting_t1",
+            "amount": {
+              "min": 5,
+              "max": 6
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-003"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-035",
+    "name": {
+      "ja": "格闘ゲーム依頼 中級"
+    },
+    "requiredLevel": 40,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-001",
+          "role-003"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "skill_fighting_t1",
+            "amount": {
+              "min": 16,
+              "max": 17
+            }
+          },
+          {
+            "itemId": "piece_t1",
+            "amount": {
+              "min": 9,
+              "max": 10
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 1,
+              "max": 3
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "skill_fighting_t1",
+            "amount": {
+              "min": 4,
+              "max": 5
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "skill_fighting_t1",
+            "amount": {
+              "min": 26,
+              "max": 28
+            }
+          },
+          {
+            "itemId": "piece_t1",
+            "amount": {
+              "min": 15,
+              "max": 16
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "skill_fighting_t1",
+            "amount": {
+              "min": 8,
+              "max": 10
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-003",
+          "style-005"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "m-036",
+    "name": {
+      "ja": "格闘ゲーム依頼 上級"
+    },
+    "requiredLevel": 70,
+    "baseConditions": [
+      {
+        "category": "role",
+        "anyOf": [
+          "role-001",
+          "role-003",
+          "role-003"
+        ]
+      }
+    ],
+    "durations": [
+      {
+        "hours": 12,
+        "rewards": [
+          {
+            "itemId": "skill_fighting_t1",
+            "amount": {
+              "min": 29,
+              "max": 30
+            }
+          },
+          {
+            "itemId": "piece_t1",
+            "amount": {
+              "min": 16,
+              "max": 17
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 2,
+              "max": 4
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "skill_fighting_t1",
+            "amount": {
+              "min": 7,
+              "max": 8
+            }
+          }
+        ]
+      },
+      {
+        "hours": 20,
+        "rewards": [
+          {
+            "itemId": "skill_fighting_t1",
+            "amount": {
+              "min": 48,
+              "max": 50
+            }
+          },
+          {
+            "itemId": "piece_t1",
+            "amount": {
+              "min": 26,
+              "max": 28
+            }
+          },
+          {
+            "itemId": "prize_egg",
+            "amount": {
+              "min": 3,
+              "max": 5
+            }
+          }
+        ],
+        "bonusRewards": [
+          {
+            "itemId": "skill_fighting_t1",
+            "amount": {
+              "min": 13,
+              "max": 15
+            }
+          }
+        ]
+      }
+    ],
+    "bonusConditions": [
+      {
+        "category": "style",
+        "anyOf": [
+          "style-003",
+          "style-005"
+        ]
+      }
+    ]
+  }
+]

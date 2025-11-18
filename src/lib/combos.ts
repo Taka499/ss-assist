@@ -1,11 +1,11 @@
 /**
  * Combination Search Algorithm
  *
- * Finds all valid character combinations for missions and ranks them by quality.
+ * Finds all valid character combinations for commissions and ranks them by quality.
  * Uses hybrid validation: bitmasks for fast pruning, count-based checking for correctness.
  */
 
-import type { Character, Mission, Condition, MultiMissionCombinationResult, MissionCoverage } from "../types";
+import type { Character, Commission, Condition, MultiCommissionAssignmentResult, CommissionCoverage } from "../types";
 import {
   characterToBitmask,
   conditionToBitmask,
@@ -16,14 +16,14 @@ import {
 import { calculateTrainingPriorityFromBlockedTeams } from "./scoring";
 
 // Re-export types for convenience
-export type { MultiMissionCombinationResult, MissionCoverage };
+export type { MultiCommissionAssignmentResult, CommissionCoverage };
 
 // ============================================================================
 // Types
 // ============================================================================
 
 /**
- * A valid character combination for a mission
+ * A valid character combination for a commission
  */
 export interface Combination {
   characterIds: string[];
@@ -34,10 +34,10 @@ export interface Combination {
 }
 
 /**
- * Result of searching for combinations for a mission
+ * Result of searching for combinations for a commission
  */
 export interface CombinationSearchResult {
-  missionId: string;
+  commissionId: string;
   satisfiable: boolean; // Are base conditions satisfiable with owned characters?
   combinations: Combination[]; // All valid combinations (base conditions met)
   bestCombinations: Combination[]; // Top-ranked combinations
@@ -91,7 +91,7 @@ export function generateCombinations<T>(items: T[], maxSize: number): T[][] {
  * Check level requirements and identify deficits
  *
  * @param characterIds Array of character IDs in the combination
- * @param requiredLevel Minimum level required by the mission
+ * @param requiredLevel Minimum level required by the commission
  * @param currentLevels Map of character ID to current level
  * @returns Map of character ID to level deficit (only includes characters below requirement)
  */
@@ -113,14 +113,14 @@ export function checkLevelRequirements(
 }
 
 /**
- * Check if a character's tags interact with mission conditions (pruning optimization)
+ * Check if a character's tags interact with commission conditions (pruning optimization)
  *
- * A character "interacts with" a mission if at least one of its tags appears
- * in at least one mission condition. Uses bitmasks for O(1) checking.
+ * A character "interacts with" a commission if at least one of its tags appears
+ * in at least one commission condition. Uses bitmasks for O(1) checking.
  *
  * @param characterMask The character's bitmask
- * @param baseConditions Mission base conditions
- * @param bonusConditions Mission bonus conditions (optional)
+ * @param baseConditions Commission base conditions
+ * @param bonusConditions Commission bonus conditions (optional)
  * @param lookup Bitmask lookup table
  * @returns true if character has at least one relevant tag
  */
@@ -254,7 +254,7 @@ export function rankCombinations(combinations: Combination[]): Combination[] {
 // ============================================================================
 
 /**
- * Find all valid character combinations for a mission
+ * Find all valid character combinations for a commission
  *
  * Algorithm:
  * 1. Filter characters by level requirement
@@ -264,14 +264,14 @@ export function rankCombinations(combinations: Combination[]): Combination[] {
  * 5. Check bonus conditions for valid combinations
  * 6. Rank results by quality
  *
- * @param mission The mission to find combinations for
+ * @param commission The commission to find combinations for
  * @param ownedCharacters Characters the player owns
  * @param currentLevels Map of character ID to current level (default 1 if missing)
  * @param bitmaskLookup Bitmask lookup table from data loading
  * @returns Search result with valid combinations and recommendations
  */
 export function findCombinations(
-  mission: Mission,
+  commission: Commission,
   ownedCharacters: Character[],
   currentLevels: Record<string, number>,
   bitmaskLookup: BitmaskLookup
@@ -282,14 +282,14 @@ export function findCombinations(
     characterBitmasks.set(char.id, characterToBitmask(char, bitmaskLookup));
   }
 
-  // Step 2: Pruning - filter characters that interact with mission conditions
+  // Step 2: Pruning - filter characters that interact with commission conditions
   const relevantCharacters = ownedCharacters.filter((char) => {
     const mask = characterBitmasks.get(char.id);
     if (!mask) return false;
     return interactsWith(
       mask,
-      mission.baseConditions,
-      mission.bonusConditions,
+      commission.baseConditions,
+      commission.bonusConditions,
       bitmaskLookup
     );
   });
@@ -304,20 +304,20 @@ export function findCombinations(
     // Check if base conditions are satisfied (using count-based validation)
     const meetsBase = satisfiesAllConditionsWithCounts(
       combo,
-      mission.baseConditions
+      commission.baseConditions
     );
 
     if (!meetsBase) continue;
 
     // Check if bonus conditions are satisfied
-    const meetsBonus = mission.bonusConditions
-      ? satisfiesAllConditionsWithCounts(combo, mission.bonusConditions)
+    const meetsBonus = commission.bonusConditions
+      ? satisfiesAllConditionsWithCounts(combo, commission.bonusConditions)
       : false;
 
     // Check level requirements
     const levelDeficits = checkLevelRequirements(
       combo.map((c) => c.id),
-      mission.requiredLevel,
+      commission.requiredLevel,
       currentLevels
     );
 
@@ -340,16 +340,16 @@ export function findCombinations(
   const satisfiable = validCombinations.length > 0;
   const missingForBase = satisfiable
     ? []
-    : findMissingTags(mission.baseConditions, ownedCharacters);
-  const missingForBonus = mission.bonusConditions
-    ? findMissingTags(mission.bonusConditions, ownedCharacters)
+    : findMissingTags(commission.baseConditions, ownedCharacters);
+  const missingForBonus = commission.bonusConditions
+    ? findMissingTags(commission.bonusConditions, ownedCharacters)
     : [];
 
   // Step 7: Select top combinations (top 10)
   const bestCombinations = rankedCombinations.slice(0, 10);
 
   return {
-    missionId: mission.id,
+    commissionId: commission.id,
     satisfiable,
     combinations: rankedCombinations,
     bestCombinations,
@@ -359,11 +359,11 @@ export function findCombinations(
 }
 
 // ============================================================================
-// Per-Mission Candidate Generation (Milestone 1)
+// Per-Commission Candidate Generation (Milestone 1)
 // ============================================================================
 
 /**
- * Find candidate teams for a single mission, separated by level sufficiency
+ * Find candidate teams for a single commission, separated by level sufficiency
  *
  * This function generates two types of teams:
  * - Ready teams: Satisfy all requirements including level
@@ -376,32 +376,32 @@ export function findCombinations(
  * 4. Separate into ready vs blocked based on level requirements
  * 5. Sort each category appropriately
  *
- * @param mission The mission to find candidates for
+ * @param commission The commission to find candidates for
  * @param ownedCharacters Characters the player owns
  * @param characterLevels Map of character ID to current level
  * @param bitmaskLookup Bitmask lookup table
- * @returns Per-mission candidates separated by level sufficiency
+ * @returns Per-commission candidates separated by level sufficiency
  */
-export function findPerMissionCandidates(
-  mission: Mission,
+export function findPerCommissionCandidates(
+  commission: Commission,
   ownedCharacters: Character[],
   characterLevels: Record<string, number>,
   bitmaskLookup: BitmaskLookup
-): import("../types").PerMissionCandidates {
+): import("../types").PerCommissionCandidates {
   // Step 1: Compute character bitmasks
   const characterBitmasks = new Map<string, CategoryBitmasks>();
   for (const char of ownedCharacters) {
     characterBitmasks.set(char.id, characterToBitmask(char, bitmaskLookup));
   }
 
-  // Step 2: Pruning - filter characters that interact with mission conditions
+  // Step 2: Pruning - filter characters that interact with commission conditions
   const relevantCharacters = ownedCharacters.filter((char) => {
     const mask = characterBitmasks.get(char.id);
     if (!mask) return false;
     return interactsWith(
       mask,
-      mission.baseConditions,
-      mission.bonusConditions,
+      commission.baseConditions,
+      commission.bonusConditions,
       bitmaskLookup
     );
   });
@@ -410,28 +410,28 @@ export function findPerMissionCandidates(
   const candidateCombos = generateCombinations(relevantCharacters, 3);
 
   // Step 4 & 5: Validate and categorize
-  const readyTeams: import("../types").PerMissionCandidates["readyTeams"] = [];
+  const readyTeams: import("../types").PerCommissionCandidates["readyTeams"] = [];
   const blockedTeams: import("../types").BlockedCombination[] = [];
 
   for (const combo of candidateCombos) {
     // Phase 1: Tag/role validation
     const meetsBase = satisfiesAllConditionsWithCounts(
       combo,
-      mission.baseConditions
+      commission.baseConditions
     );
 
     // If doesn't meet base conditions, discard (not ready, not blocked, just invalid)
     if (!meetsBase) continue;
 
     // Check bonus conditions
-    const meetsBonus = mission.bonusConditions
-      ? satisfiesAllConditionsWithCounts(combo, mission.bonusConditions)
+    const meetsBonus = commission.bonusConditions
+      ? satisfiesAllConditionsWithCounts(combo, commission.bonusConditions)
       : false;
 
     // Phase 2: Level validation
     const levelDeficits = checkLevelRequirements(
       combo.map((c) => c.id),
-      mission.requiredLevel,
+      commission.requiredLevel,
       characterLevels
     );
 
@@ -495,43 +495,43 @@ export function findPerMissionCandidates(
   });
 
   return {
-    missionId: mission.id,
+    commissionId: commission.id,
     readyTeams,
     blockedTeams,
   };
 }
 
 // ============================================================================
-// Multi-Mission Combination Search
+// Multi-Commission Combination Search
 // ============================================================================
 
 /**
- * Find character combinations that satisfy multiple missions simultaneously
+ * Find character combinations that satisfy multiple commissions simultaneously
  *
- * This function validates combinations against ALL selected missions at once,
- * unlike findCombinations() which handles a single mission.
+ * This function validates combinations against ALL selected commissions at once,
+ * unlike findCombinations() which handles a single commission.
  *
  * Algorithm:
- * 1. Create superset of relevant characters (union of characters relevant to any mission)
+ * 1. Create superset of relevant characters (union of characters relevant to any commission)
  * 2. Generate all 1-3 character combinations from the superset
- * 3. For each combination, validate against ALL missions
- * 4. Calculate coverage score based on missions satisfied
+ * 3. For each combination, validate against ALL commissions
+ * 4. Calculate coverage score based on commissions satisfied
  * 5. Rank by score (more coverage = better)
  *
- * @param missions Array of missions to find combinations for
+ * @param commissions Array of commissions to find combinations for
  * @param ownedCharacters Characters the player owns
  * @param currentLevels Map of character ID to current level
  * @param bitmaskLookup Bitmask lookup table
- * @returns Multi-mission search result with combinations and coverage data
+ * @returns Multi-commission search result with combinations and coverage data
  */
-export function findCombinationsForMultipleMissions(
-  missions: Mission[],
+export function findCombinationsForMultipleCommissions(
+  commissions: Commission[],
   ownedCharacters: Character[],
   currentLevels: Record<string, number>,
   bitmaskLookup: BitmaskLookup
-): MultiMissionCombinationResult {
-  // Handle edge case: no missions selected
-  if (missions.length === 0) {
+): MultiCommissionAssignmentResult {
+  // Handle edge case: no commissions selected
+  if (commissions.length === 0) {
     return {
       combinations: [],
       totalCandidatesGenerated: 0,
@@ -550,18 +550,18 @@ export function findCombinationsForMultipleMissions(
   }
 
   // Step 2: Pruning - create superset of relevant characters
-  // A character is relevant if it interacts with ANY mission's conditions
+  // A character is relevant if it interacts with ANY commission's conditions
   const relevantCharacterSet = new Set<string>();
 
-  for (const mission of missions) {
+  for (const commission of commissions) {
     for (const char of ownedCharacters) {
       const mask = characterBitmasks.get(char.id);
       if (!mask) continue;
 
       if (interactsWith(
         mask,
-        mission.baseConditions,
-        mission.bonusConditions,
+        commission.baseConditions,
+        commission.bonusConditions,
         bitmaskLookup
       )) {
         relevantCharacterSet.add(char.id);
@@ -579,33 +579,33 @@ export function findCombinationsForMultipleMissions(
   const candidateCombos = generateCombinations(relevantCharacters, 3);
   const totalCandidatesGenerated = candidateCombos.length;
 
-  // Step 4: Validate each combination against ALL missions
-  const validatedCombinations: MultiMissionCombinationResult['combinations'] = [];
+  // Step 4: Validate each combination against ALL commissions
+  const validatedCombinations: MultiCommissionAssignmentResult['combinations'] = [];
 
   for (const combo of candidateCombos) {
-    const missionCoverage: MissionCoverage[] = [];
+    const commissionCoverage: CommissionCoverage[] = [];
 
-    // Check this combination against each mission
-    for (const mission of missions) {
+    // Check this combination against each commission
+    for (const commission of commissions) {
       const satisfiesBase = satisfiesAllConditionsWithCounts(
         combo,
-        mission.baseConditions
+        commission.baseConditions
       );
 
-      const satisfiesBonus = mission.bonusConditions
-        ? satisfiesAllConditionsWithCounts(combo, mission.bonusConditions)
+      const satisfiesBonus = commission.bonusConditions
+        ? satisfiesAllConditionsWithCounts(combo, commission.bonusConditions)
         : false;
 
       // Check level requirements
       const levelDeficits = checkLevelRequirements(
         combo.map(c => c.id),
-        mission.requiredLevel,
+        commission.requiredLevel,
         currentLevels
       );
       const meetsLevelRequirement = Object.keys(levelDeficits).length === 0;
 
-      missionCoverage.push({
-        missionId: mission.id,
+      commissionCoverage.push({
+        commissionId: commission.id,
         satisfiesBase,
         satisfiesBonus,
         meetsLevelRequirement,
@@ -613,12 +613,12 @@ export function findCombinationsForMultipleMissions(
     }
 
     // Calculate coverage score
-    // +10 points: Satisfies base + bonus + level for a mission
-    // +5 points: Satisfies base + level (but not bonus) for a mission
-    // +2 points: Satisfies base only (level insufficient) for a mission
+    // +10 points: Satisfies base + bonus + level for a commission
+    // +5 points: Satisfies base + level (but not bonus) for a commission
+    // +2 points: Satisfies base only (level insufficient) for a commission
     // -1 point: Each character in the combination (prefer smaller teams)
     let score = 0;
-    for (const coverage of missionCoverage) {
+    for (const coverage of commissionCoverage) {
       if (coverage.satisfiesBase && coverage.satisfiesBonus && coverage.meetsLevelRequirement) {
         score += 10;
       } else if (coverage.satisfiesBase && coverage.meetsLevelRequirement) {
@@ -639,7 +639,7 @@ export function findCombinationsForMultipleMissions(
 
     validatedCombinations.push({
       characterIds: combo.map(c => c.id),
-      missionCoverage,
+      commissionCoverage,
       score,
       contributingTags,
     });
@@ -673,24 +673,24 @@ export function findCombinationsForMultipleMissions(
 }
 
 // ============================================================================
-// Multi-Mission Disjoint Assignment (Milestone 2)
+// Multi-Commission Disjoint Assignment (Milestone 2)
 // ============================================================================
 
 /**
- * Calculate mission value based on number of base conditions
- * Missions requiring more roles are more valuable
+ * Calculate commission value based on number of base conditions
+ * Commissions requiring more roles are more valuable
  */
-function getMissionValue(mission: Mission): number {
-  return mission.baseConditions.length;
+function getCommissionValue(commission: Commission): number {
+  return commission.baseConditions.length;
 }
 
 /**
  * Score for comparing assignments lexicographically
  */
 interface AssignmentScore {
-  totalMissionValue: number;   // Primary: sum of assigned mission values
-  totalCharacters: number;      // Secondary: negative (prefer fewer)
-  bonusesSatisfied: number;     // Tertiary: count of bonuses met
+  totalCommissionValue: number;   // Primary: sum of assigned commission values
+  totalCharacters: number;         // Secondary: negative (prefer fewer)
+  bonusesSatisfied: number;        // Tertiary: count of bonuses met
 }
 
 /**
@@ -712,17 +712,17 @@ function compareScores(
     if (a.bonusesSatisfied !== b.bonusesSatisfied) {
       return a.bonusesSatisfied - b.bonusesSatisfied;
     }
-    // Secondary: higher mission value is better
-    if (a.totalMissionValue !== b.totalMissionValue) {
-      return a.totalMissionValue - b.totalMissionValue;
+    // Secondary: higher commission value is better
+    if (a.totalCommissionValue !== b.totalCommissionValue) {
+      return a.totalCommissionValue - b.totalCommissionValue;
     }
     // Tertiary: fewer characters is better
     return b.totalCharacters - a.totalCharacters;
   } else {
-    // Base-first strategy (default): prioritize unlocking missions
-    // Primary: higher mission value is better
-    if (a.totalMissionValue !== b.totalMissionValue) {
-      return a.totalMissionValue - b.totalMissionValue;
+    // Base-first strategy (default): prioritize unlocking commissions
+    // Primary: higher commission value is better
+    if (a.totalCommissionValue !== b.totalCommissionValue) {
+      return a.totalCommissionValue - b.totalCommissionValue;
     }
     // Secondary: fewer characters is better (so negate the comparison)
     if (a.totalCharacters !== b.totalCharacters) {
@@ -734,75 +734,75 @@ function compareScores(
 }
 
 /**
- * Assign disjoint character teams to missions, maximizing mission value
+ * Assign disjoint character teams to commissions, maximizing commission value
  *
  * Uses depth-first search with backtracking to explore all possible assignments.
- * Ensures no character is used in multiple missions (disjoint constraint).
+ * Ensures no character is used in multiple commissions (disjoint constraint).
  *
  * Objective function (lexicographic priority):
- * - base-first: 1. Mission value → 2. Fewer characters → 3. Bonuses
- * - bonus-first: 1. Bonuses → 2. Mission value → 3. Fewer characters
+ * - base-first: 1. Commission value → 2. Fewer characters → 3. Bonuses
+ * - bonus-first: 1. Bonuses → 2. Commission value → 3. Fewer characters
  *
- * @param missions Array of missions to assign teams to
+ * @param commissions Array of commissions to assign teams to
  * @param ownedCharacters Characters the player owns
  * @param characterLevels Map of character ID to current level
  * @param bitmaskLookup Bitmask lookup table
  * @param strategy Assignment strategy ('base-first' or 'bonus-first')
- * @returns Multi-mission assignment result with disjoint teams
+ * @returns Multi-commission assignment result with disjoint teams
  */
-export function findBestMissionAssignment(
-  missions: Mission[],
+export function findBestCommissionAssignment(
+  commissions: Commission[],
   ownedCharacters: Character[],
   characterLevels: Record<string, number>,
   bitmaskLookup: BitmaskLookup,
   strategy: import("../types").AssignmentStrategy = 'base-first'
-): import("../types").MultiMissionAssignmentResult {
-  // Phase 1: Generate candidates for each mission
-  const candidatesByMission = new Map<string, import("../types").PerMissionCandidates>();
+): import("../types").MultiCommissionAssignmentResult {
+  // Phase 1: Generate candidates for each commission
+  const candidatesByCommission = new Map<string, import("../types").PerCommissionCandidates>();
   let totalCandidatesGenerated = 0;
 
-  for (const mission of missions) {
-    const candidates = findPerMissionCandidates(
-      mission,
+  for (const commission of commissions) {
+    const candidates = findPerCommissionCandidates(
+      commission,
       ownedCharacters,
       characterLevels,
       bitmaskLookup
     );
-    candidatesByMission.set(mission.id, candidates);
+    candidatesByCommission.set(commission.id, candidates);
     totalCandidatesGenerated += candidates.readyTeams.length + candidates.blockedTeams.length;
   }
 
-  // Phase 2: Sort missions by difficulty (fewest ready teams first)
-  // This ensures hard-to-satisfy missions are assigned first, reducing dead ends
-  const sortedMissions = [...missions].sort((a, b) => {
-    const aReady = candidatesByMission.get(a.id)?.readyTeams.length || 0;
-    const bReady = candidatesByMission.get(b.id)?.readyTeams.length || 0;
+  // Phase 2: Sort commissions by difficulty (fewest ready teams first)
+  // This ensures hard-to-satisfy commissions are assigned first, reducing dead ends
+  const sortedCommissions = [...commissions].sort((a, b) => {
+    const aReady = candidatesByCommission.get(a.id)?.readyTeams.length || 0;
+    const bReady = candidatesByCommission.get(b.id)?.readyTeams.length || 0;
     return aReady - bReady;
   });
 
   // Phase 3: DFS to find best assignment
   interface Assignment {
-    missionId: string;
-    team: import("../types").PerMissionCandidates["readyTeams"][0];
+    commissionId: string;
+    team: import("../types").PerCommissionCandidates["readyTeams"][0];
   }
 
   let bestAssignment: Assignment[] = [];
   let bestScore: AssignmentScore = {
-    totalMissionValue: 0,
+    totalCommissionValue: 0,
     totalCharacters: 0,
     bonusesSatisfied: 0,
   };
   let dfsNodesExplored = 0;
 
   function dfs(
-    missionIndex: number,
+    commissionIndex: number,
     currentAssignment: Assignment[],
     usedCharacters: Set<string>
   ): void {
     dfsNodesExplored++;
 
-    // Base case: all missions considered
-    if (missionIndex === sortedMissions.length) {
+    // Base case: all commissions considered
+    if (commissionIndex === sortedCommissions.length) {
       // Evaluate this assignment
       const score = evaluateAssignment(currentAssignment);
 
@@ -813,16 +813,16 @@ export function findBestMissionAssignment(
       return;
     }
 
-    const mission = sortedMissions[missionIndex];
-    const candidates = candidatesByMission.get(mission.id);
+    const commission = sortedCommissions[commissionIndex];
+    const candidates = candidatesByCommission.get(commission.id);
     if (!candidates) {
-      // Skip this mission if no candidates
-      dfs(missionIndex + 1, currentAssignment, usedCharacters);
+      // Skip this commission if no candidates
+      dfs(commissionIndex + 1, currentAssignment, usedCharacters);
       return;
     }
 
-    // Option 1: Skip this mission (explore partial coverage)
-    dfs(missionIndex + 1, currentAssignment, usedCharacters);
+    // Option 1: Skip this commission (explore partial coverage)
+    dfs(commissionIndex + 1, currentAssignment, usedCharacters);
 
     // Option 2: Try each ready team
     for (const team of candidates.readyTeams) {
@@ -831,25 +831,25 @@ export function findBestMissionAssignment(
 
       if (!hasConflict) {
         // Make assignment
-        const newAssignment = [...currentAssignment, { missionId: mission.id, team }];
+        const newAssignment = [...currentAssignment, { commissionId: commission.id, team }];
         const newUsed = new Set(usedCharacters);
         team.characterIds.forEach(charId => newUsed.add(charId));
 
         // Recurse
-        dfs(missionIndex + 1, newAssignment, newUsed);
+        dfs(commissionIndex + 1, newAssignment, newUsed);
       }
     }
   }
 
   function evaluateAssignment(assignment: Assignment[]): AssignmentScore {
-    let totalMissionValue = 0;
+    let totalCommissionValue = 0;
     const allUsedCharacters = new Set<string>();
     let bonusesSatisfied = 0;
 
-    for (const { missionId, team } of assignment) {
-      const mission = missions.find(m => m.id === missionId);
-      if (mission) {
-        totalMissionValue += getMissionValue(mission);
+    for (const { commissionId, team } of assignment) {
+      const commission = commissions.find(m => m.id === commissionId);
+      if (commission) {
+        totalCommissionValue += getCommissionValue(commission);
       }
       team.characterIds.forEach(charId => allUsedCharacters.add(charId));
       if (team.meetsBonusConditions) {
@@ -858,7 +858,7 @@ export function findBestMissionAssignment(
     }
 
     return {
-      totalMissionValue,
+      totalCommissionValue,
       totalCharacters: allUsedCharacters.size,
       bonusesSatisfied,
     };
@@ -868,7 +868,7 @@ export function findBestMissionAssignment(
   dfs(0, [], new Set());
 
   // Phase 4: Package results
-  const assignmentMap = new Map(bestAssignment.map(a => [a.missionId, a.team]));
+  const assignmentMap = new Map(bestAssignment.map(a => [a.commissionId, a.team]));
 
   // Collect all assigned characters to filter blocked teams
   const usedCharacters = new Set<string>();
@@ -878,12 +878,12 @@ export function findBestMissionAssignment(
     team.characterIds.forEach(charId => usedCharacters.add(charId));
   }
 
-  // Build assignments array, selecting disjoint blocked teams for unassigned missions
-  const assignments: import("../types").MissionAssignment[] = [];
+  // Build assignments array, selecting disjoint blocked teams for unassigned commissions
+  const assignments: import("../types").CommissionAssignment[] = [];
 
-  // First pass: Create assignments for assigned missions
-  for (const mission of missions) {
-    const team = assignmentMap.get(mission.id);
+  // First pass: Create assignments for assigned commissions
+  for (const commission of commissions) {
+    const team = assignmentMap.get(commission.id);
 
     if (team) {
       // Calculate total rarity for display
@@ -897,8 +897,8 @@ export function findBestMissionAssignment(
       totalRarity += teamRarity;
 
       assignments.push({
-        missionId: mission.id,
-        missionValue: getMissionValue(mission),
+        commissionId: commission.id,
+        commissionValue: getCommissionValue(commission),
         team: {
           characterIds: team.characterIds,
           totalRarity: teamRarity,
@@ -908,27 +908,27 @@ export function findBestMissionAssignment(
     }
   }
 
-  // Second pass: Select disjoint blocked teams for unassigned missions
-  // Sort unassigned missions by the smallest level gap of their best available blocked team
-  const unassignedMissionsWithCandidates: Array<{
-    mission: Mission;
-    candidates: import("../types").PerMissionCandidates;
+  // Second pass: Select disjoint blocked teams for unassigned commissions
+  // Sort unassigned commissions by the smallest level gap of their best available blocked team
+  const unassignedCommissionsWithCandidates: Array<{
+    commission: Commission;
+    candidates: import("../types").PerCommissionCandidates;
   }> = [];
 
-  for (const mission of missions) {
-    if (!assignmentMap.has(mission.id)) {
-      const candidates = candidatesByMission.get(mission.id);
+  for (const commission of commissions) {
+    if (!assignmentMap.has(commission.id)) {
+      const candidates = candidatesByCommission.get(commission.id);
       if (candidates && candidates.blockedTeams.length > 0) {
-        unassignedMissionsWithCandidates.push({ mission, candidates });
+        unassignedCommissionsWithCandidates.push({ commission, candidates });
       }
     }
   }
 
-  // Sort unassigned missions based on strategy
-  unassignedMissionsWithCandidates.sort((a, b) => {
+  // Sort unassigned commissions based on strategy
+  unassignedCommissionsWithCandidates.sort((a, b) => {
     if (strategy === 'bonus-first') {
-      // Bonus-first: prioritize missions with bonus-satisfying blocked teams
-      const getMaxBonusScore = (candidates: import("../types").PerMissionCandidates) => {
+      // Bonus-first: prioritize commissions with bonus-satisfying blocked teams
+      const getMaxBonusScore = (candidates: import("../types").PerCommissionCandidates) => {
         const availableTeams = candidates.blockedTeams.filter(team =>
           team.characterIds.every(charId => !usedCharacters.has(charId))
         );
@@ -945,7 +945,7 @@ export function findBestMissionAssignment(
     }
 
     // Base-first or tiebreaker: sort by smallest available level gap
-    const getMinGap = (candidates: import("../types").PerMissionCandidates) => {
+    const getMinGap = (candidates: import("../types").PerCommissionCandidates) => {
       const availableTeams = candidates.blockedTeams.filter(team =>
         team.characterIds.every(charId => !usedCharacters.has(charId))
       );
@@ -958,12 +958,12 @@ export function findBestMissionAssignment(
   });
 
   // Select blocked teams in order, avoiding character overlap
-  for (const { mission, candidates } of unassignedMissionsWithCandidates) {
+  for (const { commission, candidates } of unassignedCommissionsWithCandidates) {
     const availableBlockedTeams = candidates.blockedTeams.filter(team =>
       team.characterIds.every(charId => !usedCharacters.has(charId))
     );
 
-    let blockedTeam: import("../types").MissionAssignment['blockedTeam'];
+    let blockedTeam: import("../types").CommissionAssignment['blockedTeam'];
 
     if (availableBlockedTeams.length > 0) {
       // Sort blocked teams based on strategy
@@ -998,60 +998,60 @@ export function findBestMissionAssignment(
         satisfiesBonus: best.meetsBonusConditions,
       };
 
-      // Mark these characters as used for subsequent missions
+      // Mark these characters as used for subsequent commissions
       best.characterIds.forEach(charId => usedCharacters.add(charId));
     }
 
     assignments.push({
-      missionId: mission.id,
-      missionValue: getMissionValue(mission),
+      commissionId: commission.id,
+      commissionValue: getCommissionValue(commission),
       team: null,
       blockedTeam,
     });
   }
 
-  // Add any remaining unassigned missions without blocked teams
-  for (const mission of missions) {
-    if (!assignments.some(a => a.missionId === mission.id)) {
+  // Add any remaining unassigned commissions without blocked teams
+  for (const commission of commissions) {
+    if (!assignments.some(a => a.commissionId === commission.id)) {
       assignments.push({
-        missionId: mission.id,
-        missionValue: getMissionValue(mission),
+        commissionId: commission.id,
+        commissionValue: getCommissionValue(commission),
         team: null,
       });
     }
   }
 
-  const unassignedMissionIds = assignments
+  const unassignedCommissionIds = assignments
     .filter(a => a.team === null)
-    .map(a => a.missionId);
+    .map(a => a.commissionId);
 
   // Phase 5: Calculate training recommendations from blocked teams
   // For training recommendations, use ALL available blocked teams (not just the one shown)
-  // This ensures we suggest training for all viable paths across all unassigned missions
-  const unassignedMissions = missions.filter(m => unassignedMissionIds.includes(m.id));
-  const blockedTeamsByMission = new Map<string, import("../types").BlockedCombination[]>();
+  // This ensures we suggest training for all viable paths across all unassigned commissions
+  const unassignedCommissions = commissions.filter(m => unassignedCommissionIds.includes(m.id));
+  const blockedTeamsByCommission = new Map<string, import("../types").BlockedCombination[]>();
 
-  // Collect only the characters used in assigned missions for filtering
+  // Collect only the characters used in assigned commissions for filtering
   const assignedOnlyCharacters = new Set<string>();
   for (const { team } of bestAssignment) {
     team.characterIds.forEach(charId => assignedOnlyCharacters.add(charId));
   }
 
-  // For each unassigned mission, provide ALL blocked teams that don't use assigned characters
-  // (allow overlap between unassigned missions for comprehensive recommendations)
-  for (const mission of unassignedMissions) {
-    const candidates = candidatesByMission.get(mission.id);
+  // For each unassigned commission, provide ALL blocked teams that don't use assigned characters
+  // (allow overlap between unassigned commissions for comprehensive recommendations)
+  for (const commission of unassignedCommissions) {
+    const candidates = candidatesByCommission.get(commission.id);
     if (candidates) {
       const availableBlockedTeams = candidates.blockedTeams.filter(team =>
         team.characterIds.every(charId => !assignedOnlyCharacters.has(charId))
       );
-      blockedTeamsByMission.set(mission.id, availableBlockedTeams);
+      blockedTeamsByCommission.set(commission.id, availableBlockedTeams);
     }
   }
 
   const trainingRecommendations = calculateTrainingPriorityFromBlockedTeams(
-    unassignedMissions,
-    blockedTeamsByMission,
+    unassignedCommissions,
+    blockedTeamsByCommission,
     ownedCharacters,
     characterLevels,
     strategy
@@ -1060,12 +1060,12 @@ export function findBestMissionAssignment(
   return {
     assignments,
     stats: {
-      totalMissionValue: bestScore.totalMissionValue,
-      missionsAssigned: bestAssignment.length,
-      missionsTotal: missions.length,
+      totalCommissionValue: bestScore.totalCommissionValue,
+      commissionsAssigned: bestAssignment.length,
+      commissionsTotal: commissions.length,
       totalCharactersUsed: bestAssignment.reduce((count, { team }) => count + team.characterIds.length, 0),
       totalRarity,
-      unassignedMissionIds,
+      unassignedCommissionIds,
     },
     trainingRecommendations,
     debug: {

@@ -6,16 +6,16 @@ interface AppStore {
   // State
   ownedCharacterIds: string[];
   characterLevels: Record<string, number>;
-  selectedMissionIds: string[];
+  selectedCommissionIds: string[];
 
   // Actions
   toggleCharacterOwnership: (characterId: string) => void;
   setCharacterLevel: (characterId: string, level: number) => void;
   setCharacterLevels: (levels: Record<string, number>) => void;
-  toggleMissionSelection: (missionId: string) => void;
+  toggleCommissionSelection: (commissionId: string) => void;
   clearOwnedCharacters: () => void;
   clearLevels: () => void;
-  clearSelectedMissions: () => void;
+  clearSelectedCommissions: () => void;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -24,7 +24,7 @@ export const useAppStore = create<AppStore>()(
       // Initial state
       ownedCharacterIds: [],
       characterLevels: {},
-      selectedMissionIds: [],
+      selectedCommissionIds: [],
 
       // Toggle character ownership (add if not owned, remove if owned)
       toggleCharacterOwnership: (characterId: string) =>
@@ -62,25 +62,25 @@ export const useAppStore = create<AppStore>()(
           characterLevels: levels,
         })),
 
-      // Toggle mission selection (max 4)
-      toggleMissionSelection: (missionId: string) =>
+      // Toggle commission selection (max 4)
+      toggleCommissionSelection: (commissionId: string) =>
         set((state) => {
-          const isSelected = state.selectedMissionIds.includes(missionId);
+          const isSelected = state.selectedCommissionIds.includes(commissionId);
           if (isSelected) {
-            // Remove mission
-            analytics.trackMissionDeselected(missionId);
+            // Remove commission
+            analytics.trackCommissionDeselected(commissionId);
             return {
-              selectedMissionIds: state.selectedMissionIds.filter(id => id !== missionId),
+              selectedCommissionIds: state.selectedCommissionIds.filter(id => id !== commissionId),
             };
           } else {
-            // Add mission if under limit
-            if (state.selectedMissionIds.length >= 4) {
+            // Add commission if under limit
+            if (state.selectedCommissionIds.length >= 4) {
               // Ignore - already at max
               return state;
             }
-            analytics.trackMissionSelected(missionId);
+            analytics.trackCommissionSelected(commissionId);
             return {
-              selectedMissionIds: [...state.selectedMissionIds, missionId],
+              selectedCommissionIds: [...state.selectedCommissionIds, commissionId],
             };
           }
         }),
@@ -92,17 +92,29 @@ export const useAppStore = create<AppStore>()(
       clearLevels: () =>
         set({ characterLevels: {} }),
 
-      clearSelectedMissions: () =>
-        set({ selectedMissionIds: [] }),
+      clearSelectedCommissions: () =>
+        set({ selectedCommissionIds: [] }),
     }),
     {
       name: 'ss-app',
+      version: 1, // Incremented for migration
       // Persist all state properties
       partialize: (state) => ({
         ownedCharacterIds: state.ownedCharacterIds,
         characterLevels: state.characterLevels,
-        selectedMissionIds: state.selectedMissionIds,
+        selectedCommissionIds: state.selectedCommissionIds,
       }),
+      // Migrate from version 0 (mission terminology) to version 1 (commission terminology)
+      migrate: (persistedState: any, version: number) => {
+        if (version === 0) {
+          // Migrate selectedMissionIds to selectedCommissionIds
+          if (persistedState.selectedMissionIds) {
+            persistedState.selectedCommissionIds = persistedState.selectedMissionIds;
+            delete persistedState.selectedMissionIds;
+          }
+        }
+        return persistedState;
+      },
     }
   )
 );

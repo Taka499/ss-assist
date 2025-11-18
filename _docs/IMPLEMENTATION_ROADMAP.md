@@ -27,7 +27,7 @@ Define core types:
 - Character interface (with multi-language name support)
 - Condition interface (anyOf support, extensible to allOf/noneOf)
 - Reward types (gold, item, exp)
-- Mission interface (baseConditions, bonusConditions, rewards)
+- Commission interface (baseConditions, bonusConditions, rewards)
 - LocalStorage data structures
 ```
 
@@ -38,7 +38,7 @@ Define core types:
 **File:** `scripts/validate-data.ts`
 
 Implement JSON schema validation:
-- Schema definitions for tags.json, characters.json, missions.json
+- Schema definitions for tags.json, characters.json, commissions.json
 - Multi-language field validation (ja, zh-Hans, zh-Hant)
 - Required field checks
 - Type validation
@@ -64,7 +64,7 @@ Implement Japanese text to slug conversion:
 Implement data pipeline:
 - Parse `data/tags.src.json` → generate slugs → output `data/tags.json`
 - Parse `data-sources/characters.csv` → normalize tags (Japanese→ID) → output `data/characters.json`
-- Parse `data-sources/missions.csv` → normalize conditions → output `data/missions.json`
+- Parse `data-sources/commissions.csv` → normalize conditions → output `data/commissions.json`
 - Merge translations from `i18n/*.json`
 - Error handling for missing/invalid references
 
@@ -75,14 +75,14 @@ Implement data pipeline:
 **Files:**
 - `data/tags.src.json`
 - `data-sources/characters.csv`
-- `data-sources/missions.csv`
+- `data-sources/commissions.csv`
 - `i18n/tags.zh-Hans.json`
 - `i18n/tags.zh-Hant.json`
 
 Create minimal viable dataset:
 - 5-6 tag categories with 3-5 tags each
 - 10-15 sample characters (including コハク, ミネルバ from design doc)
-- 4-6 sample missions with varying conditions
+- 4-6 sample commissions with varying conditions
 - Chinese translations for tags
 
 **Dependencies:** 1.4
@@ -111,7 +111,7 @@ Implement efficient tag matching:
 **File:** `src/lib/data.ts`
 
 Implement data layer:
-- Load JSON files (tags, characters, missions)
+- Load JSON files (tags, characters, commissions)
 - Build bitmask lookup tables
 - Character filtering utilities
 - Tag resolution (ID ↔ localized label)
@@ -132,9 +132,9 @@ Implement core search logic:
 
 **Key functions:**
 ```typescript
-- findCombos(mission, ownedChars, levels): Combo[]
+- findCombos(commission, ownedChars, levels): Combo[]
 - satisfies(conditions, comboMask): boolean
-- interactsWith(mission, character): boolean
+- interactsWith(commission, character): boolean
 - forEachComboUpTo3(candidates, callback)
 ```
 
@@ -147,11 +147,11 @@ Implement core search logic:
 Implement character training recommendations:
 - Calculate training impact score per character
 - Weight factors:
-  - w1: Number of missions unlocked (base conditions)
+  - w1: Number of commissions unlocked (base conditions)
   - w2: Number of bonus conditions achieved
   - w3: Level gap cost
   - w4: Tag rarity bonus
-- Cross-mission analysis
+- Cross-commission analysis
 - Ranking algorithm
 
 **Dependencies:** 2.3
@@ -181,11 +181,11 @@ Implement Zustand store:
 Implement main application state:
 - Owned characters (string[])
 - Character levels (Record<id, level>)
-- Selected missions (string[], max 4)
+- Selected commissions (string[], max 4)
 - localStorage sync:
   - "ss-owned-characters"
   - "ss-levels"
-  - "ss-selected-missions"
+  - "ss-selected-commissions"
 - State update actions
 
 **Dependencies:** Phase 1, Phase 2
@@ -231,8 +231,8 @@ Implement main application state:
 - Radio button behavior
 - Bulk level operations (optional)
 
-**4.2.3 MissionPicker** (`src/components/MissionPicker.tsx`)
-- Mission card list
+**4.2.3 CommissionPicker** (`src/components/CommissionPicker.tsx`)
+- Commission card list
 - Display: name, required level, rewards, conditions
 - Selection toggle (max 4)
 - Counter display
@@ -244,13 +244,13 @@ Implement main application state:
 - Show level deficiencies
 
 **4.2.5 TrainHint** (`src/components/TrainHint.tsx`)
-- Display minimum training path for one mission
+- Display minimum training path for one commission
 - Format: "キャラX を Lv50 まで上げれば受注達成"
 
 **4.2.6 TrainRanking** (`src/components/TrainRanking.tsx`)
-- Cross-mission training priority list
+- Cross-commission training priority list
 - Score display
-- Impact summary (missions unlocked, bonuses achieved)
+- Impact summary (commissions unlocked, bonuses achieved)
 
 **Dependencies:** 3.2, 4.1
 **Estimated effort:** 8-12 hours
@@ -283,18 +283,18 @@ Implement main application state:
 - Integrate RosterSelector component
 - Integrate LevelEditor component
 - Progress indicator
-- Navigation to mission selection
+- Navigation to commission selection
 
-**5.1.3 MissionSelection** (`src/pages/MissionSelection.tsx`)
-- Integrate MissionPicker component
-- Selected mission preview
+**5.1.3 CommissionSelection** (`src/pages/CommissionSelection.tsx`)
+- Integrate CommissionPicker component
+- Selected commission preview
 - Navigation to results
 
 **5.1.4 Results** (`src/pages/Results.tsx`)
-- Tab/accordion per selected mission
+- Tab/accordion per selected commission
 - Display combinations (ComboCard)
 - Display training hints (TrainHint)
-- Display cross-mission ranking (TrainRanking)
+- Display cross-commission ranking (TrainRanking)
 - Export/share functionality (optional)
 
 **Dependencies:** Phase 3, Phase 4
@@ -474,7 +474,7 @@ For a minimal viable product, focus on:
 ## Maintenance & Future Enhancements
 
 ### Post-MVP Features (from design docs)
-- Mission duration and cooldown tracking
+- Commission duration and cooldown tracking
 - Element affinity/compatibility system
 - PWA offline support
 - Share roster via compressed URL
@@ -483,7 +483,7 @@ For a minimal viable product, focus on:
 - English localization
 
 ### Data Maintenance
-- Regular character/mission data updates
+- Regular character/commission data updates
 - Translation crowdsourcing workflow
 - Asset management (character icons)
 - Version control for game updates
