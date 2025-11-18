@@ -1,4 +1,4 @@
-# ステラソラ依頼アシスト | Stella Sora Request Assistant
+# ステラソラ依頼アシスト | Stella Sora Commssion Assistant
 
 A serverless web application to help players optimize character combinations for commissions in Stella Sora game.
 
