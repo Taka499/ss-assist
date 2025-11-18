@@ -1,7 +1,8 @@
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useTranslation } from '../../i18n';
 import type { MissionAssignment, Mission } from '../types';
-import { getCharacterById } from '../lib/data';
+import { getCharacterById, resolveTagName } from '../lib/data';
+import { analyzeConditionSatisfaction, getMatchingTagForCharacter } from '../lib/requirementMatching';
 
 interface MissionAssignmentCardProps {
   assignment: MissionAssignment;
@@ -14,6 +15,13 @@ export function MissionAssignmentCard({ assignment, mission, characterLevels }: 
   const { t } = useTranslation(lang);
 
   const missionName = mission.name[lang] || mission.name.ja;
+
+  // Get team characters for requirement analysis
+  const teamCharacters = assignment.team
+    ? assignment.team.characterIds.map(id => getCharacterById(id)).filter((char): char is import('../types').Character => char !== undefined)
+    : assignment.blockedTeam
+    ? assignment.blockedTeam.characterIds.map(id => getCharacterById(id)).filter((char): char is import('../types').Character => char !== undefined)
+    : [];
 
   return (
     <div className="border rounded-lg p-4 bg-white">
@@ -72,6 +80,75 @@ export function MissionAssignmentCard({ assignment, mission, characterLevels }: 
               );
             })}
           </div>
+
+          {/* Requirements Display */}
+          {teamCharacters.length > 0 && (
+            <div className="mb-3 bg-gray-50 rounded-md p-3 text-xs">
+              {/* Base Conditions */}
+              <div className="mb-2">
+                <p className="font-semibold text-gray-700 mb-1">Base Requirements:</p>
+                {analyzeConditionSatisfaction(teamCharacters, mission.baseConditions).map((condSat, idx) => (
+                  <div key={idx} className="flex items-center gap-2 mb-1">
+                    <span className="text-gray-600">
+                      {condSat.requiredTagIds.map(tagId => resolveTagName(tagId, lang)).join(' / ')}:
+                    </span>
+                    {condSat.satisfyingCharacterIds.length > 0 ? (
+                      <div className="flex gap-1">
+                        {condSat.satisfyingCharacterIds.map(charId => {
+                          const char = getCharacterById(charId);
+                          if (!char) return null;
+                          const matchingTag = getMatchingTagForCharacter(char, condSat.condition);
+                          return (
+                            <span key={charId} className="inline-flex flex-col items-center px-2 py-1 rounded bg-green-100 text-green-800 font-medium">
+                              <span>{char.name[lang] || char.name.ja}</span>
+                              {matchingTag && (
+                                <span className="text-[10px] text-green-600">({resolveTagName(matchingTag, lang)})</span>
+                              )}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <span className="text-red-600">✗ Not satisfied</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Bonus Conditions */}
+              {mission.bonusConditions && mission.bonusConditions.length > 0 && (
+                <div>
+                  <p className="font-semibold text-gray-700 mb-1">Bonus Requirements:</p>
+                  {analyzeConditionSatisfaction(teamCharacters, mission.bonusConditions).map((condSat, idx) => (
+                    <div key={idx} className={`flex items-center gap-2 mb-1 ${!condSat.satisfied ? 'opacity-50' : ''}`}>
+                      <span className={condSat.satisfied ? 'text-gray-600' : 'text-gray-400'}>
+                        {condSat.requiredTagIds.map(tagId => resolveTagName(tagId, lang)).join(' / ')}:
+                      </span>
+                      {condSat.satisfyingCharacterIds.length > 0 ? (
+                        <div className="flex gap-1">
+                          {condSat.satisfyingCharacterIds.map(charId => {
+                            const char = getCharacterById(charId);
+                            if (!char) return null;
+                            const matchingTag = getMatchingTagForCharacter(char, condSat.condition);
+                            return (
+                              <span key={charId} className="inline-flex flex-col items-center px-2 py-1 rounded bg-yellow-100 text-yellow-800 font-medium">
+                                <span>{char.name[lang] || char.name.ja}</span>
+                                {matchingTag && (
+                                  <span className="text-[10px] text-yellow-600">({resolveTagName(matchingTag, lang)})</span>
+                                )}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">✗ Not satisfied</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Status Badges */}
           <div className="flex gap-2 justify-center">
@@ -140,6 +217,76 @@ export function MissionAssignmentCard({ assignment, mission, characterLevels }: 
                   );
                 })}
               </div>
+
+              {/* Requirements Display for Blocked Team */}
+              {teamCharacters.length > 0 && (
+                <div className="mb-2 bg-gray-50 rounded-md p-3 text-xs">
+                  {/* Base Conditions */}
+                  <div className="mb-2">
+                    <p className="font-semibold text-gray-700 mb-1">Base Requirements:</p>
+                    {analyzeConditionSatisfaction(teamCharacters, mission.baseConditions).map((condSat, idx) => (
+                      <div key={idx} className="flex items-center gap-2 mb-1">
+                        <span className="text-gray-600">
+                          {condSat.requiredTagIds.map(tagId => resolveTagName(tagId, lang)).join(' / ')}:
+                        </span>
+                        {condSat.satisfyingCharacterIds.length > 0 ? (
+                          <div className="flex gap-1">
+                            {condSat.satisfyingCharacterIds.map(charId => {
+                              const char = getCharacterById(charId);
+                              if (!char) return null;
+                              const matchingTag = getMatchingTagForCharacter(char, condSat.condition);
+                              return (
+                                <span key={charId} className="inline-flex flex-col items-center px-2 py-1 rounded bg-green-100 text-green-800 font-medium">
+                                  <span>{char.name[lang] || char.name.ja}</span>
+                                  {matchingTag && (
+                                    <span className="text-[10px] text-green-600">({resolveTagName(matchingTag, lang)})</span>
+                                  )}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <span className="text-red-600">✗ Not satisfied</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Bonus Conditions */}
+                  {mission.bonusConditions && mission.bonusConditions.length > 0 && (
+                    <div>
+                      <p className="font-semibold text-gray-700 mb-1">Bonus Requirements:</p>
+                      {analyzeConditionSatisfaction(teamCharacters, mission.bonusConditions).map((condSat, idx) => (
+                        <div key={idx} className={`flex items-center gap-2 mb-1 ${!condSat.satisfied ? 'opacity-50' : ''}`}>
+                          <span className={condSat.satisfied ? 'text-gray-600' : 'text-gray-400'}>
+                            {condSat.requiredTagIds.map(tagId => resolveTagName(tagId, lang)).join(' / ')}:
+                          </span>
+                          {condSat.satisfyingCharacterIds.length > 0 ? (
+                            <div className="flex gap-1">
+                              {condSat.satisfyingCharacterIds.map(charId => {
+                                const char = getCharacterById(charId);
+                                if (!char) return null;
+                                const matchingTag = getMatchingTagForCharacter(char, condSat.condition);
+                                return (
+                                  <span key={charId} className="inline-flex flex-col items-center px-2 py-1 rounded bg-yellow-100 text-yellow-800 font-medium">
+                                    <span>{char.name[lang] || char.name.ja}</span>
+                                    {matchingTag && (
+                                      <span className="text-[10px] text-yellow-600">({resolveTagName(matchingTag, lang)})</span>
+                                    )}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">✗ Not satisfied</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <p className="text-xs text-center text-gray-500">
                 {t('missions.canAssignAfterLeveling')}
               </p>
