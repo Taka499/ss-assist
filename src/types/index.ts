@@ -278,3 +278,10 @@ export interface TrainingRecommendationNew {
   };
   priority: number;
 }
+
+/**
+ * Strategy for mission assignment and training recommendations
+ * - base-first: Prioritize unlocking missions quickly, bonuses are secondary
+ * - bonus-first: Prioritize maximizing bonus satisfaction, even if requires more leveling
+ */
+export type AssignmentStrategy = 'base-first' | 'bonus-first';

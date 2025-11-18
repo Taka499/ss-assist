@@ -696,18 +696,41 @@ interface AssignmentScore {
 /**
  * Compare two assignment scores lexicographically
  * Returns positive if a is better, negative if b is better, 0 if equal
+ *
+ * @param a First assignment score
+ * @param b Second assignment score
+ * @param strategy Assignment strategy ('base-first' or 'bonus-first')
  */
-function compareScores(a: AssignmentScore, b: AssignmentScore): number {
-  // Primary: higher mission value is better
-  if (a.totalMissionValue !== b.totalMissionValue) {
-    return a.totalMissionValue - b.totalMissionValue;
-  }
-  // Secondary: fewer characters is better (so negate the comparison)
-  if (a.totalCharacters !== b.totalCharacters) {
+function compareScores(
+  a: AssignmentScore,
+  b: AssignmentScore,
+  strategy: import("../types").AssignmentStrategy
+): number {
+  if (strategy === 'bonus-first') {
+    // Bonus-first strategy: prioritize bonus satisfaction
+    // Primary: more bonuses is better
+    if (a.bonusesSatisfied !== b.bonusesSatisfied) {
+      return a.bonusesSatisfied - b.bonusesSatisfied;
+    }
+    // Secondary: higher mission value is better
+    if (a.totalMissionValue !== b.totalMissionValue) {
+      return a.totalMissionValue - b.totalMissionValue;
+    }
+    // Tertiary: fewer characters is better
     return b.totalCharacters - a.totalCharacters;
+  } else {
+    // Base-first strategy (default): prioritize unlocking missions
+    // Primary: higher mission value is better
+    if (a.totalMissionValue !== b.totalMissionValue) {
+      return a.totalMissionValue - b.totalMissionValue;
+    }
+    // Secondary: fewer characters is better (so negate the comparison)
+    if (a.totalCharacters !== b.totalCharacters) {
+      return b.totalCharacters - a.totalCharacters;
+    }
+    // Tertiary: more bonuses is better
+    return a.bonusesSatisfied - b.bonusesSatisfied;
   }
-  // Tertiary: more bonuses is better
-  return a.bonusesSatisfied - b.bonusesSatisfied;
 }
 
 /**
@@ -717,21 +740,22 @@ function compareScores(a: AssignmentScore, b: AssignmentScore): number {
  * Ensures no character is used in multiple missions (disjoint constraint).
  *
  * Objective function (lexicographic priority):
- * 1. Maximize total mission value (sum of base condition counts)
- * 2. Minimize total characters used
- * 3. Maximize bonuses satisfied
+ * - base-first: 1. Mission value → 2. Fewer characters → 3. Bonuses
+ * - bonus-first: 1. Bonuses → 2. Mission value → 3. Fewer characters
  *
  * @param missions Array of missions to assign teams to
  * @param ownedCharacters Characters the player owns
  * @param characterLevels Map of character ID to current level
  * @param bitmaskLookup Bitmask lookup table
+ * @param strategy Assignment strategy ('base-first' or 'bonus-first')
  * @returns Multi-mission assignment result with disjoint teams
  */
 export function findBestMissionAssignment(
   missions: Mission[],
   ownedCharacters: Character[],
   characterLevels: Record<string, number>,
-  bitmaskLookup: BitmaskLookup
+  bitmaskLookup: BitmaskLookup,
+  strategy: import("../types").AssignmentStrategy = 'base-first'
 ): import("../types").MultiMissionAssignmentResult {
   // Phase 1: Generate candidates for each mission
   const candidatesByMission = new Map<string, import("../types").PerMissionCandidates>();
@@ -782,7 +806,7 @@ export function findBestMissionAssignment(
       // Evaluate this assignment
       const score = evaluateAssignment(currentAssignment);
 
-      if (compareScores(score, bestScore) > 0) {
+      if (compareScores(score, bestScore, strategy) > 0) {
         bestScore = score;
         bestAssignment = [...currentAssignment];
       }
@@ -900,8 +924,27 @@ export function findBestMissionAssignment(
     }
   }
 
-  // Sort by smallest available level gap (prioritize easiest to unlock)
+  // Sort unassigned missions based on strategy
   unassignedMissionsWithCandidates.sort((a, b) => {
+    if (strategy === 'bonus-first') {
+      // Bonus-first: prioritize missions with bonus-satisfying blocked teams
+      const getMaxBonusScore = (candidates: import("../types").PerMissionCandidates) => {
+        const availableTeams = candidates.blockedTeams.filter(team =>
+          team.characterIds.every(charId => !usedCharacters.has(charId))
+        );
+        if (availableTeams.length === 0) return -Infinity;
+        // Count teams that satisfy bonus (higher is better)
+        const bonusCount = availableTeams.filter(team => team.meetsBonusConditions).length;
+        return bonusCount;
+      };
+      const scoreA = getMaxBonusScore(a.candidates);
+      const scoreB = getMaxBonusScore(b.candidates);
+      if (scoreA !== scoreB) {
+        return scoreB - scoreA; // Higher bonus count first
+      }
+    }
+
+    // Base-first or tiebreaker: sort by smallest available level gap
     const getMinGap = (candidates: import("../types").PerMissionCandidates) => {
       const availableTeams = candidates.blockedTeams.filter(team =>
         team.characterIds.every(charId => !usedCharacters.has(charId))
@@ -923,11 +966,29 @@ export function findBestMissionAssignment(
     let blockedTeam: import("../types").MissionAssignment['blockedTeam'];
 
     if (availableBlockedTeams.length > 0) {
-      // Sort by total level gap (smallest first)
+      // Sort blocked teams based on strategy
       const sortedBlocked = [...availableBlockedTeams].sort((a, b) => {
-        const gapA = Object.values(a.levelDeficits).reduce((sum, gap) => sum + gap, 0);
-        const gapB = Object.values(b.levelDeficits).reduce((sum, gap) => sum + gap, 0);
-        return gapA - gapB;
+        if (strategy === 'bonus-first') {
+          // Bonus-first: prioritize teams that satisfy bonus conditions
+          // Primary: bonus satisfaction (true first)
+          if (a.meetsBonusConditions !== b.meetsBonusConditions) {
+            return a.meetsBonusConditions ? -1 : 1;
+          }
+          // Secondary: smaller level gap
+          const gapA = Object.values(a.levelDeficits).reduce((sum, gap) => sum + gap, 0);
+          const gapB = Object.values(b.levelDeficits).reduce((sum, gap) => sum + gap, 0);
+          return gapA - gapB;
+        } else {
+          // Base-first: prioritize teams with smallest level gap
+          // Primary: smaller level gap
+          const gapA = Object.values(a.levelDeficits).reduce((sum, gap) => sum + gap, 0);
+          const gapB = Object.values(b.levelDeficits).reduce((sum, gap) => sum + gap, 0);
+          if (gapA !== gapB) {
+            return gapA - gapB;
+          }
+          // Tiebreaker: bonus satisfaction
+          return a.meetsBonusConditions === b.meetsBonusConditions ? 0 : (a.meetsBonusConditions ? -1 : 1);
+        }
       });
 
       const best = sortedBlocked[0];
@@ -992,7 +1053,8 @@ export function findBestMissionAssignment(
     unassignedMissions,
     blockedTeamsByMission,
     ownedCharacters,
-    characterLevels
+    characterLevels,
+    strategy
   );
 
   return {
