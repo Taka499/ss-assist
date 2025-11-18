@@ -322,8 +322,8 @@ export function calculateTrainingPriority(
  * currently unassigned commissions by satisfying their level requirements.
  *
  * Scoring formula:
- * - base-first: 1000.0 × commissionsUnlocked + 10.0 × bonusesAdded + 1.0 × rarity - 0.5 × levelGap
- * - bonus-first: 1000.0 × bonusesAdded + 100.0 × commissionsUnlocked + 1.0 × rarity - 0.5 × levelGap
+ * - base-first: 1000.0 × commissionsUnlocked + 10.0 × bonusesAdded + 100.0 × rarity - 0.5 × levelGap
+ * - bonus-first: 1000.0 × bonusesAdded + 100.0 × commissionsUnlocked + 100.0 × rarity - 0.5 × levelGap
  *
  * @param unassignedCommissions Commissions that could not be assigned in current state
  * @param blockedTeamsByCommission Map of commission ID to its blocked teams
@@ -433,14 +433,16 @@ export function calculateTrainingPriorityFromBlockedTeams(
         const levelGap = targetLevel - currentLevel;
 
         // Calculate priority based on strategy
+        // Rarity weight (100.0) ensures high-rarity characters are always recommended
+        // even with maximum level gap (89 levels × 0.5 = 44.5 penalty)
         const priority = strategy === 'bonus-first'
           ? 1000.0 * bonusesAdded.length +
             100.0 * commissionsUnlocked.length +
-            1.0 * rarity -
+            100.0 * rarity -
             0.5 * levelGap
           : 1000.0 * commissionsUnlocked.length +
             10.0 * bonusesAdded.length +
-            1.0 * rarity -
+            100.0 * rarity -
             0.5 * levelGap;
 
         // Create a key based on which commissions are unlocked (sorted for consistency)
