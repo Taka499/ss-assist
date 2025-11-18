@@ -101,8 +101,8 @@ const rewardSchema = {
   additionalProperties: false,
 };
 
-// Mission duration schema
-const missionDurationSchema = {
+// Commission duration schema
+const commissionDurationSchema = {
   type: "object",
   properties: {
     hours: { type: "number", minimum: 1 },
@@ -148,8 +148,8 @@ const charactersSchema = {
   items: characterSchema,
 };
 
-// Mission schema
-const missionSchema = {
+// Commission schema
+const commissionSchema = {
   type: "object",
   properties: {
     id: { type: "string" },
@@ -165,7 +165,7 @@ const missionSchema = {
     },
     durations: {
       type: "array",
-      items: missionDurationSchema,
+      items: commissionDurationSchema,
       minItems: 1,
       maxItems: 4,
     },
@@ -174,16 +174,16 @@ const missionSchema = {
   additionalProperties: false,
 };
 
-// Missions array schema
-const missionsSchema = {
+// Commissions array schema
+const commissionsSchema = {
   type: "array",
-  items: missionSchema,
+  items: commissionSchema,
 };
 
 // Compile validators
 const validateTags = ajv.compile(tagsSchema);
 const validateCharacters = ajv.compile(charactersSchema);
-const validateMissions = ajv.compile(missionsSchema);
+const validateCommissions = ajv.compile(commissionsSchema);
 
 interface ValidationResult {
   valid: boolean;
@@ -218,7 +218,7 @@ function formatErrors(validator: any): string[] {
 /**
  * Cross-validate tag references
  */
-function crossValidate(tags: any, characters: any, missions: any): string[] {
+function crossValidate(tags: any, characters: any, commissions: any): string[] {
   const errors: string[] = [];
 
   // Build set of all valid tag IDs
@@ -246,8 +246,8 @@ function crossValidate(tags: any, characters: any, missions: any): string[] {
     }
   }
 
-  // Validate mission condition tag references
-  for (const mission of missions) {
+  // Validate commission condition tag references
+  for (const commission of commissions) {
     const checkConditions = (conditions: any[], type: string) => {
       if (!conditions) return;
       for (const condition of conditions) {
@@ -255,7 +255,7 @@ function crossValidate(tags: any, characters: any, missions: any): string[] {
           for (const tagId of condition.anyOf) {
             if (!validTagIds.has(tagId)) {
               errors.push(
-                `  Mission "${mission.id}" ${type} references unknown tag ID "${tagId}"`
+                `  Commission "${commission.id}" ${type} references unknown tag ID "${tagId}"`
               );
             }
           }
@@ -263,8 +263,8 @@ function crossValidate(tags: any, characters: any, missions: any): string[] {
       }
     };
 
-    checkConditions(mission.baseConditions, "baseConditions");
-    checkConditions(mission.bonusConditions, "bonusConditions");
+    checkConditions(commission.baseConditions, "baseConditions");
+    checkConditions(commission.bonusConditions, "bonusConditions");
   }
 
   return errors;
@@ -280,7 +280,7 @@ export async function validateDataFiles(): Promise<ValidationResult> {
   console.log("Validating data files...\n");
 
   // Load files
-  let tags: any, characters: any, missions: any;
+  let tags: any, characters: any, commissions: any;
 
   try {
     tags = loadJSON(resolve(dataDir, "tags.json"));
@@ -299,11 +299,11 @@ export async function validateDataFiles(): Promise<ValidationResult> {
   }
 
   try {
-    missions = loadJSON(resolve(dataDir, "missions.json"));
-    console.log("✓ Loaded data/missions.json");
+    commissions = loadJSON(resolve(dataDir, "commissions.json"));
+    console.log("✓ Loaded data/commissions.json");
   } catch (error) {
-    errors.push(`data/missions.json: ${(error as Error).message}`);
-    missions = null;
+    errors.push(`data/commissions.json: ${(error as Error).message}`);
+    commissions = null;
   }
 
   console.log();
@@ -331,21 +331,21 @@ export async function validateDataFiles(): Promise<ValidationResult> {
     console.log();
   }
 
-  if (missions) {
-    console.log("Validating data/missions.json...");
-    if (!validateMissions(missions)) {
-      errors.push("data/missions.json schema validation failed:");
-      errors.push(...formatErrors(validateMissions));
+  if (commissions) {
+    console.log("Validating data/commissions.json...");
+    if (!validateCommissions(commissions)) {
+      errors.push("data/commissions.json schema validation failed:");
+      errors.push(...formatErrors(validateCommissions));
     } else {
-      console.log("✓ data/missions.json is valid");
+      console.log("✓ data/commissions.json is valid");
     }
     console.log();
   }
 
   // Cross-validation
-  if (tags && characters && missions) {
+  if (tags && characters && commissions) {
     console.log("Cross-validating tag references...");
-    const crossErrors = crossValidate(tags, characters, missions);
+    const crossErrors = crossValidate(tags, characters, commissions);
     if (crossErrors.length > 0) {
       errors.push("Cross-validation failed:");
       errors.push(...crossErrors);
