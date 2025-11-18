@@ -7,7 +7,7 @@ import { findBestMissionAssignment } from '../lib/combos';
 import { MissionAssignmentCard } from '../components/MissionAssignmentCard';
 import { TrainingRecommendationList } from '../components/TrainingRecommendationList';
 import { analytics } from '../lib/analytics';
-import type { Mission, MultiMissionAssignmentResult, MissionAssignment } from '../types';
+import type { Mission, MultiMissionAssignmentResult, MissionAssignment, AssignmentStrategy } from '../types';
 
 interface ResultsProps {
   onNavigate: (page: string) => void;
@@ -18,8 +18,13 @@ export function Results({ onNavigate }: ResultsProps) {
   const { t } = useTranslation(lang);
   const { selectedMissionIds, ownedCharacterIds, characterLevels } = useAppStore();
 
-  const [assignmentResult, setAssignmentResult] = useState<MultiMissionAssignmentResult | null>(null);
+  const [baseFirstResult, setBaseFirstResult] = useState<MultiMissionAssignmentResult | null>(null);
+  const [bonusFirstResult, setBonusFirstResult] = useState<MultiMissionAssignmentResult | null>(null);
+  const [currentStrategy, setCurrentStrategy] = useState<AssignmentStrategy>('bonus-first');
   const [isAnalyzing, setIsAnalyzing] = useState(true);
+
+  // Get the active result based on current strategy
+  const assignmentResult = currentStrategy === 'bonus-first' ? bonusFirstResult : baseFirstResult;
 
   const analyzeResults = useCallback(() => {
     setIsAnalyzing(true);
@@ -38,15 +43,25 @@ export function Results({ onNavigate }: ResultsProps) {
         .map(id => getMissionById(id))
         .filter((m): m is Mission => m !== null);
 
-      // Find best disjoint mission assignment
-      const result = findBestMissionAssignment(
+      // Compute both assignment strategies
+      const baseFirst = findBestMissionAssignment(
         selectedMissions,
         ownedCharacters,
         characterLevels,
-        bitmaskLookup
+        bitmaskLookup,
+        'base-first'
       );
 
-      setAssignmentResult(result);
+      const bonusFirst = findBestMissionAssignment(
+        selectedMissions,
+        ownedCharacters,
+        characterLevels,
+        bitmaskLookup,
+        'bonus-first'
+      );
+
+      setBaseFirstResult(baseFirst);
+      setBonusFirstResult(bonusFirst);
 
       // Track roster composition (which characters users actually use)
       analytics.trackRosterComposition(ownedCharacterIds);
@@ -136,6 +151,46 @@ export function Results({ onNavigate }: ResultsProps) {
           </button>
         </div>
       </div>
+
+      {/* Strategy Toggle */}
+      {assignmentResult && (
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-1">
+                {t('results.strategyLabel')}
+              </p>
+              <p className="text-xs text-gray-500">
+                {currentStrategy === 'bonus-first'
+                  ? t('results.bonusFirstDescription')
+                  : t('results.baseFirstDescription')}
+              </p>
+            </div>
+            <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+              <button
+                onClick={() => setCurrentStrategy('bonus-first')}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  currentStrategy === 'bonus-first'
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                ⭐ {t('results.bonusFirst')}
+              </button>
+              <button
+                onClick={() => setCurrentStrategy('base-first')}
+                className={`px-4 py-2 text-sm font-medium transition-colors border-l border-gray-300 ${
+                  currentStrategy === 'base-first'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                ⚡ {t('results.baseFirst')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Summary Stats */}
       {assignmentResult && (
