@@ -120,12 +120,12 @@ export function MissionAssignmentCard({ assignment, mission, characterLevels }: 
                 <div>
                   <p className="font-semibold text-gray-700 mb-1">Bonus Requirements:</p>
                   {analyzeConditionSatisfaction(teamCharacters, mission.bonusConditions).map((condSat, idx) => (
-                    <div key={idx} className={`flex items-center gap-2 mb-1 ${!condSat.satisfied ? 'opacity-50' : ''}`}>
+                    <div key={idx} className="flex items-center gap-2 mb-1">
                       <span className={condSat.satisfied ? 'text-gray-600' : 'text-gray-400'}>
                         {condSat.requiredTagIds.map(tagId => resolveTagName(tagId, lang)).join(' / ')}:
                       </span>
                       {condSat.satisfyingCharacterIds.length > 0 ? (
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 items-center">
                           {condSat.satisfyingCharacterIds.map(charId => {
                             const char = getCharacterById(charId);
                             if (!char) return null;
@@ -139,6 +139,40 @@ export function MissionAssignmentCard({ assignment, mission, characterLevels }: 
                               </span>
                             );
                           })}
+                          {!condSat.satisfied && (() => {
+                            // Calculate how many more characters are needed per tag
+                            const requiredCounts = new Map<string, number>();
+                            for (const tagId of condSat.requiredTagIds) {
+                              requiredCounts.set(tagId, (requiredCounts.get(tagId) || 0) + 1);
+                            }
+
+                            const placeholders: JSX.Element[] = [];
+                            for (const [tagId, minCount] of requiredCounts) {
+                              let actualCount = 0;
+                              for (const character of teamCharacters) {
+                                const charTags = character.tags[condSat.condition.category];
+                                if (charTags && charTags.includes(tagId)) {
+                                  actualCount++;
+                                }
+                              }
+
+                              const deficit = minCount - actualCount;
+                              if (deficit > 0) {
+                                // Render dimmed placeholder badges for each missing character of this tag
+                                const tagName = resolveTagName(tagId, lang);
+                                for (let i = 0; i < deficit; i++) {
+                                  placeholders.push(
+                                    <span key={`missing-${tagId}-${i}`} className="inline-flex flex-col items-center px-2 py-1 rounded bg-gray-100 text-gray-400 font-medium opacity-50 border border-dashed border-gray-300">
+                                      <span>?</span>
+                                      <span className="text-[10px]">({tagName})</span>
+                                    </span>
+                                  );
+                                }
+                              }
+                            }
+
+                            return placeholders;
+                          })()}
                         </div>
                       ) : (
                         <span className="text-gray-400">✗ Not satisfied</span>
@@ -257,12 +291,12 @@ export function MissionAssignmentCard({ assignment, mission, characterLevels }: 
                     <div>
                       <p className="font-semibold text-gray-700 mb-1">Bonus Requirements:</p>
                       {analyzeConditionSatisfaction(teamCharacters, mission.bonusConditions).map((condSat, idx) => (
-                        <div key={idx} className={`flex items-center gap-2 mb-1 ${!condSat.satisfied ? 'opacity-50' : ''}`}>
+                        <div key={idx} className="flex items-center gap-2 mb-1">
                           <span className={condSat.satisfied ? 'text-gray-600' : 'text-gray-400'}>
                             {condSat.requiredTagIds.map(tagId => resolveTagName(tagId, lang)).join(' / ')}:
                           </span>
                           {condSat.satisfyingCharacterIds.length > 0 ? (
-                            <div className="flex gap-1">
+                            <div className="flex gap-1 items-center">
                               {condSat.satisfyingCharacterIds.map(charId => {
                                 const char = getCharacterById(charId);
                                 if (!char) return null;
@@ -276,6 +310,40 @@ export function MissionAssignmentCard({ assignment, mission, characterLevels }: 
                                   </span>
                                 );
                               })}
+                              {!condSat.satisfied && (() => {
+                                // Calculate how many more characters are needed per tag
+                                const requiredCounts = new Map<string, number>();
+                                for (const tagId of condSat.requiredTagIds) {
+                                  requiredCounts.set(tagId, (requiredCounts.get(tagId) || 0) + 1);
+                                }
+
+                                const placeholders: JSX.Element[] = [];
+                                for (const [tagId, minCount] of requiredCounts) {
+                                  let actualCount = 0;
+                                  for (const character of teamCharacters) {
+                                    const charTags = character.tags[condSat.condition.category];
+                                    if (charTags && charTags.includes(tagId)) {
+                                      actualCount++;
+                                    }
+                                  }
+
+                                  const deficit = minCount - actualCount;
+                                  if (deficit > 0) {
+                                    // Render dimmed placeholder badges for each missing character of this tag
+                                    const tagName = resolveTagName(tagId, lang);
+                                    for (let i = 0; i < deficit; i++) {
+                                      placeholders.push(
+                                        <span key={`missing-${tagId}-${i}`} className="inline-flex flex-col items-center px-2 py-1 rounded bg-gray-100 text-gray-400 font-medium opacity-50 border border-dashed border-gray-300">
+                                          <span>?</span>
+                                          <span className="text-[10px]">({tagName})</span>
+                                        </span>
+                                      );
+                                    }
+                                  }
+                                }
+
+                                return placeholders;
+                              })()}
                             </div>
                           ) : (
                             <span className="text-gray-400">✗ Not satisfied</span>
