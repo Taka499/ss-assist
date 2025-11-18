@@ -6,6 +6,7 @@
  */
 
 import type { Character, Condition } from '../types';
+import { buildConditionCounts } from './bitmask';
 
 /**
  * Information about a single condition's satisfaction
@@ -21,7 +22,8 @@ export interface ConditionSatisfaction {
  * Analyze which characters satisfy which conditions in a team
  *
  * For each condition, identifies which character(s) in the team have tags
- * that match the condition's anyOf array.
+ * that match the condition's anyOf array, and correctly handles count-based
+ * requirements (e.g., need 2 Attackers).
  *
  * @param characters Array of characters in the team
  * @param conditions Array of conditions to check
@@ -47,9 +49,33 @@ export function analyzeConditionSatisfaction(
       }
     }
 
+    // Check if count requirements are met
+    // For example, if anyOf is ["role-002", "role-002", "role-001"],
+    // we need at least 2 characters with role-002 AND at least 1 with role-001
+    const requiredCounts = buildConditionCounts(condition);
+    let satisfied = true;
+
+    for (const [tagId, minCount] of requiredCounts) {
+      let actualCount = 0;
+
+      // Count how many characters have this specific tag
+      for (const character of characters) {
+        const charTags = character.tags[condition.category];
+        if (charTags && charTags.includes(tagId)) {
+          actualCount++;
+        }
+      }
+
+      // If we don't have enough characters with this tag, condition is not satisfied
+      if (actualCount < minCount) {
+        satisfied = false;
+        break;
+      }
+    }
+
     return {
       condition,
-      satisfied: satisfyingCharacterIds.length > 0,
+      satisfied,
       satisfyingCharacterIds,
       requiredTagIds: condition.anyOf,
     };
