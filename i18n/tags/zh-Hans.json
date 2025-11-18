@@ -1,0 +1,44 @@
+{
+  "role": {
+    "role-001": "均衡",
+    "role-002": "先锋",
+    "role-003": "辅助"
+  },
+  "style": {
+    "style-001": "冒险家",
+    "style-002": "奇思妙想",
+    "style-003": "稳扎稳打",
+    "style-004": "收集控",
+    "style-005": "求知心切"
+  },
+  "faction": {
+    "faction-001": "云笈道场",
+    "faction-002": "月神工坊",
+    "faction-003": "绯瞳传讯",
+    "faction-004": "恩赐意志",
+    "faction-005": "空白旅团",
+    "faction-006": "花令旅团",
+    "faction-007": "帝国卫队",
+    "faction-008": "灰风俱乐部",
+    "faction-009": "万送屋",
+    "faction-010": "龙裔",
+    "faction-011": "联合种业",
+    "faction-012": "自由旅人",
+    "faction-013": "地理协会",
+    "faction-014": "谷风家政",
+    "faction-015": "凤凰炒蛋",
+    "faction-016": "白猫剧团"
+  },
+  "element": {
+    "element-001": "水",
+    "element-002": "火",
+    "element-003": "地",
+    "element-004": "风",
+    "element-005": "光",
+    "element-006": "暗"
+  },
+  "rarity": {
+    "rarity-004": "4",
+    "rarity-005": "5"
+  }
+}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { useLanguageStore } from '../store/useLanguageStore';
+import { useTranslation } from '../../i18n';
 import { getCharacters, getTags } from '../lib/data';
 import { CharacterAvatar } from './CharacterAvatar';
 import { TagPill } from './TagPill';
@@ -8,6 +9,7 @@ import type { Category, Character } from '../types';
 
 export function RosterSelector() {
   const lang = useLanguageStore((state) => state.lang);
+  const { t } = useTranslation(lang);
   const { ownedCharacterIds, toggleCharacterOwnership } = useAppStore();
 
   const characters = getCharacters();
@@ -60,7 +62,7 @@ export function RosterSelector() {
       {/* Filter Controls */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">
-          {lang === 'ja' ? 'フィルタ' : lang === 'zh-Hans' ? '筛选' : '篩選'}
+          {t('roster.filter')}
         </h3>
 
         {(['role', 'style', 'faction', 'element', 'rarity'] as Category[]).map((category) => (
@@ -87,7 +89,7 @@ export function RosterSelector() {
       {/* Character Grid */}
       <div>
         <h3 className="text-lg font-semibold mb-4">
-          {lang === 'ja' ? 'キャラクター選択' : lang === 'zh-Hans' ? '选择角色' : '選擇角色'}
+          {t('roster.characterSelection')}
           <span className="ml-2 text-sm text-gray-500">
             ({ownedCharacterIds.length} / {characters.length})
           </span>
@@ -110,8 +112,7 @@ export function RosterSelector() {
 
         {filteredCharacters.length === 0 && (
           <p className="text-center text-gray-500 py-8">
-            {lang === 'ja' ? 'フィルタに一致するキャラクターがありません' :
-              lang === 'zh-Hans' ? '没有符合筛选条件的角色' : '沒有符合篩選條件的角色'}
+            {t('roster.noMatchingCharacters')}
           </p>
         )}
       </div>

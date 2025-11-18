@@ -1,4 +1,5 @@
 import { useLanguageStore } from '../store/useLanguageStore';
+import { getTagTranslation } from '../../i18n';
 import { getTags } from '../lib/data';
 import type { Category } from '../types';
 
@@ -17,7 +18,7 @@ export function TagPill({ tagId, category, highlight = false }: TagPillProps) {
     return <span className="text-red-500">Unknown tag: {tagId}</span>;
   }
 
-  const label = tagEntry[lang] || tagEntry.ja;
+  const label = getTagTranslation(lang, category, tagId, tagEntry.ja);
 
   // Determine color classes based on category
   let colorClass: string;

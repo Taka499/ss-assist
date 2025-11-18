@@ -1,0 +1,105 @@
+{
+  "app": {
+    "title": "Stella Sora 委託助手",
+    "subtitle": "非官方粉絲工具"
+  },
+  "nav": {
+    "home": "首頁",
+    "roster": "選擇角色",
+    "levels": "設置等級",
+    "missions": "選擇委託",
+    "results": "結果"
+  },
+  "buttons": {
+    "start": "開始",
+    "next": "下一步",
+    "back": "返回",
+    "analyze": "分析",
+    "reAnalyze": "重新分析",
+    "clear": "清除選擇",
+    "selectAll": "全選",
+    "deselectAll": "全部取消"
+  },
+  "common": {
+    "loading": "載入中...",
+    "level": "等級",
+    "count": "{{count}}個",
+    "missionCount": "{{count}}個"
+  },
+  "home": {
+    "description": "從您的角色中找到委託的最佳組合，並提供培養優先級建議。",
+    "howToUse": "使用方法",
+    "step1": "選擇您擁有的角色",
+    "step2": "設置每個角色的等級",
+    "step3": "選擇最多4個要分析的委託",
+    "step4": "查看最佳組合和培養建議"
+  },
+  "roster": {
+    "title": "選擇角色",
+    "selected": "已選擇: {{count}}個",
+    "filter": "篩選",
+    "characterSelection": "選擇角色",
+    "noMatchingCharacters": "沒有符合篩選條件的角色"
+  },
+  "levels": {
+    "title": "設置等級",
+    "description": "請設置角色等級",
+    "noCharacters": "請先選擇角色",
+    "goToRoster": "前往選擇角色"
+  },
+  "missions": {
+    "title": "選擇委託",
+    "selected": "已選擇: {{count}}/4個",
+    "warning": "請至少選擇一個委託",
+    "noMissions": "請先選擇委託",
+    "goToMissions": "前往選擇委託",
+    "maxSelectAlert": "最多只能選擇4個委託",
+    "baseConditions": "接受條件",
+    "bonusConditions": "額外獎勵條件",
+    "rewards": "獎勵",
+    "requiredLevel": "所需等級",
+    "charactersNeedTraining": "需要培養的角色:",
+    "canAssignAfterLeveling": "提升等級後可分配",
+    "notEnoughCharacters": "角色不足"
+  },
+  "results": {
+    "title": "分析結果",
+    "analyzing": "分析中...",
+    "summary": "📊 概要",
+    "assigned": "已分配",
+    "missionValue": "任務價值",
+    "charactersUsed": "使用角色數",
+    "totalRarity": "總稀有度",
+    "strategyLabel": "編隊策略",
+    "bonusFirst": "額外獎勵優先",
+    "baseFirst": "快速解鎖",
+    "bonusFirstDescription": "優先滿足額外獎勵條件，獲取更多獎勵的編隊推薦",
+    "baseFirstDescription": "優先解鎖任務，盡快接受更多委託的編隊推薦",
+    "assignmentsTitle": "🎯 任務分配",
+    "assignmentsDescription": "每個任務分配獨立隊伍（無角色重複）",
+    "trainingTitle": "💪 培養推薦",
+    "trainingDescription": "培養以下角色可解鎖更多任務",
+    "noAssignments": "當前編隊無法分配任務",
+    "noAssignmentsHint": "請添加角色或提升等級"
+  },
+  "training": {
+    "unlockMission": "解鎖「{{missionName}}」:",
+    "levelUpTo": "升至 Lv{{level}}",
+    "bonusReward": "額外獎勵",
+    "noRecommendations": "沒有培養推薦",
+    "priorityRanking": "優先培養排名",
+    "unlockSummary": "解鎖{{base}}個委託，{{bonus}}個額外獎勵",
+    "score": "分數",
+    "detailsPlaceholder": "詳細資訊（計劃實現）"
+  },
+  "status": {
+    "missionUnlock": "解鎖任務",
+    "bonusAchieved": "額外獎勵",
+    "canAccept": "可接受",
+    "baseOnly": "僅基礎條件",
+    "basePlusBonus": "基礎 + 額外獎勵",
+    "cannotAssign": "無法分配",
+    "notSatisfied": "未滿足",
+    "levelDeficit": "等級不足"
+  }
+}

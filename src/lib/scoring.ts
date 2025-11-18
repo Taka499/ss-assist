@@ -321,19 +321,23 @@ export function calculateTrainingPriority(
  * This function analyzes which characters, when leveled up, would unlock
  * currently unassigned missions by satisfying their level requirements.
  *
- * Scoring formula: 1000.0 × missionsUnlocked + 10.0 × bonusesAdded + 1.0 × rarity
+ * Scoring formula:
+ * - base-first: 1000.0 × missionsUnlocked + 10.0 × bonusesAdded + 1.0 × rarity - 0.5 × levelGap
+ * - bonus-first: 1000.0 × bonusesAdded + 100.0 × missionsUnlocked + 1.0 × rarity - 0.5 × levelGap
  *
  * @param unassignedMissions Missions that could not be assigned in current state
  * @param blockedTeamsByMission Map of mission ID to its blocked teams
  * @param characters All owned characters
  * @param characterLevels Current levels of all characters
+ * @param strategy Assignment strategy ('base-first' or 'bonus-first')
  * @returns Array of training recommendations sorted by priority (highest first), limited to top 20
  */
 export function calculateTrainingPriorityFromBlockedTeams(
   unassignedMissions: Mission[],
   blockedTeamsByMission: Map<string, BlockedCombination[]>,
   characters: Character[],
-  characterLevels: Record<string, number>
+  characterLevels: Record<string, number>,
+  strategy: import("../types").AssignmentStrategy = 'base-first'
 ): TrainingRecommendationNew[] {
   // Build a map of character -> missions they could help unlock
   const characterToMissions = new Map<string, Set<string>>();
@@ -428,11 +432,16 @@ export function calculateTrainingPriorityFromBlockedTeams(
         // Calculate level gap (smaller gap = higher priority since cheaper to train)
         const levelGap = targetLevel - currentLevel;
 
-        const priority =
-          1000.0 * missionsUnlocked.length +
-          10.0 * bonusesAdded.length +
-          1.0 * rarity -
-          0.5 * levelGap; // Penalize large level gaps
+        // Calculate priority based on strategy
+        const priority = strategy === 'bonus-first'
+          ? 1000.0 * bonusesAdded.length +
+            100.0 * missionsUnlocked.length +
+            1.0 * rarity -
+            0.5 * levelGap
+          : 1000.0 * missionsUnlocked.length +
+            10.0 * bonusesAdded.length +
+            1.0 * rarity -
+            0.5 * levelGap;
 
         // Create a key based on which missions are unlocked (sorted for consistency)
         const impactKey = [...missionsUnlocked].sort().join(',') + '|' + [...bonusesAdded].sort().join(',');

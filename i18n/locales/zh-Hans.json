@@ -1,0 +1,105 @@
+{
+  "app": {
+    "title": "Stella Sora 委托助手",
+    "subtitle": "非官方粉丝工具"
+  },
+  "nav": {
+    "home": "首页",
+    "roster": "选择角色",
+    "levels": "设置等级",
+    "missions": "选择委托",
+    "results": "结果"
+  },
+  "buttons": {
+    "start": "开始",
+    "next": "下一步",
+    "back": "返回",
+    "analyze": "分析",
+    "reAnalyze": "重新分析",
+    "clear": "清除选择",
+    "selectAll": "全选",
+    "deselectAll": "全部取消"
+  },
+  "common": {
+    "loading": "加载中...",
+    "level": "等级",
+    "count": "{{count}}个",
+    "missionCount": "{{count}}个"
+  },
+  "home": {
+    "description": "从您的角色中找到委托的最佳组合，并提供培养优先级建议。",
+    "howToUse": "使用方法",
+    "step1": "选择您拥有的角色",
+    "step2": "设置每个角色的等级",
+    "step3": "选择最多4个要分析的委托",
+    "step4": "查看最佳组合和培养建议"
+  },
+  "roster": {
+    "title": "选择角色",
+    "selected": "已选择: {{count}}个",
+    "filter": "筛选",
+    "characterSelection": "选择角色",
+    "noMatchingCharacters": "没有符合筛选条件的角色"
+  },
+  "levels": {
+    "title": "设置等级",
+    "description": "请设置角色等级",
+    "noCharacters": "请先选择角色",
+    "goToRoster": "前往选择角色"
+  },
+  "missions": {
+    "title": "选择委托",
+    "selected": "已选择: {{count}}/4个",
+    "warning": "请至少选择一个委托",
+    "noMissions": "请先选择委托",
+    "goToMissions": "前往选择委托",
+    "maxSelectAlert": "最多只能选择4个委托",
+    "baseConditions": "接受条件",
+    "bonusConditions": "额外奖励条件",
+    "rewards": "奖励",
+    "requiredLevel": "所需等级",
+    "charactersNeedTraining": "需要培养的角色:",
+    "canAssignAfterLeveling": "提升等级后可分配",
+    "notEnoughCharacters": "角色不足"
+  },
+  "results": {
+    "title": "分析结果",
+    "analyzing": "分析中...",
+    "summary": "📊 概要",
+    "assigned": "已分配",
+    "missionValue": "任务价值",
+    "charactersUsed": "使用角色数",
+    "totalRarity": "总稀有度",
+    "strategyLabel": "编队策略",
+    "bonusFirst": "额外奖励优先",
+    "baseFirst": "快速解锁",
+    "bonusFirstDescription": "优先满足额外奖励条件，获取更多奖励的编队推荐",
+    "baseFirstDescription": "优先解锁任务，尽快接受更多委托的编队推荐",
+    "assignmentsTitle": "🎯 任务分配",
+    "assignmentsDescription": "每个任务分配独立队伍（无角色重复）",
+    "trainingTitle": "💪 培养推荐",
+    "trainingDescription": "培养以下角色可解锁更多任务",
+    "noAssignments": "当前编队无法分配任务",
+    "noAssignmentsHint": "请添加角色或提升等级"
+  },
+  "training": {
+    "unlockMission": "解锁「{{missionName}}」:",
+    "levelUpTo": "升至 Lv{{level}}",
+    "bonusReward": "额外奖励",
+    "noRecommendations": "没有培养推荐",
+    "priorityRanking": "优先培养排名",
+    "unlockSummary": "解锁{{base}}个委托，{{bonus}}个额外奖励",
+    "score": "分数",
+    "detailsPlaceholder": "详细信息（计划实现）"
+  },
+  "status": {
+    "missionUnlock": "解锁任务",
+    "bonusAchieved": "额外奖励",
+    "canAccept": "可接受",
+    "baseOnly": "仅基础条件",
+    "basePlusBonus": "基础 + 额外奖励",
+    "cannotAssign": "无法分配",
+    "notSatisfied": "未满足",
+    "levelDeficit": "等级不足"
+  }
+}

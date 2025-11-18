@@ -21,7 +21,10 @@ function detectBrowserLanguage(): Language {
   if (browserLang.startsWith('zh')) {
     return 'zh-Hans';
   }
-  return 'ja'; // Default to Japanese
+  if (browserLang.startsWith('ja')) {
+    return 'ja';
+  }
+  return 'en'; // Default to English for other languages
 }
 
 export const useLanguageStore = create<LanguageStore>()(

@@ -1,0 +1,105 @@
+{
+  "app": {
+    "title": "ステラソラ依頼アシスト",
+    "subtitle": "非公式ファンツール"
+  },
+  "nav": {
+    "home": "ホーム",
+    "roster": "キャラ選択",
+    "levels": "レベル設定",
+    "missions": "依頼選択",
+    "results": "結果"
+  },
+  "buttons": {
+    "start": "始める",
+    "next": "次へ",
+    "back": "戻る",
+    "analyze": "分析",
+    "reAnalyze": "再分析",
+    "clear": "選択解除",
+    "selectAll": "全て選択",
+    "deselectAll": "全て解除"
+  },
+  "common": {
+    "loading": "読み込み中...",
+    "level": "レベル",
+    "count": "{{count}}人",
+    "missionCount": "{{count}}件"
+  },
+  "home": {
+    "description": "所持キャラクターから依頼の最適な組み合わせを見つけ、育成の優先度を提案します。",
+    "howToUse": "使い方",
+    "step1": "所持キャラクターを選択",
+    "step2": "各キャラクターのレベルを設定",
+    "step3": "分析したい依頼を最大4件選択",
+    "step4": "最適な組み合わせと育成推奨を確認"
+  },
+  "roster": {
+    "title": "キャラクター選択",
+    "selected": "選択中: {{count}}人",
+    "filter": "フィルタ",
+    "characterSelection": "キャラクター選択",
+    "noMatchingCharacters": "フィルタに一致するキャラクターがありません"
+  },
+  "levels": {
+    "title": "レベル設定",
+    "description": "キャラクターのレベルを設定してください",
+    "noCharacters": "キャラクターを選択してください",
+    "goToRoster": "キャラクター選択へ"
+  },
+  "missions": {
+    "title": "依頼選択",
+    "selected": "選択中: {{count}}/4件",
+    "warning": "少なくとも1件の依頼を選択してください",
+    "noMissions": "依頼を選択してください",
+    "goToMissions": "依頼選択へ",
+    "maxSelectAlert": "最大4件まで選択できます",
+    "baseConditions": "受注条件",
+    "bonusConditions": "追加報酬条件",
+    "rewards": "報酬",
+    "requiredLevel": "必要レベル",
+    "charactersNeedTraining": "育成が必要なキャラ:",
+    "canAssignAfterLeveling": "レベルを上げると割り当て可能になります",
+    "notEnoughCharacters": "キャラクターが不足しています"
+  },
+  "results": {
+    "title": "分析結果",
+    "analyzing": "分析中...",
+    "summary": "📊 概要",
+    "assigned": "割り当て済み",
+    "missionValue": "ミッション価値",
+    "charactersUsed": "使用キャラ数",
+    "totalRarity": "合計レア度",
+    "strategyLabel": "編成戦略",
+    "bonusFirst": "追加報酬優先",
+    "baseFirst": "高速解放",
+    "bonusFirstDescription": "追加報酬の達成を最優先し、より多くの報酬を獲得できる編成を推奨します",
+    "baseFirstDescription": "ミッションの解放を最優先し、できるだけ早く多くの依頼を受注できる編成を推奨します",
+    "assignmentsTitle": "🎯 ミッション割り当て",
+    "assignmentsDescription": "各ミッションに別々のチームが割り当てられています（キャラの重複なし）",
+    "trainingTitle": "💪 育成推奨",
+    "trainingDescription": "以下のキャラを育成すると、さらにミッションを解放できます",
+    "noAssignments": "現在の編成では依頼を割り当てられません",
+    "noAssignmentsHint": "キャラクターを追加するか、レベルを上げてください"
+  },
+  "training": {
+    "unlockMission": "「{{missionName}}」を解放するには:",
+    "levelUpTo": "を Lv{{level}} まで上げる",
+    "bonusReward": "追加報酬達成",
+    "noRecommendations": "育成の推奨はありません",
+    "priorityRanking": "優先育成ランキング",
+    "unlockSummary": "{{base}}件解放、{{bonus}}件追加報酬",
+    "score": "スコア",
+    "detailsPlaceholder": "詳細情報（実装予定）"
+  },
+  "status": {
+    "missionUnlock": "ミッション解放",
+    "bonusAchieved": "追加報酬達成",
+    "canAccept": "受注達成",
+    "baseOnly": "基本条件のみ",
+    "basePlusBonus": "基本 + 追加報酬",
+    "cannotAssign": "割り当て不可",
+    "notSatisfied": "未達成",
+    "levelDeficit": "レベル不足"
+  }
+}

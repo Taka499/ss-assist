@@ -6,12 +6,14 @@
 export type Category = "role" | "style" | "faction" | "element" | "rarity";
 
 /**
- * Multi-language string support for Japanese, Simplified Chinese, and Traditional Chinese
+ * Multi-language string support for Japanese, Simplified Chinese, Traditional Chinese, English, and Korean
  */
 export interface MultiLangString {
   ja: string;
   "zh-Hans"?: string;
   "zh-Hant"?: string;
+  en?: string;
+  kr?: string;
 }
 
 /**
@@ -22,6 +24,7 @@ export interface TagEntry {
   ja: string;
   "zh-Hans"?: string;
   "zh-Hant"?: string;
+  en?: string;
 }
 
 /**
@@ -128,7 +131,7 @@ export interface AppState {
 /**
  * Language options
  */
-export type Language = "ja" | "zh-Hans" | "zh-Hant";
+export type Language = "ja" | "zh-Hans" | "zh-Hant" | "en";
 
 /**
  * Character combination result
@@ -275,3 +278,10 @@ export interface TrainingRecommendationNew {
   };
   priority: number;
 }
+
+/**
+ * Strategy for mission assignment and training recommendations
+ * - base-first: Prioritize unlocking missions quickly, bonuses are secondary
+ * - bonus-first: Prioritize maximizing bonus satisfaction, even if requires more leveling
+ */
+export type AssignmentStrategy = 'base-first' | 'bonus-first';
