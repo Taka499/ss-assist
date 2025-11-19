@@ -25,7 +25,7 @@ export function AppLayout({ children, currentPage, onNavigate }: AppLayoutProps)
   const languages: { value: Language; label: string }[] = [
     { value: 'ja', label: '日本語' },
     { value: 'zh-Hans', label: '简体中文' },
-    { value: 'zh-Hant', label: '繁體中文' },
+    // { value: 'zh-Hant', label: '繁體中文' }, // Temporarily disabled
     { value: 'en', label: 'English' },
   ];
 

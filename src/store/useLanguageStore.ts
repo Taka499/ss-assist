@@ -15,9 +15,10 @@ interface LanguageStore {
 function detectBrowserLanguage(): Language {
   const browserLang = navigator.language.toLowerCase();
 
-  if (browserLang.startsWith('zh-hant') || browserLang === 'zh-tw' || browserLang === 'zh-hk') {
-    return 'zh-Hant';
-  }
+  // Temporarily disabled: zh-Hant support
+  // if (browserLang.startsWith('zh-hant') || browserLang === 'zh-tw' || browserLang === 'zh-hk') {
+  //   return 'zh-Hant';
+  // }
   if (browserLang.startsWith('zh')) {
     return 'zh-Hans';
   }
