@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { loadData, isDataLoaded } from './lib/data';
+import { useLanguageStore } from './store/useLanguageStore';
+import { useTranslation } from '../i18n';
 import { AppLayout } from './components/AppLayout';
 import { Home } from './pages/Home';
 import { RosterManagement } from './pages/RosterManagement';
@@ -10,6 +12,14 @@ import { Results } from './pages/Results';
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
   const [isLoading, setIsLoading] = useState(true);
+  const lang = useLanguageStore((state) => state.lang);
+  const { t } = useTranslation(lang);
+
+  // Update document title and HTML lang attribute when language changes
+  useEffect(() => {
+    document.title = t('app.title');
+    document.documentElement.lang = lang;
+  }, [lang, t]);
 
   // Load data on mount
   useEffect(() => {
