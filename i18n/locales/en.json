@@ -17,6 +17,7 @@
     "analyze": "Analyze",
     "reAnalyze": "Re-analyze",
     "clear": "Clear Selection",
+    "clearAll": "Clear All (Including Levels)",
     "selectAll": "Select All",
     "deselectAll": "Deselect All"
   },
