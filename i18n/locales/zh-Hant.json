@@ -17,6 +17,7 @@
     "analyze": "分析",
     "reAnalyze": "重新分析",
     "clear": "清除選擇",
+    "clearAll": "全部清除（含等級）",
     "selectAll": "全選",
     "deselectAll": "全部取消"
   },

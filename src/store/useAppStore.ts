@@ -14,6 +14,7 @@ interface AppStore {
   setCharacterLevels: (levels: Record<string, number>) => void;
   toggleCommissionSelection: (commissionId: string) => void;
   clearOwnedCharacters: () => void;
+  clearOwnedCharactersKeepLevels: () => void;
   clearLevels: () => void;
   clearSelectedCommissions: () => void;
 }
@@ -31,18 +32,18 @@ export const useAppStore = create<AppStore>()(
         set((state) => {
           const isOwned = state.ownedCharacterIds.includes(characterId);
           if (isOwned) {
-            // Remove character and their level
-            const newLevels = { ...state.characterLevels };
-            delete newLevels[characterId];
+            // Remove character but keep their level for potential re-selection
             return {
               ownedCharacterIds: state.ownedCharacterIds.filter(id => id !== characterId),
-              characterLevels: newLevels,
             };
           } else {
-            // Add character with default level 1
+            // Add character, preserve existing level or default to 1
             return {
               ownedCharacterIds: [...state.ownedCharacterIds, characterId],
-              characterLevels: { ...state.characterLevels, [characterId]: 1 },
+              characterLevels: {
+                ...state.characterLevels,
+                [characterId]: state.characterLevels[characterId] || 1
+              },
             };
           }
         }),
@@ -88,6 +89,9 @@ export const useAppStore = create<AppStore>()(
       // Clear functions
       clearOwnedCharacters: () =>
         set({ ownedCharacterIds: [], characterLevels: {} }),
+
+      clearOwnedCharactersKeepLevels: () =>
+        set({ ownedCharacterIds: [] }),
 
       clearLevels: () =>
         set({ characterLevels: {} }),

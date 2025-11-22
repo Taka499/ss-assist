@@ -17,6 +17,7 @@
     "analyze": "分析",
     "reAnalyze": "再分析",
     "clear": "選択解除",
+    "clearAll": "全て解除（レベル含む）",
     "selectAll": "全て選択",
     "deselectAll": "全て解除"
   },
