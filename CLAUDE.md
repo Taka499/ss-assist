@@ -226,8 +226,8 @@ npm version patch   # Bug fixes (0.2.0 → 0.2.1)
 npm version minor   # New features (0.2.0 → 0.3.0)
 npm version major   # Breaking changes (0.2.0 → 1.0.0)
 
-# 2. Push to trigger deployment
-npm run release     # Pushes commits and tags
+# 2. Push and create PR
+npm run release     # Pushes develop with tags, creates PR to main
 ```
 
 ### GitHub Actions Pipeline
