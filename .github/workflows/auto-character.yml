@@ -1,0 +1,128 @@
+name: Auto-detect new characters
+
+on:
+  schedule:
+    # Weekly on Wednesday at 14:00 UTC = 23:00 JST
+    - cron: '0 14 * * 3'
+  workflow_dispatch: # Manual trigger from Actions tab
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run data sync
+        id: sync
+        run: |
+          npm run sync:data -- --output-json /tmp/sync-result.json || EXIT_CODE=$?
+          if [ "${EXIT_CODE:-0}" -eq 2 ]; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "No changes detected."
+          elif [ "${EXIT_CODE:-0}" -eq 0 ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            exit ${EXIT_CODE}
+          fi
+
+      - name: Validate updated data
+        if: steps.sync.outputs.has_changes == 'true'
+        run: |
+          npm run build:data
+          npm run validate:data
+
+      - name: Generate PR body
+        if: steps.sync.outputs.has_changes == 'true'
+        id: pr_body
+        run: |
+          BODY=$(node -e "
+            const fs = require('fs');
+            const result = JSON.parse(fs.readFileSync('/tmp/sync-result.json', 'utf-8'));
+            const lines = ['## Auto-synced data from StellaSoraData\n'];
+            if (result.newCharacters.length > 0) {
+              lines.push('### New Characters');
+              result.newCharacters.forEach(c => lines.push('- ' + c.id + ': ' + c.name_ja));
+              lines.push('');
+            }
+            if (result.newCommissions.length > 0) {
+              lines.push('### New Commissions');
+              result.newCommissions.forEach(c => lines.push('- ' + c.id + ': ' + c.name_ja));
+              lines.push('');
+            }
+            if (result.updatedCharacters.length > 0) {
+              lines.push('### Updated Characters');
+              result.updatedCharacters.forEach(c => lines.push('- ' + c.id + ': ' + c.name_ja + ' [' + c.fields.join(', ') + ']'));
+              lines.push('');
+            }
+            if (result.updatedCommissions.length > 0) {
+              lines.push('### Updated Commissions');
+              lines.push(result.updatedCommissions.length + ' commission(s) updated');
+              lines.push('');
+            }
+            if (result.newTags.length > 0) {
+              lines.push('### New Tags');
+              result.newTags.forEach(t => lines.push('- ' + t.category + ': ' + t.ja));
+              lines.push('');
+            }
+            if (result.warnings.length > 0) {
+              lines.push('### Warnings');
+              result.warnings.forEach(w => lines.push('- ' + w));
+              lines.push('');
+            }
+            lines.push('### Review Checklist');
+            lines.push('- [ ] Verify new character icons look correct');
+            lines.push('- [ ] Check any new faction/tag names');
+            lines.push('- [ ] Review any warnings above');
+            lines.push('- [ ] Run the app locally to verify');
+            console.log(lines.join('\n'));
+          ")
+          # Write to file for multi-line handling
+          echo "$BODY" > /tmp/pr-body.md
+
+      - name: Generate PR title
+        if: steps.sync.outputs.has_changes == 'true'
+        id: pr_title
+        run: |
+          TITLE=$(node -e "
+            const fs = require('fs');
+            const result = JSON.parse(fs.readFileSync('/tmp/sync-result.json', 'utf-8'));
+            const parts = [];
+            if (result.newCharacters.length > 0) parts.push(result.newCharacters.length + ' new char(s)');
+            if (result.newCommissions.length > 0) parts.push(result.newCommissions.length + ' new commission(s)');
+            if (result.updatedCharacters.length > 0) parts.push(result.updatedCharacters.length + ' updated char(s)');
+            if (result.updatedCommissions.length > 0) parts.push(result.updatedCommissions.length + ' updated commission(s)');
+            console.log('data: auto-sync ' + parts.join(', '));
+          ")
+          echo "title=$TITLE" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        if: steps.sync.outputs.has_changes == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          base: develop
+          branch: auto/sync-data
+          delete-branch: true
+          title: ${{ steps.pr_title.outputs.title }}
+          body-path: /tmp/pr-body.md
+          commit-message: 'data: auto-sync from StellaSoraData'
+          add-paths: |
+            data-sources/
+            data/tags.src.json
+            i18n/tags/
+            public/assets/characters/
