@@ -5,7 +5,11 @@ on:
     branches:
       - main  # Only deploy when pushing to main branch
     paths:
-      - 'package.json'  # Only trigger when version changes (npm version updates package.json)
+      - 'package.json'
+      - 'data-sources/**'
+      - 'data/*.src.json'
+      - 'i18n/**'
+      - 'public/assets/**'
   workflow_dispatch:  # Allows manual deployment from Actions tab
 
 permissions:
