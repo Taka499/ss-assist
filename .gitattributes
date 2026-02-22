@@ -1,0 +1,2 @@
+# Track character icon images with Git LFS
+public/assets/characters/*.png filter=lfs diff=lfs merge=lfs -text

@@ -17,6 +17,14 @@ export interface IconFetchResult {
 /**
  * Fetch character icon from wikiru and save as resized PNG.
  * Returns true if successful, false if failed.
+ *
+ * Wikiru uses lazy-loaded images: the `src` attribute is a base64 placeholder
+ * GIF, while the real image URL lives in `data-src` pointing to `attach2/`.
+ *
+ * We prefer the square icon image (~192x192) found in the date/table sections,
+ * identified by: alt="{charName}", data-src containing "696D67_" (shared "img"
+ * page prefix) and "5F69636F6E" (hex "_icon"). Falls back to the full-body
+ * portrait (alt="{charName}.png") if the icon isn't found.
  */
 async function fetchIcon(
   nameJa: string,
@@ -24,8 +32,9 @@ async function fetchIcon(
   warnings: string[]
 ): Promise<boolean> {
   try {
-    // Construct wikiru URL for character page
-    const pageUrl = `${WIKIRU_BASE_URL}/?${encodeURIComponent(nameJa)}`;
+    // Datamine uses fullwidth parentheses （） but wikiru uses ASCII ()
+    const normalized = nameJa.replace(/\uff08/g, "(").replace(/\uff09/g, ")");
+    const pageUrl = `${WIKIRU_BASE_URL}/?${encodeURIComponent(normalized)}`;
     const res = await fetch(pageUrl);
     if (!res.ok) {
       warnings.push(
@@ -37,37 +46,37 @@ async function fetchIcon(
     const html = await res.text();
     const $ = cheerio.load(html);
 
-    // Look for the character portrait image
-    // wikiru uses attach2/ URLs for uploaded images
-    // The first large character image is typically the portrait
     let imgUrl: string | null = null;
 
-    // Strategy 1: Look for images in the character info table
+    // Strategy 1 (preferred): Square icon image (~192x192) from the date
+    // section. These are shared images on the "img" wiki page with filenames
+    // like "{charName}_icon.png". Identified by:
+    //   - alt exactly matches the character name (no .png suffix)
+    //   - data-src contains "696D67_" (hex "img" page prefix)
+    //   - data-src contains "5F69636F6E" (hex "_icon")
     $("img").each((_, el) => {
-      if (imgUrl) return; // Already found
-      const src = $(el).attr("src") || "";
-      // Character portraits are typically served from attach2/ or ref/
-      if (
-        (src.includes("attach2/") || src.includes("ref/")) &&
-        !src.includes("thumb") &&
-        !src.includes("banner")
-      ) {
-        const width = parseInt($(el).attr("width") || "0", 10);
-        const height = parseInt($(el).attr("height") || "0", 10);
-        // Look for reasonably sized images (not tiny icons or huge banners)
-        if ((width >= 80 && height >= 80) || (!width && !height)) {
-          imgUrl = src;
+      if (imgUrl) return;
+      const alt = $(el).attr("alt") || "";
+      if (alt === normalized) {
+        const dataSrc = $(el).attr("data-src") || "";
+        if (dataSrc.includes("696D67_") && dataSrc.includes("5F69636F6E")) {
+          imgUrl = dataSrc;
         }
       }
     });
 
-    // Strategy 2: Look for any attach2 image as fallback
+    // Strategy 2 (fallback): Full-body portrait from the character info
+    // section. Identified by alt="{charName}.png".
     if (!imgUrl) {
+      const portraitAlt = `${normalized}.png`;
       $("img").each((_, el) => {
         if (imgUrl) return;
-        const src = $(el).attr("src") || "";
-        if (src.includes("attach2/")) {
-          imgUrl = src;
+        const alt = $(el).attr("alt") || "";
+        if (alt === portraitAlt) {
+          const dataSrc = $(el).attr("data-src") || "";
+          if (dataSrc.includes("attach2/")) {
+            imgUrl = dataSrc;
+          }
         }
       });
     }
@@ -101,7 +110,7 @@ async function fetchIcon(
     await sharp(imgBuffer)
       .resize(ICON_SIZE.width, ICON_SIZE.height, {
         fit: "cover",
-        position: "top",
+        position: "center",
       })
       .png()
       .toFile(outputPath);
