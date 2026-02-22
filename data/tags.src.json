@@ -1,44 +1,140 @@
 {
   "role": [
-    { "id": "role-001", "ja": "バランサー" },
-    { "id": "role-002", "ja": "アタッカー" },
-    { "id": "role-003", "ja": "サポーター" }
+    {
+      "id": "role-001",
+      "ja": "バランサー"
+    },
+    {
+      "id": "role-002",
+      "ja": "アタッカー"
+    },
+    {
+      "id": "role-003",
+      "ja": "サポーター"
+    }
   ],
   "style": [
-    { "id": "style-001", "ja": "冒険家" },
-    { "id": "style-002", "ja": "独創性" },
-    { "id": "style-003", "ja": "しっかり者" },
-    { "id": "style-004", "ja": "収集家" },
-    { "id": "style-005", "ja": "知的好奇心" }
+    {
+      "id": "style-001",
+      "ja": "冒険家"
+    },
+    {
+      "id": "style-002",
+      "ja": "独創性"
+    },
+    {
+      "id": "style-003",
+      "ja": "しっかり者"
+    },
+    {
+      "id": "style-004",
+      "ja": "収集家"
+    },
+    {
+      "id": "style-005",
+      "ja": "知的好奇心"
+    }
   ],
   "faction": [
-    { "id": "faction-001", "ja": "雲笈文化" },
-    { "id": "faction-002", "ja": "ムーナワークス" },
-    { "id": "faction-003", "ja": "レッドアイズ" },
-    { "id": "faction-004", "ja": "恩恵意思" },
-    { "id": "faction-005", "ja": "空白旅団" },
-    { "id": "faction-006", "ja": "花咲旅団" },
-    { "id": "faction-007", "ja": "帝国護衛隊" },
-    { "id": "faction-008", "ja": "ウィンドアッシュ" },
-    { "id": "faction-009", "ja": "ヨロズ配達" },
-    { "id": "faction-010", "ja": "白沢管理局" },
-    { "id": "faction-011", "ja": "アグリ・ユニオン" },
-    { "id": "faction-012", "ja": "その他" },
-    { "id": "faction-013", "ja": "地理協会" },
-    { "id": "faction-014", "ja": "谷風家政" },
-    { "id": "faction-015", "ja": "鳳凰炒飯" },
-    { "id": "faction-016", "ja": "劇団白猫" }
+    {
+      "id": "faction-001",
+      "ja": "雲笈文化"
+    },
+    {
+      "id": "faction-002",
+      "ja": "ムーナワークス"
+    },
+    {
+      "id": "faction-003",
+      "ja": "レッドアイズ"
+    },
+    {
+      "id": "faction-004",
+      "ja": "恩恵意志"
+    },
+    {
+      "id": "faction-005",
+      "ja": "空白旅団"
+    },
+    {
+      "id": "faction-006",
+      "ja": "花咲旅団"
+    },
+    {
+      "id": "faction-007",
+      "ja": "帝国護衛隊"
+    },
+    {
+      "id": "faction-008",
+      "ja": "ウィンドアッシュ"
+    },
+    {
+      "id": "faction-009",
+      "ja": "ヨロズ配達"
+    },
+    {
+      "id": "faction-010",
+      "ja": "白沢管理局"
+    },
+    {
+      "id": "faction-011",
+      "ja": "アグリ・ユニオン"
+    },
+    {
+      "id": "faction-012",
+      "ja": "その他"
+    },
+    {
+      "id": "faction-013",
+      "ja": "地理協会"
+    },
+    {
+      "id": "faction-014",
+      "ja": "谷風家政"
+    },
+    {
+      "id": "faction-015",
+      "ja": "鳳凰炒飯"
+    },
+    {
+      "id": "faction-016",
+      "ja": "劇団白猫"
+    }
   ],
   "element": [
-    { "id": "element-001", "ja": "水" },
-    { "id": "element-002", "ja": "火" },
-    { "id": "element-003", "ja": "地" },
-    { "id": "element-004", "ja": "風" },
-    { "id": "element-005", "ja": "光" },
-    { "id": "element-006", "ja": "闇" }
+    {
+      "id": "element-001",
+      "ja": "水"
+    },
+    {
+      "id": "element-002",
+      "ja": "火"
+    },
+    {
+      "id": "element-003",
+      "ja": "地"
+    },
+    {
+      "id": "element-004",
+      "ja": "風"
+    },
+    {
+      "id": "element-005",
+      "ja": "光"
+    },
+    {
+      "id": "element-006",
+      "ja": "闇"
+    }
   ],
   "rarity": [
-    { "id": "rarity-004", "ja": "4" },
-    { "id": "rarity-005", "ja": "5" }
+    {
+      "id": "rarity-004",
+      "ja": "4"
+    },
+    {
+      "id": "rarity-005",
+      "ja": "5"
+    }
   ]
 }
