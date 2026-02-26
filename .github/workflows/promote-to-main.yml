@@ -46,6 +46,6 @@ jobs:
               --base main \
               --head develop \
               --title "release: promote develop to main" \
-              --body-path /tmp/pr-body.md
+              --body-file /tmp/pr-body.md
             echo "Created new PR: develop → main"
           fi
