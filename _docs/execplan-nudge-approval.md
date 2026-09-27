@@ -26,7 +26,9 @@ The safety property matters as much as the convenience. A tap approves one exact
 - [x] (2026-09-27 22:25Z) Codex review of Milestone 1 and the plan design: CHANGES REQUESTED. Accepted: bind the guarded pull request to `auto/sync-data` → `develop` in this repository (Milestone 3); narrow the deploy guarantee; scope the `id-token` claim; hold the CLAUDE.md subsection until Milestone 3; qualify "name and icon". No findings rejected.
 - [x] (2026-09-27 22:40Z) Milestone 1 committed as `e8e196d`.
 - [x] (2026-09-27 22:45Z) Milestone 2: `auto-character.yml` gains `id: cpr`, the `ask` step (a Node script read from a quoted heredoc, all inputs through `env`, each output written with a random `EOF_<hex>` delimiter), the `sync` job outputs, and the `ask` job holding only `id-token: write`. `actionlint` exits 0. It first reported four `SC2086` info notices in pre-existing lines (unquoted `$GITHUB_OUTPUT` and `${EXIT_CODE}`); those were quoted rather than suppressed, which does not change behaviour. The script was run locally against one-character, two-character and commission-only sync results and produced the expected title, body and image for each. The icon URL form answered `HTTP/2 200`, `content-type: image/png` on `origin/develop`.
-- [ ] Milestone 3: handler workflow `.github/workflows/nudge-approved.yml`.
+- [x] (2026-09-27 22:50Z) Milestone 2 committed as `6ee6302` (Codex review: LGTM, no findings).
+- [x] (2026-09-27 23:05Z) Milestone 3: `.github/workflows/nudge-approved.yml` with jobs `merge` (guard, bind, merge, read merge commit), `promote` (checks, find-or-open promotion, guarded merge with retry, then a separate deploy step) and `report`. `actionlint` exits 0 on both workflows; it first flagged `outcome=done` (SC1010, the keyword `done`), so the outcome values are now quoted. The `promote` and `report` scripts were extracted with Ruby's YAML parser and run locally against a fake `gh`. Ten guard scenarios, five API failures and seven outcome mappings behaved as specified. Disabling the "develop moved" check in a copy made that scenario merge, which shows the harness detects a broken guard. The CLAUDE.md subsection is committed with this milestone.
+- [x] (2026-09-27 23:20Z) Codex review of the handler: CHANGES REQUESTED. Fixed: the promotion's "already merged" path and any retarget are now caught by a post-merge check (`headRefOid == M`, base `main`) before the deploy; the develop merge records `merged=true` at once and the next step confirms the base is `develop`. Harness re-run: all earlier cases unchanged, and the two new ones ("merged by someone else at a newer head", "retargeted") fail without deploying. Disabling the new check makes the first of them report `promoted=true`, so the harness covers it. Deferred items and their reasons are in the Decision Log.
 - [ ] Milestone 4: static validation, commits proposed one per milestone, pull request into `develop`, then promotion to `main` (the handler must be on the default branch before a tap can run it).
 - [ ] Milestone 5: end-to-end acceptance run by the maintainer: a manual `auto-character.yml` run, then a tap in Discord.
 
@@ -82,6 +84,22 @@ The safety property matters as much as the convenience. A tap approves one exact
 
 - Decision: the CLAUDE.md "Auto-sync approval via Discord" subsection is committed with Milestone 3, not Milestone 1. The ADR states the guards as requirements ("must enforce"), not as existing behaviour.
   Rationale: commits land on `develop` one per milestone. Present-tense documentation of a handler that does not exist yet would mislead anyone reading `develop` in between. Raised by both the Codex review and a `/code-review` pass on 2026-09-27.
+  Date/Author: 2026-09-27, agent.
+
+- Decision: the deploy dispatch is a separate step after the promotion, and the `promote` job also outputs `promoted`. The `report` job uses it to say "promoted to main (#P); the deploy could not be started" instead of "not promoted".
+  Rationale: with the dispatch inside the promotion step, a failed dispatch after a successful promotion would be reported as "not promoted", which is false and would send the maintainer to fix the wrong thing. Found while writing the handler.
+  Date/Author: 2026-09-27, agent.
+
+- Decision: the handler validates `client_payload.actor` as digits before writing it into the promotion pull request's body, and uses "unknown" otherwise. Every `client_payload` value reaches the scripts only through `env`.
+  Rationale: `repository_dispatch` payload fields are free-form. Only Nudge's GitHub App can send them, but the handler should not trust their shape. The guard action already rejects a `commit` that is not a 40-character lowercase sha.
+  Date/Author: 2026-09-27, agent.
+
+- Decision: after the promotion merge, whichever path saw it merged, the handler checks that the promotion pull request's `baseRefName` is `main` and its `headRefOid` is exactly `M`. If not, it fails with "deploy not started, check main". The develop merge writes `merged=true` straight after `gh pr merge` succeeds, and the next step confirms the pull request's base is `develop`.
+  Rationale: Codex review 2026-09-27. The earlier retry loop treated any `MERGED` state as success, so a promotion merged by someone else after `develop` moved would have been reported `done` and deployed. `--match-head-commit` pins only the head, not the base, so a retarget between check and merge can only be detected afterwards, not prevented. Recording `merged` separately stops a successful merge from being reported as "not merged".
+  Date/Author: 2026-09-27, agent.
+
+- Decision (review items deferred, Codex 2026-09-27): (a) preventing, not just detecting, a retarget of the source or promotion pull request between check and merge; (b) a promotion that succeeds but whose step dies before writing `promoted=true`; (c) the report job not running when the workflow is cancelled or the runner is lost; (d) the `merge` job's workflow-level write permissions also reaching the guard action.
+  Rationale: (a) Only the maintainer and workflows can retarget these pull requests; fork authors cannot, and the binding check rejects fork pull requests. The window is seconds long. Preventing it outright would mean merging through `POST /repos/{owner}/{repo}/merges`, which pins base and head, instead of through pull requests. That reverses the "promote through a pull request" decision above and is the maintainer's call. (b) The window is the moment between two shell lines and needs a runner loss. (c) Already covered in `Idempotence and Recovery`: the buttons stay, and a later tap reports `stale`. (d) The guard is the maintainer's own action, pinned by hash; isolating it would cost a separate job.
   Date/Author: 2026-09-27, agent.
 
 - Decision: add `GH_REPO: ${{ github.repository }}` to every job that runs `gh` without a checkout. Apart from the binding step above, this is the only deviation from the Nudge README snippet.
@@ -177,14 +195,16 @@ Job `promote` has `needs: merge`, runs only when `merge` succeeded (the default)
 2. Find an open promotion pull request with `gh pr list --base main --head develop --state open --json number --jq '.[0].number'`. If there is none, create one with `gh pr create --base main --head develop --title "release: promote develop to main"` and a body. The body says it was approved in Discord (actor id `$ACTOR`) at commit `$APPROVED` and promotes #`$SOURCE`. Output its number as `promotion`.
 3. If `unreleased=true`, write the reason "develop has other unreleased commits; promotion #<n> left open for review" and exit 1.
 4. Merge with `gh pr merge "$PROMOTION" --merge --match-head-commit "$M"`. Retry up to 5 times, 5 seconds apart, because GitHub computes a new pull request's mergeability asynchronously and can briefly refuse. After each failed attempt, re-read `develop` through the API. If it no longer equals `$M`, stop at once with the reason "develop moved during promotion; promotion #<n> left open for review". The decision to stop depends on state, not on the wording of `gh`'s error message.
-5. Run `gh workflow run pages.yml --ref main`.
+After a successful merge the step writes `promoted=true`.
+5. In a separate step `id: deploy`, run `gh workflow run pages.yml --ref main`. If it fails, write the reason "the deploy could not be started; run pages.yml by hand" and exit 1. The job output `reason` is the promote step's reason, or failing that the deploy step's.
 
 Job `report` has `needs: [merge, promote]`, `if: always()`, and `permissions: id-token: write` only. Its first step `id: outcome` is plain bash. It receives `needs.merge.result`, `needs.merge.outputs.stale`, `needs.merge.outputs.number`, `needs.promote.result`, `needs.promote.outputs.promotion` and `needs.promote.outputs.reason` through `env`, plus the run URL `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`. It writes `outcome` and `detail` according to these rules:
 
 - Merge and promote both succeeded: `done`, "merged #N into develop, promoted to main (#P), deploy started".
 - The merge job's `stale` output is `true`: `stale`, "pull request head moved or it was closed; nothing merged".
 - The merge job failed otherwise: `failed`, "not merged; see <run URL>".
-- The merge succeeded but promote failed: `failed`, "merged #N into develop; not promoted: <reason, or 'see <run URL>'>".
+- The merge succeeded and the promotion merged, but the deploy could not be started (`promoted` is `true`): `failed`, "merged #N into develop, promoted to main (#P); <reason>".
+- The merge succeeded but promote failed otherwise: `failed`, "merged #N into develop; not promoted: <reason, or 'see <run URL>'>".
 
 The second step runs `Taka499/nudge/actions/resolve@d9f7f1ac185050506d526532a0e24861564422cf # v1.1.0` with `endpoint: https://nudge.tia.run`, `id: ${{ github.event.client_payload.id }}` and the two computed values.
 
@@ -267,6 +287,6 @@ These are external actions, each pinned by commit hash with the version in a tra
 
 The Nudge instance is `https://nudge.tia.run`. The tools used inside jobs are the GitHub CLI `gh` and `jq`, both preinstalled on `ubuntu-latest`, plus `node` in the `sync` job (already set up there).
 
-At the end of Milestone 2, the `sync` job in `.github/workflows/auto-character.yml` exposes these outputs: `operation`, `number`, `url`, `head`, `title`, `body`, `image`. At the end of Milestone 3, `.github/workflows/nudge-approved.yml` has these jobs and outputs: `merge` (outputs `stale`, `number`, `merge-commit`), `promote` (outputs `promotion`, `reason`), and `report`. Among the jobs this plan adds or changes, only `report` and `auto-character.yml`'s `ask` hold `id-token: write`, and they hold nothing else. (`pages.yml`'s deploy job also holds `id-token: write`, alongside `pages: write`, as GitHub Pages deployment requires. This plan leaves it alone.)
+At the end of Milestone 2, the `sync` job in `.github/workflows/auto-character.yml` exposes these outputs: `operation`, `number`, `url`, `head`, `title`, `body`, `image`. At the end of Milestone 3, `.github/workflows/nudge-approved.yml` has these jobs and outputs: `merge` (outputs `stale`, `number`, `merged`, `merge-commit`), `promote` (outputs `promotion`, `promoted`, `reason`), and `report`. Among the jobs this plan adds or changes, only `report` and `auto-character.yml`'s `ask` hold `id-token: write`, and they hold nothing else. (`pages.yml`'s deploy job also holds `id-token: write`, alongside `pages: write`, as GitHub Pages deployment requires. This plan leaves it alone.)
 
 Nothing in the `Taka499/nudge` repository is changed by this plan.
