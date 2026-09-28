@@ -1,0 +1,253 @@
+# Runs when the maintainer taps Approve on a Nudge request in Discord
+# (per _docs/adr/0001-one-tap-discord-approval-releases-to-production.md).
+# Guards: it merges only the approved commit, only through this repository's
+# own auto/sync-data -> develop pull request, and promotes develop to main only
+# when main would gain exactly that pull request's commits. Every outcome is
+# written back onto the Discord message by the report job.
+#
+# repository_dispatch runs this file from the default branch (main), so a
+# change here takes effect only once it is on main.
+name: Approved from Discord
+
+on:
+  repository_dispatch:
+    types: [nudge-approved]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# Two taps in quick succession must not interleave: the second run's
+# "develop still points at the merge" check would race the first's promotion.
+concurrency:
+  group: nudge-approved
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    outputs:
+      stale: ${{ steps.guard.outputs.stale }}
+      number: ${{ steps.guard.outputs.pull-request }}
+      merged: ${{ steps.merge.outputs.merged }}
+      merge-commit: ${{ steps.merged.outputs.commit }}
+    steps:
+      - name: Find the open pull request at the approved commit
+        id: guard
+        uses: Taka499/nudge/actions/guard@d9f7f1ac185050506d526532a0e24861564422cf # v1.1.0
+        with:
+          commit: ${{ github.event.client_payload.commit }}
+
+      # The guard matches any open pull request whose head is the commit. In a
+      # public repository a fork can open one against main with that same
+      # commit, so bind it to our own auto/sync-data -> develop pull request.
+      - name: Check it is the auto-sync pull request into develop
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ steps.guard.outputs.pull-request }}
+        run: |
+          set -euo pipefail
+          actual="$(gh pr view "$NUMBER" --json baseRefName,headRefName,isCrossRepository \
+            --jq '[.baseRefName, .headRefName, (.isCrossRepository | tostring)] | join(" ")')"
+          if [ "$actual" != "develop auto/sync-data false" ]; then
+            echo "::error::#$NUMBER is not this repository's auto/sync-data -> develop pull request (base, head, cross-repository: $actual)" >&2
+            exit 1
+          fi
+
+      - name: Merge into develop
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ steps.guard.outputs.pull-request }}
+          COMMIT: ${{ github.event.client_payload.commit }}
+        id: merge
+        run: |
+          set -euo pipefail
+          gh pr merge "$NUMBER" --merge --match-head-commit "$COMMIT"
+          # Recorded at once, so a later failure is not reported as "not merged".
+          echo "merged=true" >> "$GITHUB_OUTPUT"
+
+      # --match-head-commit pins the head, not the base: confirm the merge
+      # landed on develop (the pull request could have been retargeted).
+      - name: Read the merge commit
+        id: merged
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ steps.guard.outputs.pull-request }}
+        run: |
+          set -euo pipefail
+          info="$(gh pr view "$NUMBER" --json baseRefName,mergeCommit \
+            --jq '[.baseRefName, (.mergeCommit.oid // "")] | join(" ")')"
+          read -r base commit <<<"$info"
+          if [ "$base" != develop ] || ! [[ "${commit:-}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::#$NUMBER was not merged into develop as expected (base '$base', merge commit '${commit:-}')" >&2
+            exit 1
+          fi
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+
+  promote:
+    needs: merge
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    outputs:
+      promotion: ${{ steps.promote.outputs.promotion }}
+      promoted: ${{ steps.promote.outputs.promoted }}
+      reason: ${{ steps.promote.outputs.reason || steps.deploy.outputs.reason }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Promote develop to main
+        id: promote
+        env:
+          M: ${{ needs.merge.outputs.merge-commit }}
+          APPROVED: ${{ github.event.client_payload.commit }}
+          SOURCE: ${{ needs.merge.outputs.number }}
+          ACTOR: ${{ github.event.client_payload.actor }}
+        run: |
+          set -euo pipefail
+          # Every foreseeable failure leaves a one-line reason for the Discord message.
+          fail() { echo "reason=$1" >> "$GITHUB_OUTPUT"; echo "::error::$1" >&2; exit 1; }
+          develop_head() {
+            gh api "repos/$GH_REPO/git/ref/heads/develop" --jq .object.sha \
+              || fail "could not read develop; nothing promoted"
+          }
+
+          # 1. main must gain exactly the approved pull request's commits.
+          parents="$(gh api "repos/$GH_REPO/commits/$M" --jq '[.parents[].sha] | join(" ")')" \
+            || fail "could not read merge commit $M; nothing promoted"
+          read -r first second extra <<<"$parents"
+          if [ -z "${first:-}" ] || [ "${second:-}" != "$APPROVED" ] || [ -n "${extra:-}" ]; then
+            fail "merge commit ${M:0:7} is not a merge of the approved commit ${APPROVED:0:7}; nothing promoted"
+          fi
+          develop="$(develop_head)"
+          [ "$develop" = "$M" ] || fail "develop moved past the approved merge; nothing promoted"
+          status="$(gh api "repos/$GH_REPO/compare/main...$first" --jq .status)" \
+            || fail "could not compare main with develop; nothing promoted"
+          unreleased=false
+          case "$status" in
+            behind|identical) ;;
+            *) unreleased=true ;;
+          esac
+
+          # 2. Find or open the promotion pull request.
+          promotion="$(gh pr list --base main --head develop --state open --json number --jq '.[0].number // empty')" \
+            || fail "could not list pull requests into main; nothing promoted"
+          if [ -z "$promotion" ]; then
+            [[ "$ACTOR" =~ ^[0-9]+$ ]] || ACTOR=unknown
+            printf '%s\n' \
+              "Approved in Discord (actor id $ACTOR) at commit $APPROVED." \
+              "" \
+              "Promotes #$SOURCE from develop to main, deploying to production." \
+              > "$RUNNER_TEMP/promotion-body.md"
+            url="$(gh pr create --base main --head develop \
+              --title "release: promote develop to main" \
+              --body-file "$RUNNER_TEMP/promotion-body.md")" \
+              || fail "could not open the promotion pull request; nothing promoted"
+            promotion="${url##*/}"
+          fi
+          echo "promotion=$promotion" >> "$GITHUB_OUTPUT"
+
+          # 3. Other unreleased work on develop was not approved in Discord.
+          if [ "$unreleased" = true ]; then
+            fail "develop has other unreleased commits; promotion #$promotion left open for review"
+          fi
+
+          # 4. Merge, only while develop is still the approved merge. GitHub
+          # computes a new pull request's mergeability asynchronously, so retry.
+          merged=false
+          for attempt in 1 2 3 4 5; do
+            if gh pr merge "$promotion" --merge --match-head-commit "$M"; then
+              merged=true
+              break
+            fi
+            state="$(gh pr view "$promotion" --json state --jq .state)" || state=unknown
+            if [ "$state" = MERGED ]; then
+              merged=true
+              break
+            fi
+            develop="$(develop_head)"
+            [ "$develop" = "$M" ] || fail "develop moved during promotion; promotion #$promotion left open for review"
+            echo "Merge attempt $attempt refused; retrying in 5 s"
+            sleep 5
+          done
+          [ "$merged" = true ] || fail "promotion #$promotion could not be merged; left open for review"
+
+          # 5. Whichever path above saw it merged, main must have received
+          # exactly M: someone else may have merged the pull request after
+          # develop moved, or retargeted it.
+          landed="$(gh pr view "$promotion" --json baseRefName,headRefOid --jq '[.baseRefName, .headRefOid] | join(" ")')" \
+            || fail "could not verify promotion #$promotion after merging; deploy not started, check main"
+          [ "$landed" = "main $M" ] \
+            || fail "promotion #$promotion was merged as '$landed', not main at ${M:0:7}; deploy not started, check main"
+          echo "promoted=true" >> "$GITHUB_OUTPUT"
+
+      # A merge made with GITHUB_TOKEN does not trigger pages.yml's push
+      # trigger; workflow_dispatch is the documented exception.
+      - name: Start the deploy
+        id: deploy
+        run: |
+          set -euo pipefail
+          if ! gh workflow run pages.yml --ref main; then
+            echo "reason=the deploy could not be started; run pages.yml by hand" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+  report:
+    needs: [merge, promote]
+    if: always()
+    runs-on: ubuntu-latest
+    # A job holding id-token: write holds nothing else: any code here could
+    # obtain a token naming this repository.
+    permissions:
+      id-token: write
+    steps:
+      - name: Work out the outcome
+        id: outcome
+        env:
+          MERGE_RESULT: ${{ needs.merge.result }}
+          STALE: ${{ needs.merge.outputs.stale }}
+          MERGED: ${{ needs.merge.outputs.merged }}
+          NUMBER: ${{ needs.merge.outputs.number }}
+          PROMOTE_RESULT: ${{ needs.promote.result }}
+          PROMOTION: ${{ needs.promote.outputs.promotion }}
+          PROMOTED: ${{ needs.promote.outputs.promoted }}
+          REASON: ${{ needs.promote.outputs.reason }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          reason="${REASON:-see $RUN_URL}"
+          if [ "$MERGE_RESULT" = success ] && [ "$PROMOTE_RESULT" = success ]; then
+            outcome="done"
+            detail="merged #$NUMBER into develop, promoted to main (#$PROMOTION), deploy started"
+          elif [ "$MERGE_RESULT" != success ] && [ "$STALE" = true ]; then
+            outcome="stale"
+            detail="pull request head moved or it was closed; nothing merged"
+          elif [ "$MERGE_RESULT" != success ] && [ "$MERGED" = true ]; then
+            outcome="failed"
+            detail="merged #$NUMBER, but could not confirm it landed on develop; not promoted: see $RUN_URL"
+          elif [ "$MERGE_RESULT" != success ]; then
+            outcome="failed"
+            detail="not merged; see $RUN_URL"
+          elif [ "$PROMOTED" = true ]; then
+            outcome="failed"
+            detail="merged #$NUMBER into develop, promoted to main (#$PROMOTION); $reason"
+          else
+            outcome="failed"
+            detail="merged #$NUMBER into develop; not promoted: $reason"
+          fi
+          echo "outcome=$outcome" >> "$GITHUB_OUTPUT"
+          echo "detail=$detail" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve the Discord message
+        uses: Taka499/nudge/actions/resolve@d9f7f1ac185050506d526532a0e24861564422cf # v1.1.0
+        with:
+          endpoint: https://nudge.tia.run
+          id: ${{ github.event.client_payload.id }}
+          outcome: ${{ steps.outcome.outputs.outcome }}
+          detail: ${{ steps.outcome.outputs.detail }}

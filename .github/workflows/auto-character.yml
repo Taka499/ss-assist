@@ -13,6 +13,14 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    outputs:
+      operation: ${{ steps.cpr.outputs.pull-request-operation }}
+      number: ${{ steps.cpr.outputs.pull-request-number }}
+      url: ${{ steps.cpr.outputs.pull-request-url }}
+      head: ${{ steps.cpr.outputs.pull-request-head-sha }}
+      title: ${{ steps.ask.outputs.title }}
+      body: ${{ steps.ask.outputs.body }}
+      image: ${{ steps.ask.outputs.image }}
     steps:
       - name: Checkout develop
         uses: actions/checkout@v4
@@ -34,12 +42,12 @@ jobs:
         run: |
           npm run sync:data -- --output-json /tmp/sync-result.json || EXIT_CODE=$?
           if [ "${EXIT_CODE:-0}" -eq 2 ]; then
-            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
             echo "No changes detected."
           elif [ "${EXIT_CODE:-0}" -eq 0 ]; then
-            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
           else
-            exit ${EXIT_CODE}
+            exit "${EXIT_CODE}"
           fi
 
       - name: Validate updated data
@@ -110,10 +118,11 @@ jobs:
             if (result.updatedCommissions.length > 0) parts.push(result.updatedCommissions.length + ' updated commission(s)');
             console.log('data: auto-sync ' + parts.join(', '));
           ")
-          echo "title=$TITLE" >> $GITHUB_OUTPUT
+          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
 
       - name: Create Pull Request
         if: steps.sync.outputs.has_changes == 'true'
+        id: cpr
         uses: peter-evans/create-pull-request@v7
         with:
           base: develop
@@ -127,3 +136,76 @@ jobs:
             data/tags.src.json
             i18n/tags/
             public/assets/characters/
+
+      # A Nudge request approves one exact commit, so a new one is raised
+      # whenever the pull request is created or its head changes.
+      - name: Build approval request
+        if: steps.cpr.outputs.pull-request-operation == 'created' || steps.cpr.outputs.pull-request-operation == 'updated'
+        id: ask
+        env:
+          HEAD_SHA: ${{ steps.cpr.outputs.pull-request-head-sha }}
+          PR_NUMBER: ${{ steps.cpr.outputs.pull-request-number }}
+          PR_TITLE: ${{ steps.pr_title.outputs.title }}
+        run: |
+          node <<'JS'
+          const fs = require('fs');
+          const crypto = require('crypto');
+          const result = JSON.parse(fs.readFileSync('/tmp/sync-result.json', 'utf-8'));
+          const { HEAD_SHA, PR_NUMBER, PR_TITLE, GITHUB_REPOSITORY, GITHUB_OUTPUT } = process.env;
+          const chars = result.newCharacters;
+
+          let title = PR_TITLE;
+          if (chars.length === 1) title = 'New character: ' + chars[0].name_ja;
+          if (chars.length > 1) title = 'New characters: ' + chars.map(c => c.name_ja).join(', ');
+
+          const lines = [
+            'Approve merges #' + PR_NUMBER + ' into develop and promotes develop to main, deploying to production. ' +
+              'Nothing newer than commit ' + HEAD_SHA.slice(0, 7) + ' is merged.',
+          ];
+          if (chars.length > 0) {
+            lines.push('');
+            chars.forEach(c => lines.push(c.id + ': ' + c.name_ja));
+          }
+          if (chars.length > 1) {
+            lines.push('Icon shown: ' + chars[0].name_ja + '; check the others on the pull request.');
+          }
+          lines.push('');
+          lines.push(
+            'New commissions: ' + result.newCommissions.length +
+            ', updated characters: ' + result.updatedCharacters.length +
+            ', updated commissions: ' + result.updatedCommissions.length
+          );
+
+          // Icons are Git LFS objects: raw.githubusercontent.com serves the
+          // pointer file, media.githubusercontent.com serves the PNG.
+          const image = chars.length > 0
+            ? 'https://media.githubusercontent.com/media/' + GITHUB_REPOSITORY + '/' + HEAD_SHA +
+              '/public/assets/characters/' + chars[0].id + '.png'
+            : '';
+
+          const out = [];
+          for (const [name, value] of Object.entries({ title, body: lines.join('\n'), image })) {
+            const delimiter = 'EOF_' + crypto.randomBytes(16).toString('hex');
+            out.push(name + '<<' + delimiter, value, delimiter);
+          }
+          fs.appendFileSync(GITHUB_OUTPUT, out.join('\n') + '\n');
+          JS
+
+  ask:
+    needs: sync
+    if: needs.sync.outputs.operation == 'created' || needs.sync.outputs.operation == 'updated'
+    runs-on: ubuntu-latest
+    # A job holding id-token: write holds nothing else: any code here could
+    # obtain a token naming this repository.
+    permissions:
+      id-token: write
+    steps:
+      - name: Ask for approval in Discord
+        uses: Taka499/nudge/actions/request@d9f7f1ac185050506d526532a0e24861564422cf # v1.1.0
+        with:
+          endpoint: https://nudge.tia.run
+          title: ${{ needs.sync.outputs.title }}
+          body: ${{ needs.sync.outputs.body }}
+          url: ${{ needs.sync.outputs.url }}
+          commit: ${{ needs.sync.outputs.head }}
+          image: ${{ needs.sync.outputs.image }}

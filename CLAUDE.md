@@ -241,6 +241,10 @@ The `.github/workflows/pages.yml` workflow automatically:
 
 **Manual deployment:** You can also trigger deployment from the GitHub Actions tab without creating a version tag.
 
+### Auto-sync approval via Discord
+
+When `auto-character.yml` opens or updates the `auto/sync-data` pull request, it sends a Nudge approval request to the maintainer's Discord describing the sync (with the new character's name and icon when there is one). Tapping Approve runs `.github/workflows/nudge-approved.yml`. It merges that exact commit into `develop`, promotes `develop` to `main` only if nothing else is unreleased, and dispatches `pages.yml`. The Discord message replaces the promotion pull request as the release checkpoint (per `_docs/adr/0001-one-tap-discord-approval-releases-to-production.md`). The handler is triggered by `repository_dispatch`, so it only runs once it is on `main`. `promote-to-main.yml` still covers pull requests merged by hand on GitHub.
+
 ## Commit Discipline
 
 - **Git-flow workflow:** Use `develop` for development, `main` for production
