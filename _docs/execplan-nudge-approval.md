@@ -29,8 +29,9 @@ The safety property matters as much as the convenience. A tap approves one exact
 - [x] (2026-09-27 22:50Z) Milestone 2 committed as `6ee6302` (Codex review: LGTM, no findings).
 - [x] (2026-09-27 23:05Z) Milestone 3: `.github/workflows/nudge-approved.yml` with jobs `merge` (guard, bind, merge, read merge commit), `promote` (checks, find-or-open promotion, guarded merge with retry, then a separate deploy step) and `report`. `actionlint` exits 0 on both workflows; it first flagged `outcome=done` (SC1010, the keyword `done`), so the outcome values are now quoted. The `promote` and `report` scripts were extracted with Ruby's YAML parser and run locally against a fake `gh`. Ten guard scenarios, five API failures and seven outcome mappings behaved as specified. Disabling the "develop moved" check in a copy made that scenario merge, which shows the harness detects a broken guard. The CLAUDE.md subsection is committed with this milestone.
 - [x] (2026-09-27 23:20Z) Codex review of the handler: CHANGES REQUESTED. Fixed: the promotion's "already merged" path and any retarget are now caught by a post-merge check (`headRefOid == M`, base `main`) before the deploy; the develop merge records `merged=true` at once and the next step confirms the base is `develop`. Harness re-run: all earlier cases unchanged, and the two new ones ("merged by someone else at a newer head", "retargeted") fail without deploying. Disabling the new check makes the first of them report `promoted=true`, so the harness covers it. Deferred items and their reasons are in the Decision Log.
-- [ ] Milestone 4: static validation, commits proposed one per milestone, pull request into `develop`, then promotion to `main` (the handler must be on the default branch before a tap can run it).
-- [ ] Milestone 5: end-to-end acceptance run by the maintainer: a manual `auto-character.yml` run, then a tap in Discord.
+- [x] (2026-09-28 01:17Z) Milestone 4: Milestone 3 committed as `d4aaf26`; `feature/nudge-approval` pushed and #57 into `develop` merged by the maintainer at 01:05Z (`fe10cc0`). The agent opened promotion #58 (`develop` → `main`), which the maintainer merged at 01:17Z. No Pages deploy ran, as intended: the `pages.yml` run list has no run between 2026-09-09 and 2026-09-30.
+- [x] (2026-09-30 18:53Z) Milestone 5: the scheduled (not manual) `auto-character.yml` run `36761525297` at 18:51Z opened #64 with four new characters. Its `ask` job raised the request (title "New characters: エリー, 太古ノ巨神兵（左手）, 太古ノ巨神兵（右手）, 太古ノ巨神兵", image char-040 at commit `45486d3`). The maintainer tapped Approve. Handler run `36761686229` (repository_dispatch, 18:52:32Z) ended with `merge`, `promote` and `report` all successful. #64 was merged into `develop` at 18:52:41Z and promotion #65 into `main` at 18:52:55Z, both by `app/github-actions`, and the promotion merged on its first attempt. Pages run `36761736812` (`workflow_dispatch`, 18:52:58Z) succeeded. `resolve` was called with `outcome: done`, detail "merged #64 into develop, promoted to main (#65), deploy started". The live site's characters chunk contains char-040 to char-043, and `assets/characters/char-043.png` serves `image/png`. Afterwards `compare main...develop` is `behind`.
+- [x] (2026-09-30) Plan complete. Closed out: retrospective written, ADR sweep done (no new ADR; see Outcomes), CLAUDE.md snapshot updated. From here this document is history; corrections go to `_docs/adr/` and `CLAUDE.md`.
 
 
 ## Surprises & Discoveries
@@ -46,6 +47,15 @@ The safety property matters as much as the convenience. A tap approves one exact
 
 - Observation: the repository is public. Neither `main` nor `develop` has branch protection. The only ruleset ("main-protection") has enforcement `disabled`. The `github-pages` environment accepts deployments only from branch `main`. Workflow token default permissions are `read`, and "Allow GitHub Actions to create and approve pull requests" is on (`can_approve_pull_request_reviews: true`), which is why `promote-to-main.yml` can already open pull requests.
   Evidence: `gh repo view --json visibility` → `PUBLIC`. `gh api repos/Taka499/ss-assist/branches/main/protection` → 404 "Branch not protected". `gh api repos/Taka499/ss-assist/rulesets` → `"enforcement":"disabled"`. `gh api …/environments/github-pages/deployment-branch-policies` → one policy, name `main`. `gh api …/actions/permissions/workflow` → `{"default_workflow_permissions":"read","can_approve_pull_request_reviews":true}`.
+
+- Observation (Milestone 5): the `GITHUB_TOKEN` prediction above held in production. The handler's merges of #64 and #65 started neither `promote-to-main.yml` nor a push-triggered `pages.yml`; the only Pages run was the handler's `workflow_dispatch`.
+  Evidence: `gh run list --workflow promote-to-main.yml` shows its latest run at 2026-09-28 01:05Z (for #57, skipped because the branch is not `auto/`), none on 2026-09-30. `gh run list --workflow pages.yml` shows run `36761736812`, event `workflow_dispatch`, at 18:52:58Z and no `push` run that day.
+
+- Observation (Milestone 5): the weekly cron `0 14 * * 3` (14:00 UTC Wednesday) does not start on time. The acceptance run started at 18:51Z, and the four runs before it started between 17:38Z and 18:17Z. So a Discord request should be expected three to five hours after the nominal time.
+  Evidence: `gh run list --workflow auto-character.yml` createdAt values: 2026-09-02T17:40Z, 09-09T17:38Z, 09-16T17:59Z, 09-23T18:17Z, 09-30T18:51Z, all with event `schedule`.
+
+- Observation (Milestone 5): three of the four new characters in #64, char-041 to char-043 (the 太古ノ巨神兵 parts), share one LFS object. The Discord message showed only char-040's icon, as designed, so the request itself gave no hint of this. Whether that shared image is the correct in-game icon or a placeholder was not checked.
+  Evidence: `git lfs ls-files` on `origin/develop` lists `4343351439 * public/assets/characters/char-041.png`, the same oid for char-042 and char-043, and `1f24da8d2d` for char-040.
 
 
 ## Decision Log
@@ -129,7 +139,30 @@ The safety property matters as much as the convenience. A tap approves one exact
 
 ## Outcomes & Retrospective
 
-(Not started. Fill in at the end of Milestone 5.)
+**Achieved.** The purpose stated at the top is met in production. On 2026-09-30 the weekly scheduled run found four new characters and raised a Discord request. One tap merged #64 into `develop`, promoted it to `main` as #65, started the deploy, and wrote "done: merged #64 into develop, promoted to main (#65), deploy started" back onto the message. The whole chain took about 30 seconds after the tap. The live site then served char-040 to char-043. The maintainer did no step on GitHub. The evidence is in `Progress` (Milestone 5) and `Surprises & Discoveries`.
+
+**Not achieved or not exercised.**
+
+- The negative acceptance checks were not run in production: tapping an answered message, a stale tap after a newer push, and the "other unreleased work" refusal. They are covered only by the local fake-`gh` harness from Milestone 3, which is not checked in.
+- The retry loop for the promotion merge never fired; the promotion merged on its first attempt.
+- The four items deferred after the Codex review remain open, with their reasons in the Decision Log: preventing rather than detecting a retarget, the window before `promoted=true` is written, cancellation, and the guard action's inherited permissions.
+- No `nudge-declined` handler exists.
+- The Nudge README's handler snippet still lacks `GH_REPO`. That fix belongs in the Nudge repository and was not made from here.
+- Separately, 16 store tests (`src/store/*.test.ts`) fail locally under Node 26.8.2 because `localStorage` is undefined in the test environment. That predates this plan, is unrelated to it and was left alone. The cause was not confirmed (a Node 20 run would settle it).
+
+**Lessons.**
+
+- The external reviews found what the local tests could not, because the tests encoded only the cases the author thought of. The Codex review of the plan design found that the guard accepts any open pull request at the approved commit, including one from a fork against `main`. The review of the handler found that the "already merged" path accepted a promotion merged by someone else at a newer head. Both were semantic holes in the design, not coding mistakes, and both would have passed the harness unchanged. The Milestone 2 review found nothing. So the reviews paid for themselves on the design and the risky handler, not on every milestone.
+- Testing workflow shell logic without running a workflow worked well. Each `run:` script was extracted with a real YAML parser, run against a fake `gh` driven by environment variables, and mutation-checked by disabling a guard in a copy. The production run then needed no fix.
+- Scheduled workflows start hours late (three to five hours here), so "Wednesday 14:00 UTC" should be read as "Wednesday evening UTC".
+- One image per request hides the other new characters' icons. On the first real run, three of the four shared a single LFS object, which the Discord message could not reveal (see `Surprises & Discoveries`).
+
+**ADR sweep (close-out).** Each Decision Log entry and discovery was tested against the three gates in `_docs/adr/README.md`. The one-tap release decision is already `_docs/adr/0001-one-tap-discord-approval-releases-to-production.md` (accepted). Implementation and production evidence confirm it, so it stays as it is. No other entry passes all three gates:
+
+- The `GITHUB_TOKEN` behaviour, the LFS media URL and `GH_REPO` are platform facts, not choices.
+- The guards, the pull-request-based promotion, Dependabot's target branch and the concurrency group are cheap to reverse.
+
+The facts a future session needs are indexed in `CLAUDE.md` with a citation to this plan instead. No ADR was written.
 
 
 ## Context and Orientation
